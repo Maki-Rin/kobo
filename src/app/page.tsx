@@ -122,7 +122,7 @@ export default function HomePage() {
       <footer className='bg-black text-white py-6 px-6 mt-12'>
         <div className='container mx-auto text-center'>
           <a href='https://www.usuiyoshito.com' className='text-sm'>
-            © Yosito Usui All rights reserved
+            © Yoshito Usui All rights reserved
           </a>
         </div>
       </footer>
