@@ -32,7 +32,9 @@ export default function HomePage() {
       {/* Header */}
       <header className='bg-black text-white py-4 px-6'>
         <div className='container mx-auto'>
-          <h1 className='text-2xl font-bold'>KOBO</h1>
+          <h1 className='text-2xl font-bold'>
+            KOBO <span className='text-lg'>unofficial</span>
+          </h1>
         </div>
       </header>
 
@@ -120,7 +122,7 @@ export default function HomePage() {
       <footer className='bg-black text-white py-6 px-6 mt-12'>
         <div className='container mx-auto text-center'>
           <a href='https://www.usuiyoshito.com' className='text-sm'>
-            © Usui Yosito All rights reserved
+            © Yoshito Usui All rights reserved
           </a>
         </div>
       </footer>
