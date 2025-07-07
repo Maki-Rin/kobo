@@ -1,0 +1,15 @@
+{
+  "articles": [
+    {
+      "id": "3DPRINT",
+      "title": "Adventurer 5M Pro を使った3Dプリント手順",
+      "excerpt": "Adventurer 5M Pro を使った3Dプリントの手順を解説します。",
+      "date": "2025-07-07",
+      "author": {
+        "name": "Yoshito Usui",
+        "avatar": "/images/Usui.jpg"
+      },
+      "coverImage": "/images/top5.jpg"
+    }
+  ]
+}

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 const heroImages = [
   '/images/top1.jpg',
@@ -14,8 +17,67 @@ const heroImages = [
   '/images/top8.jpg',
 ];
 
+interface Article {
+  id: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  author: {
+    name: string;
+    avatar: string;
+  };
+  coverImage: string;
+}
+
+interface ArticlesData {
+  articles: Article[];
+}
+
+interface ArticleCardProps {
+  article: Article;
+}
+
+const ArticleCard = ({ article }: ArticleCardProps) => {
+  return (
+    <Link href={`/articles/${article.id}`}>
+      <div className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer'>
+        <div className='aspect-video bg-gray-200 relative'>
+          <Image
+            src={article.coverImage}
+            alt={article.title}
+            fill
+            className='object-cover'
+          />
+        </div>
+        <div className='p-6'>
+          <h3 className='text-xl font-bold mb-3 text-left'>{article.title}</h3>
+          <p className='text-gray-600 text-sm mb-4 text-left'>
+            {article.excerpt}
+          </p>
+          <div className='flex items-center justify-between text-sm text-gray-500'>
+            <div className='flex items-center'>
+              <Image
+                src={article.author.avatar}
+                alt={`${article.author.name} avatar`}
+                width={24}
+                height={24}
+                className='rounded-full mr-2'
+              />
+              <span>{article.author.name}</span>
+            </div>
+            <span>{article.date}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
 export default function HomePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [articlesData, setArticlesData] = useState<ArticlesData>({
+    articles: [],
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -27,16 +89,24 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch('/data/articles.json');
+        const data: ArticlesData = await response.json();
+        setArticlesData(data);
+      } catch (error) {
+        console.error('Failed to fetch articles:', error);
+      }
+    };
+
+    fetchArticles();
+  }, []);
+
   return (
     <div className='min-h-screen bg-white'>
       {/* Header */}
-      <header className='bg-black text-white py-4 px-6'>
-        <div className='container mx-auto'>
-          <h1 className='text-2xl font-bold'>
-            KOBO <span className='text-lg'>unofficial</span>
-          </h1>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero Section with Image Carousel */}
       <section className='relative h-96 overflow-hidden'>
@@ -92,6 +162,37 @@ export default function HomePage() {
               最新の技術を組み合わせて、革新的なものづくりを始めましょう。
             </p>
           </div>
+
+          {/* Articles Grid */}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-12'>
+            {articlesData.articles.map((article) => (
+              <ArticleCard key={article.id} article={article} />
+            ))}
+
+            {/* Placeholder card for third column if needed */}
+            {articlesData.articles.length < 3 && (
+              <div className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'>
+                <div className='aspect-video bg-gray-200 relative flex items-center justify-center'>
+                  <span className='text-gray-500'>Coming Soon</span>
+                </div>
+                <div className='p-6'>
+                  <h3 className='text-xl font-bold mb-3 text-left'>
+                    新しいコンテンツを準備中
+                  </h3>
+                  <p className='text-gray-600 text-sm mb-4 text-left'>
+                    近日中に新しいチュートリアルやワークショップを公開予定です。
+                  </p>
+                  <div className='flex items-center justify-between text-sm text-gray-500'>
+                    <div className='flex items-center'>
+                      <div className='w-6 h-6 bg-gray-300 rounded-full mr-2'></div>
+                      <span>KOBO Team</span>
+                    </div>
+                    <span>Coming Soon</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Section 2: Works */}
@@ -118,14 +219,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className='bg-black text-white py-6 px-6 mt-12'>
-        <div className='container mx-auto text-center'>
-          <a href='https://www.usuiyoshito.com' className='text-sm'>
-            © Yoshito Usui All rights reserved
-          </a>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
