@@ -5,7 +5,7 @@ excerpt: 'Adventurer 5M Pro を使った3Dプリントの手順を解説しま�
 author:
   name: 'Yoshito Usui'
   avatar: '/images/usui.jpg'
-coverImage: '/images/top5.jpg'
+coverImage: '/images/Adventure5Mpro.jpg'
 ---
 
 ## 1. 3D モデルを用意する
@@ -13,13 +13,13 @@ coverImage: '/images/top5.jpg'
 - 使用可能なファイル形式：`STL`, `OBJ` など
 - モデルの入手方法：
 
-  - 自分で 3DCAD（例：TinkerCAD, Fusion360, Blender）で作成
   - オンラインでダウンロード（例：Thingiverse, Printables）
+  - 自分で 3DCAD（例：TinkerCAD, Fusion360, Blender）で作成
 
-- thingiverse ダウンロード手順
+- [Thingiverse](https://www.thingiverse.com) ダウンロード手順
   ![alt text](/images/adventure5mpro/thingiverse1.png)![alt text](/images/adventure5mpro/thingiverse2.png)
 
-- TinkerCad ダウンロード手順
+- [TinkerCad](https://www.tinkercad.com) ダウンロード手順
   ![alt text](/images/adventure5mpro/tinkercad1.png)![alt text](/images/adventure5mpro/tinkercad2.png)
 
 ## 2. スライスソフトを起動する
@@ -60,6 +60,7 @@ coverImage: '/images/top5.jpg'
   ![alt text](/images/adventure5mpro/flashprint3.png)
 
 - Orca-FlashForge の場合
+  ![alt text](/images/adventure5mpro/orca2-1.png)
   ![alt text](/images/adventure5mpro/orca2.png)
   ![alt text](/images/adventure5mpro/orca3.png)
 

@@ -5,7 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import WorkCard from '@/components/WorkCard';
+import EventCard from '@/components/EventCard';
 import { type Article } from '@/lib/articles';
+import { type Work, getWorks } from '@/lib/works';
+import { type Event, getEvents } from '@/lib/events';
 
 const heroImages = [
   '/images/top1.jpg',
@@ -25,7 +29,7 @@ interface ArticleCardProps {
 const ArticleCard = ({ article }: ArticleCardProps) => {
   return (
     <Link href={`/articles/${article.id}`}>
-      <div className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer'>
+      <div className='bg-white dark:bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer'>
         <div className='aspect-video bg-gray-200 relative'>
           <Image
             src={article.coverImage}
@@ -35,22 +39,37 @@ const ArticleCard = ({ article }: ArticleCardProps) => {
           />
         </div>
         <div className='p-6'>
-          <h3 className='text-xl font-bold mb-3 text-left'>{article.title}</h3>
-          <p className='text-gray-600 text-sm mb-4 text-left'>
+          <h3 className='text-xl font-bold mb-3 text-left text-gray-900 dark:text-gray-900'>
+            {article.title}
+          </h3>
+          <p className='text-gray-600 dark:text-gray-600 text-sm mb-4 text-left'>
             {article.excerpt}
           </p>
-          <div className='flex items-center justify-between text-sm text-gray-500'>
+          <div className='flex items-center justify-between text-sm text-gray-500 dark:text-gray-500'>
             <div className='flex items-center'>
-              <Image
-                src={article.author.avatar}
-                alt={`${article.author.name} avatar`}
-                width={24}
-                height={24}
-                className='rounded-full mr-2'
-              />
-              <span>{article.author.name}</span>
+              {article.author &&
+              article.author.name &&
+              article.author.avatar ? (
+                <>
+                  <Image
+                    src={article.author.avatar}
+                    alt={`${article.author.name} avatar`}
+                    width={24}
+                    height={24}
+                    className='rounded-full mr-2'
+                  />
+                  <span>{article.author.name}</span>
+                </>
+              ) : (
+                <>
+                  <div className='w-6 h-6 bg-gray-300 rounded-full mr-2'></div>
+                  <span>KOBO STAFF</span>
+                </>
+              )}
             </div>
-            <span>{article.date}</span>
+            <span className='text-gray-500 dark:text-gray-500'>
+              {article.date || 'Coming Soon'}
+            </span>
           </div>
         </div>
       </div>
@@ -61,6 +80,27 @@ const ArticleCard = ({ article }: ArticleCardProps) => {
 export default function HomePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [currentWorksIndex, setCurrentWorksIndex] = useState(0);
+  const [currentEventsIndex, setCurrentEventsIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  const worksPerPage = 3;
+  const mobileWorksPerPage = 1;
+  const eventsPerPage = 3;
+  const mobileEventsPerPage = 1;
+
+  // Check if screen is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -86,8 +126,80 @@ export default function HomePage() {
     fetchArticles();
   }, []);
 
+  useEffect(() => {
+    const fetchWorks = async () => {
+      try {
+        const worksData = await getWorks();
+        setWorks(worksData);
+      } catch (error) {
+        console.error('Failed to fetch works:', error);
+      }
+    };
+
+    fetchWorks();
+  }, []);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const eventsData = await getEvents();
+        setEvents(eventsData);
+      } catch (error) {
+        console.error('Failed to fetch events:', error);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Works carousel functions
+  const currentWorksPerPage = isMobile ? mobileWorksPerPage : worksPerPage;
+  const totalWorksPages = Math.ceil(works.length / currentWorksPerPage);
+  const currentWorks = works.slice(
+    currentWorksIndex * currentWorksPerPage,
+    (currentWorksIndex + 1) * currentWorksPerPage
+  );
+
+  const handleWorksNext = () => {
+    setCurrentWorksIndex((prevIndex) =>
+      prevIndex === totalWorksPages - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const handleWorksPrev = () => {
+    setCurrentWorksIndex((prevIndex) =>
+      prevIndex === 0 ? totalWorksPages - 1 : prevIndex - 1
+    );
+  };
+
+  // Events carousel functions
+  const currentEventsPerPage = isMobile ? mobileEventsPerPage : eventsPerPage;
+  const totalEventsPages = Math.ceil(events.length / currentEventsPerPage);
+  const currentEvents = events.slice(
+    currentEventsIndex * currentEventsPerPage,
+    (currentEventsIndex + 1) * currentEventsPerPage
+  );
+
+  const handleEventsNext = () => {
+    setCurrentEventsIndex((prevIndex) =>
+      prevIndex === totalEventsPages - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const handleEventsPrev = () => {
+    setCurrentEventsIndex((prevIndex) =>
+      prevIndex === 0 ? totalEventsPages - 1 : prevIndex - 1
+    );
+  };
+
+  // Reset indexes when screen size changes
+  useEffect(() => {
+    setCurrentWorksIndex(0);
+    setCurrentEventsIndex(0);
+  }, [isMobile]);
+
   return (
-    <div className='min-h-screen bg-white'>
+    <div className='min-h-screen bg-white text-gray-900 dark:bg-white dark:text-gray-900'>
       {/* Header */}
       <Header />
 
@@ -137,9 +249,11 @@ export default function HomePage() {
       <main className='container mx-auto px-6 py-12'>
         {/* Section 1: How to Fab */}
         <section className='mb-16 text-center'>
-          <h2 className='text-3xl font-bold mb-8'>How to Fab</h2>
+          <h2 className='text-3xl font-bold mb-8 text-gray-900 dark:text-gray-900'>
+            How to Fab
+          </h2>
           <div className='max-w-4xl mx-auto'>
-            <p className='text-lg text-gray-600 leading-relaxed'>
+            <p className='text-lg text-gray-600 dark:text-gray-700 leading-relaxed'>
               ファブリケーションの基本から応用まで、あなたの創造力を形にするためのガイドをご紹介します。
               <br />
               最新の技術を組み合わせて、革新的なものづくりを始めましょう。
@@ -148,27 +262,29 @@ export default function HomePage() {
 
           {/* Articles Grid */}
           <div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-12'>
-            {articles.map((article) => (
+            {articles.slice(0, isMobile ? 3 : 3).map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
 
-            {/* Placeholder card for third column if needed */}
-            {articles.length < 3 && (
-              <div className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'>
+            {/* Placeholder card for third column if needed - only show on desktop when less than 3 articles */}
+            {!isMobile && articles.length < 3 && (
+              <div className='bg-white dark:bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'>
                 <div className='aspect-video bg-gray-200 relative flex items-center justify-center'>
-                  <span className='text-gray-500'>Coming Soon</span>
+                  <span className='text-gray-500 dark:text-gray-500'>
+                    Coming Soon
+                  </span>
                 </div>
                 <div className='p-6'>
-                  <h3 className='text-xl font-bold mb-3 text-left'>
+                  <h3 className='text-xl font-bold mb-3 text-left text-gray-900 dark:text-gray-900'>
                     新しいコンテンツを準備中
                   </h3>
-                  <p className='text-gray-600 text-sm mb-4 text-left'>
+                  <p className='text-gray-600 dark:text-gray-600 text-sm mb-4 text-left'>
                     近日中に新しいチュートリアルやワークショップを公開予定です。
                   </p>
-                  <div className='flex items-center justify-between text-sm text-gray-500'>
+                  <div className='flex items-center justify-between text-sm text-gray-500 dark:text-gray-500'>
                     <div className='flex items-center'>
                       <div className='w-6 h-6 bg-gray-300 rounded-full mr-2'></div>
-                      <span>KOBO Team</span>
+                      <span>KOBO STAFF</span>
                     </div>
                     <span>Coming Soon</span>
                   </div>
@@ -176,28 +292,162 @@ export default function HomePage() {
               </div>
             )}
           </div>
+
+          {/* Read More Button - show only if there are more than 3 articles */}
+          {articles.length > 3 && (
+            <div className='mt-8'>
+              <Link href='/articles'>
+                <button
+                  className='relative bg-transparent text-gray-600 dark:text-gray-600 px-12 py-3 hover:text-gray-700 dark:hover:text-gray-700 transition-colors
+                  before:content-[""] before:absolute before:left-0 before:top-1/2 before:-translate-y-0.5 before:w-8 before:h-0.5 before:bg-gray-400 dark:before:bg-gray-400
+                  after:content-[""] after:absolute after:right-0 after:top-1/2 after:-translate-y-0.5 after:w-8 after:h-0.5 after:bg-gray-400 dark:after:bg-gray-400
+                  hover:before:bg-gray-500 dark:hover:before:bg-gray-500 hover:after:bg-gray-500 dark:hover:after:bg-gray-500'
+                >
+                  Read more
+                </button>
+              </Link>
+            </div>
+          )}
         </section>
 
         {/* Section 2: Works */}
         <section className='mb-16 text-center'>
-          <h2 className='text-3xl font-bold mb-8'>Works</h2>
-          <div className='max-w-2xl mx-auto'>
-            <div className='bg-gray-400 h-64 flex items-center justify-center rounded-lg'></div>
+          <h2 className='text-3xl font-bold mb-8 text-gray-900 dark:text-gray-900'>
+            Works
+          </h2>
+          <div className='max-w-6xl mx-auto'>
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+              {currentWorks.map((work) => (
+                <WorkCard key={work.id} work={work} />
+              ))}
+            </div>
+
+            {/* Navigation and Pagination - show only if there are multiple pages */}
+            {works.length > currentWorksPerPage && (
+              <div className='flex justify-center items-center mt-6 space-x-4'>
+                <button
+                  onClick={handleWorksPrev}
+                  className='bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow'
+                >
+                  <svg
+                    className='w-5 h-5 text-gray-600'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M15 19l-7-7 7-7'
+                    />
+                  </svg>
+                </button>
+
+                <div className='flex space-x-2'>
+                  {Array.from({ length: totalWorksPages }, (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentWorksIndex(index)}
+                      className={`w-3 h-3 rounded-full transition-colors ${
+                        index === currentWorksIndex
+                          ? 'bg-blue-500'
+                          : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleWorksNext}
+                  className='bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow'
+                >
+                  <svg
+                    className='w-5 h-5 text-gray-600'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M9 5l7 7-7 7'
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         </section>
-
-        {/* Section 3: Topics */}
+        {/* Section 3: Events */}
         <section className='mb-16 text-center'>
-          <h2 className='text-3xl font-bold mb-8'>Topics</h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto'>
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className='bg-gray-400 h-48 rounded-lg flex items-center justify-center'
-              >
-                <span className='text-white font-medium'>Topic {item}</span>
+          <h2 className='text-3xl font-bold mb-8 text-gray-900 dark:text-gray-900'>
+            Events
+          </h2>
+          <div className='max-w-6xl mx-auto'>
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+              {currentEvents.map((event, index) => (
+                <EventCard key={`${event.date}-${index}`} event={event} />
+              ))}
+            </div>
+
+            {/* Navigation and Pagination - show only if there are multiple pages */}
+            {events.length > currentEventsPerPage && (
+              <div className='flex justify-center items-center mt-6 space-x-4'>
+                <button
+                  onClick={handleEventsPrev}
+                  className='bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow'
+                >
+                  <svg
+                    className='w-5 h-5 text-gray-600'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M15 19l-7-7 7-7'
+                    />
+                  </svg>
+                </button>
+
+                <div className='flex space-x-2'>
+                  {Array.from({ length: totalEventsPages }, (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentEventsIndex(index)}
+                      className={`w-3 h-3 rounded-full transition-colors ${
+                        index === currentEventsIndex
+                          ? 'bg-blue-500'
+                          : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleEventsNext}
+                  className='bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow'
+                >
+                  <svg
+                    className='w-5 h-5 text-gray-600'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M9 5l7 7-7 7'
+                    />
+                  </svg>
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </section>
       </main>
