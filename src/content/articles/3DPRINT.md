@@ -13,8 +13,8 @@ coverImage: '/images/Adventure5Mpro.jpg'
 - 使用可能なファイル形式：`STL`, `OBJ` など
 - モデルの入手方法：
 
-  - 自分で 3DCAD（例：TinkerCAD, Fusion360, Blender）で作成
   - オンラインでダウンロード（例：Thingiverse, Printables）
+  - 自分で 3DCAD（例：TinkerCAD, Fusion360, Blender）で作成
 
 - [Thingiverse](https://www.thingiverse.com) ダウンロード手順
   ![alt text](/images/adventure5mpro/thingiverse1.png)![alt text](/images/adventure5mpro/thingiverse2.png)
