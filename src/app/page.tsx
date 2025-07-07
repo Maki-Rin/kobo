@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { type Article } from '@/lib/articles';
 
 const heroImages = [
   '/images/top1.jpg',
@@ -16,22 +17,6 @@ const heroImages = [
   '/images/top7.jpg',
   '/images/top8.jpg',
 ];
-
-interface Article {
-  id: string;
-  title: string;
-  excerpt: string;
-  date: string;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  coverImage: string;
-}
-
-interface ArticlesData {
-  articles: Article[];
-}
 
 interface ArticleCardProps {
   article: Article;
@@ -75,9 +60,7 @@ const ArticleCard = ({ article }: ArticleCardProps) => {
 
 export default function HomePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [articlesData, setArticlesData] = useState<ArticlesData>({
-    articles: [],
-  });
+  const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -92,9 +75,9 @@ export default function HomePage() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        const response = await fetch('/data/articles.json');
-        const data: ArticlesData = await response.json();
-        setArticlesData(data);
+        const response = await fetch('/api/articles');
+        const data: { articles: Article[] } = await response.json();
+        setArticles(data.articles);
       } catch (error) {
         console.error('Failed to fetch articles:', error);
       }
@@ -165,12 +148,12 @@ export default function HomePage() {
 
           {/* Articles Grid */}
           <div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-12'>
-            {articlesData.articles.map((article) => (
+            {articles.map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
 
             {/* Placeholder card for third column if needed */}
-            {articlesData.articles.length < 3 && (
+            {articles.length < 3 && (
               <div className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'>
                 <div className='aspect-video bg-gray-200 relative flex items-center justify-center'>
                   <span className='text-gray-500'>Coming Soon</span>

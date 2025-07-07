@@ -1,26 +1,8 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-
-interface Article {
-  id: string;
-  title: string;
-  excerpt: string;
-  date: string;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  coverImage: string;
-}
-
-interface ArticlesData {
-  articles: Article[];
-}
+import { getArticles, type Article } from '@/lib/articles';
 
 interface ArticleCardProps {
   article: Article;
@@ -62,24 +44,8 @@ const ArticleCard = ({ article }: ArticleCardProps) => {
   );
 };
 
-export default function ArticlesPage() {
-  const [articlesData, setArticlesData] = useState<ArticlesData>({
-    articles: [],
-  });
-
-  useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        const response = await fetch('/data/articles.json');
-        const data: ArticlesData = await response.json();
-        setArticlesData(data);
-      } catch (error) {
-        console.error('Failed to fetch articles:', error);
-      }
-    };
-
-    fetchArticles();
-  }, []);
+export default async function ArticlesPage() {
+  const articles = await getArticles();
 
   return (
     <div className='min-h-screen bg-white'>
@@ -97,7 +63,7 @@ export default function ArticlesPage() {
 
         {/* Articles Grid */}
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto'>
-          {articlesData.articles.map((article) => (
+          {articles.map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
         </div>

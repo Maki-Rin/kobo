@@ -1,10 +1,11 @@
 ---
 title: 'Adventurer 5M Pro を使った3Dプリント手順'
 date: '2025-07-07'
+excerpt: 'Adventurer 5M Pro を使った3Dプリントの手順を解説します。'
 author:
   name: 'Yoshito Usui'
   avatar: '/images/usui.jpg'
-coverImage: '/images/tutorial/top.jpg'
+coverImage: '/images/top5.jpg'
 ---
 
 ## 1. 3D モデルを用意する
