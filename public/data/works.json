@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "title": "Master Sword",
+    "description": "3Dプリント作品です。\n複雑な構造も精密に再現できます。\n\n詳細な手順については https://www.usuiyoshito.com をご覧ください。",
+    "coverImage": "/images/works/mastersword.jpg",
+    "images": ["/images/works/mastersword.jpg"],
+    "tags": ["3D Printer"],
+    "author": {
+      "name": "Yoshito Usui ",
+      "avatar": "/images/usui.jpg"
+    }
+  },
+  {
+    "id": "2",
+    "title": "でっかい漫画のコマ",
+    "description": "レーザーカッターを使用した精密な切断・彫刻作品。\n木材やアクリルなど様々な素材に対応。\n\n参考リンク: https://www.usuiyoshito.com",
+    "coverImage": "/images/works/manga.jpeg",
+    "images": ["/images/works/manga.jpeg"],
+    "tags": ["レーザー"],
+    "author": {
+      "name": "Yoshito Usui",
+      "avatar": "/images/usui.jpg"
+    }
+  }
+]
