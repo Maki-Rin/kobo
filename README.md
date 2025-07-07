@@ -4,12 +4,6 @@
 
 [臼井義人](https://www.usuiyoshito.com)，牧野倫太郎
 
-# KOBO の Web サイト作るぞ！
-
-### 開発者
-
-[臼井義人](https://www.usuiyoshito.com)，牧野倫太郎
-
 ## 記事（Articles）の書き方
 
 このプロジェクトでは、記事は **Markdown ファイル 1 つだけ** で完結します。
