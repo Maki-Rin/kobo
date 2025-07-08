@@ -22,17 +22,5 @@
       "name": "Yoshito Usui",
       "avatar": "/images/usui.jpg"
     }
-  },
-  {
-    "id": "3",
-    "title": "Lithophane Art",
-    "description": "光を透過させることで画像やデザインを浮かび上がらせるアート作品。\n素材の厚みの違いによって光の透過量が変化し、明暗で画像を表現しています。\n 参考リンクからオリジナルの作品を作ることができます。\n\n参考リンク: https://3dp.rocks/lithophane/",
-    "coverImage": "/images/works/lithophane.jpg",
-    "images": ["/images/works/lithophane.jpg", "/images/works/lithophane_original.png"],
-    "tags": ["3D Printer"],
-    "author": {
-      "name": "Yoshito Usui",
-      "avatar": "/images/usui.jpg"
-    }
   }
 ]
