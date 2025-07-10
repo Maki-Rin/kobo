@@ -34,5 +34,17 @@
       "name": "Yoshito Usui",
       "avatar": "/images/usui.jpg"
     }
+  },
+  {
+    "id": "4",
+    "title": "Hairy Lion",
+    "description": "名前の通り、毛のあるライオン作品です。\n造形終了後、熱処理でフィラメントを柔らかく整え、スタイリングすることで完成します。\n 参考リンクから造形に必要なstlファイルをダウンロードすることができます。\n\n参考リンク: https://www.thingiverse.com/thing:2007221",
+    "coverImage": "/images/works/hairlion.JPG",
+    "images": ["/images/works/hairlion.JPG", "/images/works/hairlion1.JPG"],
+    "tags": ["3D Printer"],
+    "author": {
+      "name": "Yoshito Usui",
+      "avatar": "/images/usui.jpg"
+    }
   }
 ]

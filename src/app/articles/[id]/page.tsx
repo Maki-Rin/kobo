@@ -72,7 +72,7 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-8
 [&_ul>li::marker]:text-lg [&_ol>li::marker]:text-lg
 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:bg-muted/10 [&_blockquote]:py-2
-[&_code]:bg-gray-100 [&_code]:p-2 [&_code]:rounded-lg [&_code]:text-base
+[&_code]:p-2 [&_code]:rounded-lg [&_code]:text-base
 [&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-5 [&_pre]:rounded-xl'
                 dangerouslySetInnerHTML={{ __html: article.content || '' }}
               />
