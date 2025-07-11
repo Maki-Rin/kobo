@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getArticle, formatDate } from '@/lib/articles';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import CodeBlock from '@/components/CodeBlock';
 
 export default async function ArticlePage({
   params,
@@ -57,7 +58,8 @@ export default async function ArticlePage({
           <div className='grid grid-cols-1 md:grid-cols-[1fr_250px] gap-8'>
             {/* 記事の本文 */}
             <article>
-              <div
+              <CodeBlock
+                content={article.content || ''}
                 className='prose prose-lg max-w-none dark:prose-invert
 prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_h2]:font-extrabold [&_h2]:text-primary [&_h2]:mt-10 [&_h2]:mb-6
@@ -71,10 +73,9 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-3
 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-8
 [&_ul>li::marker]:text-lg [&_ol>li::marker]:text-lg
-[&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:bg-muted/10 [&_blockquote]:py-2
-[&_code]:p-2 [&_code]:rounded-lg [&_code]:text-base
-[&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-5 [&_pre]:rounded-xl'
-                dangerouslySetInnerHTML={{ __html: article.content || '' }}
+[&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:bg-muted/10 [&_blockquote]:py-0.25
+[&_code]:bg-gray-200 [&_code]:p-2 [&_code]:rounded-lg [&_code]:text-base
+[&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-5 [&_pre]:rounded-xl [&_pre]:my-6 [&_pre_code]:bg-transparent'
               />
             </article>
 
