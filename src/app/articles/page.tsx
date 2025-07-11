@@ -21,8 +21,10 @@ const ArticleCard = ({ article }: ArticleCardProps) => {
           />
         </div>
         <div className='p-6'>
-          <h3 className='text-xl font-bold mb-3 text-left'>{article.title}</h3>
-          <p className='text-gray-600 text-sm mb-4 text-left'>
+          <h3 className='text-xl font-bold mb-3 text-left h-14 leading-7 overflow-hidden'>
+            {article.title}
+          </h3>
+          <p className='text-gray-600 text-sm mb-4 text-left h-16 leading-5 overflow-hidden'>
             {article.excerpt}
           </p>
           <div className='flex items-center justify-between text-sm text-gray-500'>
