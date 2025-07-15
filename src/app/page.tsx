@@ -296,15 +296,11 @@ export default function HomePage() {
           {/* Read More Button - show only if there are more than 3 articles */}
           {articles.length > 3 && (
             <div className='mt-8'>
-              <Link href='/articles'>
-                <button
-                  className='relative bg-transparent text-gray-600 dark:text-gray-600 px-12 py-3 hover:text-gray-700 dark:hover:text-gray-700 transition-colors
-                  before:content-[""] before:absolute before:left-0 before:top-1/2 before:-translate-y-0.5 before:w-8 before:h-0.5 before:bg-gray-400 dark:before:bg-gray-400
-                  after:content-[""] after:absolute after:right-0 after:top-1/2 after:-translate-y-0.5 after:w-8 after:h-0.5 after:bg-gray-400 dark:after:bg-gray-400
-                  hover:before:bg-gray-500 dark:hover:before:bg-gray-500 hover:after:bg-gray-500 dark:hover:after:bg-gray-500'
-                >
-                  Read more
-                </button>
+              <Link href='/articles' className='inline-block mx-auto'>
+                <div className='bg-white dark:bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer px-6 py-3 sm:px-8 md:px-10 sm:py-3 md:py-4 text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-900 flex items-center justify-center min-w-[150px]'>
+                  READ MORE
+                  <span className='ml-2'>&gt;&gt;</span>
+                </div>
               </Link>
             </div>
           )}
