@@ -22,7 +22,7 @@ coverImage: '/images/flashprint.png'
 
 ![alt text](/images/flashprint/flashprint1.png)
 
-### 3. メニューまたは画面左上の「**ファイルボタン**」をクリックして、STLファイルなどの3Dモデルを読み込みます。
+### 3. メニューまたは画面左上の「ファイルボタン」をクリックして、STLファイルなどの3Dモデルを読み込みます。
 
 ![alt text](/images/flashprint/flashprint2.png)
 
