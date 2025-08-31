@@ -46,5 +46,17 @@
       "name": "Yoshito Usui",
       "avatar": "/images/usui.jpg"
     }
+  },
+  {
+    "id": "5",
+    "title": "自作左手デバイス用ケース",
+    "description": "自作の左手デバイス用に、アクリル板でケースを製作しました。\nレーザーカッターを使用しています。",
+    "coverImage": "/images/works/nemophila1402.jpg",
+    "images": ["/images/works/nemophila1402.jpg"],
+    "tags": ["レーザー"],
+    "author": {
+        "name": "Yuki Yamamoto",
+        "avatar": "/images/yamamoto.jpg"
+    }
   }
 ]
