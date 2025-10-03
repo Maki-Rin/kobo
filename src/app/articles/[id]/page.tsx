@@ -67,7 +67,10 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_h3]:!font-bold [&_h3]:!text-primary [&_h3]:!mt-8 [&_h3]:!mb-4
 [&_h3]:!text-2xl [&_h3]:!scroll-mt-24
 [&_p]:text-lg [&_p]:leading-8 [&_p]:my-6
-[&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 transition-colors
+[&_a:not(.no-underline)]:text-blue-600 [&_a:not(.no-underline)]:underline hover:[&_a:not(.no-underline)]:text-blue-800 transition-colors
+[&_.not-prose]:!font-normal [&_.not-prose]:!text-base [&_.not-prose]:!leading-normal [&_.not-prose]:!my-0 [&_.not-prose]:!p-0 [&_.not-prose]:!border-0
+[&_.not-prose_*]:!font-normal [&_.not-prose_*]:!text-base [&_.not-prose_*]:!leading-normal [&_.not-prose_*]:!my-0 [&_.not-prose_*]:!p-0 [&_.not-prose_*]:!border-0
+[&_.not-prose_a]:!no-underline [&_.not-prose_a]:!text-inherit
 [&_img]:rounded-xl [&_img]:shadow-lg [&_img]:my-10 [&_img]:max-h-[500px] [&_img]:mx-auto [&_img]:block
 [&_strong]:text-primary [&_strong]:font-extrabold
 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-3

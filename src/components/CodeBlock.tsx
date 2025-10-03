@@ -1,15 +1,76 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import LinkCard from './LinkCard';
+import Prism from 'prismjs';
 
-// Prism.jsのグローバル宣言
-declare global {
-  interface Window {
-    Prism: {
-      highlightElement: (element: HTMLElement) => void;
-      highlightAll: () => void;
-    };
+// Prism.jsの言語サポートをインポート
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-tsx';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-markup';
+
+// Prism.jsのテーマ
+import 'prismjs/themes/prism-tomorrow.css';
+
+interface ProcessedContent {
+  html: string;
+  urls: string[];
+}
+
+function processContentForUrls(content: string): ProcessedContent {
+  const urls: string[] = [];
+
+  // HTMLを行ごとに分割
+  const lines = content.split('\n');
+  const processedLines: string[] = [];
+
+  console.log('Processing content for URLs. Total lines:', lines.length);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // URLの正規表現パターン
+    const urlPatterns = [
+      // 段落内の単独のaタグのURL（remark-gfmで変換された後）
+      /^<p><a href="(https?:\/\/[^"]+)"[^>]*>[^<]+<\/a><\/p>$/,
+      // 段落内の単独のURL（プレーンテキスト）
+      /^<p>\s*(https?:\/\/[^\s<>]+)\s*<\/p>$/,
+      // 単独のURL（プレーンテキスト）
+      /^(https?:\/\/[^\s<>]+)$/,
+    ];
+
+    let urlFound = false;
+    for (const pattern of urlPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        const url = match[1];
+        console.log('Found URL:', url, 'from line:', line);
+        urls.push(url);
+        // リンクカード用のプレースホルダーを挿入
+        processedLines.push(
+          `<div class="link-card-placeholder" data-url="${url}"></div>`
+        );
+        urlFound = true;
+        break;
+      }
+    }
+
+    if (!urlFound) {
+      processedLines.push(lines[i]);
+    }
   }
+
+  console.log('Total URLs found:', urls.length);
+  return {
+    html: processedLines.join('\n'),
+    urls,
+  };
 }
 
 export default function CodeBlock({
@@ -20,6 +81,35 @@ export default function CodeBlock({
   className?: string;
 }) {
   const articleRef = useRef<HTMLDivElement>(null);
+  const processedContent = processContentForUrls(content);
+
+  // リンクカードを配置する
+  useEffect(() => {
+    if (!articleRef.current) return;
+
+    const placeholders = articleRef.current.querySelectorAll(
+      '.link-card-placeholder'
+    );
+
+    placeholders.forEach((placeholder) => {
+      const url = placeholder.getAttribute('data-url');
+      if (!url) return;
+
+      // プレースホルダーが既に処理されていないかチェック
+      if (placeholder.classList.contains('processed')) return;
+
+      placeholder.classList.add('processed');
+
+      // LinkCardコンポーネントを動的にマウント
+      import('react').then((React) => {
+        import('react-dom/client').then((ReactDOM) => {
+          const root = ReactDOM.createRoot(placeholder);
+          const LinkCardElement = React.createElement(LinkCard, { url });
+          root.render(LinkCardElement);
+        });
+      });
+    });
+  }, [processedContent.html]);
 
   // 記事内のコードブロックを処理する
   useEffect(() => {
@@ -52,7 +142,7 @@ export default function CodeBlock({
       pre.style.backgroundColor = '#1E1E1E'; // VSCode dark theme background
       pre.style.borderRadius = '0.5rem';
       pre.style.paddingTop = '2.5rem';
-      pre.style.margin = '1.5rem 0';
+      pre.style.margin = '0.75rem 0';
       pre.classList.add('processed-code-block');
 
       // 言語バッジを作成（あれば）
@@ -79,6 +169,11 @@ export default function CodeBlock({
           'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace';
         code.style.fontSize = '0.9rem';
         code.style.lineHeight = '1.5';
+        code.style.padding = '0.5rem 1rem';
+        code.style.display = 'block';
+        code.style.whiteSpace = 'pre';
+        code.style.overflow = 'auto';
+        code.style.margin = '0';
       }
 
       // コピーボタンを作成
@@ -174,59 +269,20 @@ export default function CodeBlock({
       });
 
       // シンタックスハイライトを適用
-      if (window.Prism) {
-        window.Prism.highlightElement(code);
+      if (code) {
+        Prism.highlightElement(code);
       }
 
       // preタグにボタンを追加
       pre.appendChild(copyButton);
     });
-  }, []);
-
-  // Prism.js用のCSSをheadに追加
-  useEffect(() => {
-    // 既にスタイルが追加されていないか確認
-    if (!document.getElementById('prism-styles')) {
-      const prismStyles = document.createElement('link');
-      prismStyles.id = 'prism-styles';
-      prismStyles.rel = 'stylesheet';
-      prismStyles.href =
-        'https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css';
-      document.head.appendChild(prismStyles);
-
-      // Prism.js本体を読み込み
-      const prismScript = document.createElement('script');
-      prismScript.src =
-        'https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js';
-      prismScript.async = true;
-      document.head.appendChild(prismScript);
-
-      // 言語別のプラグイン（主要な言語）
-      const languages = [
-        'javascript',
-        'css',
-        'markup',
-        'python',
-        'bash',
-        'java',
-        'typescript',
-        'jsx',
-        'tsx',
-      ];
-      languages.forEach((lang) => {
-        const langScript = document.createElement('script');
-        langScript.src = `https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-${lang}.min.js`;
-        langScript.async = true;
-        document.head.appendChild(langScript);
-      });
-    }
-  }, []);
+  }, [processedContent.html]);
 
   return (
     <div
       ref={articleRef}
       className={className}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: processedContent.html }}
     />
   );
 }
