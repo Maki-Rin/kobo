@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@types/react-syntax-highlighter": "^15.5.13",
+    "cheerio": "^1.1.2",
     "gray-matter": "^4.0.3",
     "next": "15.3.3",
+    "prismjs": "^1.30.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-syntax-highlighter": "^15.6.1",
@@ -22,7 +24,9 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/cheerio": "^0.22.35",
     "@types/node": "^20",
+    "@types/prismjs": "^1.26.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
