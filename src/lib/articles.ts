@@ -3,6 +3,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import { remark } from 'remark';
 import html from 'remark-html';
+import * as cheerio from 'cheerio';
 
 export interface Article {
   id: string;
@@ -161,6 +162,9 @@ export async function getArticle(id: string): Promise<Article | undefined> {
       });
     });
 
+    // Convert image and caption pairs into semantic figure elements for styling
+    contentHtml = convertImageCaptions(contentHtml);
+
     // Generate excerpt if not provided
     const excerpt = frontMatter.excerpt || generateExcerpt(content);
 
@@ -220,4 +224,88 @@ export function formatDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+function convertImageCaptions(html: string): string {
+  const $ = cheerio.load(html, { decodeEntities: false });
+
+  $('p').each((_index: number, element: cheerio.Element) => {
+    const paragraph = $(element);
+    const childNodes = paragraph.contents().toArray() as cheerio.Element[];
+
+    const meaningfulNodes = childNodes.filter((node) => {
+      if (node.type === 'comment') {
+        return false;
+      }
+      if (node.type === 'text') {
+        return typeof node.data === 'string' && node.data.trim().length > 0;
+      }
+      return true;
+    });
+
+    if (!meaningfulNodes.length) return;
+
+    const imageNode = meaningfulNodes.find(
+      (node) => node.type === 'tag' && node.name === 'img'
+    );
+    if (!imageNode) return;
+
+    // 画像以外に意味のあるテキストが混在する場合は変換しない
+    const hasExtraText = meaningfulNodes.some(
+      (node) => node !== imageNode && node.type === 'text'
+    );
+    if (hasExtraText) return;
+
+    let captionHtml: string | undefined;
+    let nextParagraphToRemove: cheerio.Cheerio | undefined;
+
+    const inlineCaptionNode = meaningfulNodes.find(
+      (node) =>
+        node !== imageNode &&
+        node.type === 'tag' &&
+        (node.name === 'em' || node.name === 'i')
+    );
+
+    if (inlineCaptionNode) {
+      captionHtml = $(inlineCaptionNode).html()?.trim();
+    }
+
+    if (!captionHtml) {
+      const next = paragraph.next();
+      if (next.length && next.is('p')) {
+        const nextNodes = next.contents().toArray() as cheerio.Element[];
+        const inlineNodes = nextNodes.filter((node) => {
+          if (node.type === 'comment') {
+            return false;
+          }
+          if (node.type === 'text') {
+            return typeof node.data === 'string' && node.data.trim().length > 0;
+          }
+          return true;
+        });
+
+        if (inlineNodes.length === 1) {
+          const candidate = inlineNodes[0];
+          if (
+            candidate.type === 'tag' &&
+            (candidate.name === 'em' || candidate.name === 'i')
+          ) {
+            captionHtml = $(candidate).html()?.trim();
+            nextParagraphToRemove = next;
+          }
+        }
+      }
+    }
+
+    if (!captionHtml) return;
+
+    const figure = $('<figure class="article-figure"></figure>');
+    figure.append($(imageNode).clone());
+    figure.append(`<figcaption>${captionHtml}</figcaption>`);
+
+    paragraph.replaceWith(figure);
+    nextParagraphToRemove?.remove();
+  });
+
+  return $.root().html() ?? '';
 }
