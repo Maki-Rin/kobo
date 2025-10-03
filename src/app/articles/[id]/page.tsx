@@ -71,7 +71,9 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_.not-prose]:!font-normal [&_.not-prose]:!text-base [&_.not-prose]:!leading-normal [&_.not-prose]:!my-0 [&_.not-prose]:!p-0 [&_.not-prose]:!border-0
 [&_.not-prose_*]:!font-normal [&_.not-prose_*]:!text-base [&_.not-prose_*]:!leading-normal [&_.not-prose_*]:!my-0 [&_.not-prose_*]:!p-0 [&_.not-prose_*]:!border-0
 [&_.not-prose_a]:!no-underline [&_.not-prose_a]:!text-inherit
-[&_img]:rounded-xl [&_img]:shadow-lg [&_img]:my-10 [&_img]:max-h-[500px] [&_img]:mx-auto [&_img]:block
+[&_img]:rounded-xl [&_img]:shadow-lg [&_img]:max-h-[500px] [&_img]:mx-auto [&_img]:block [&_img]:mb-0
+[&_figure]:!my-6 [&_figure]:!flex [&_figure]:!flex-col [&_figure]:!items-center [&_figure]:!gap-2
+[&_figure>figcaption]:!mt-1 [&_figure>figcaption]:!text-xs [&_figure>figcaption]:!text-muted-foreground [&_figure>figcaption]:!text-center [&_figure>figcaption]:!not-italic [&_figure>figcaption]:!max-w-prose
 [&_strong]:text-primary [&_strong]:font-extrabold
 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-3
 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-8
