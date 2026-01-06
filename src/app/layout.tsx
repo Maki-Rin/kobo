@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'KOBO',
   description: 'Ritsumeikan University KOBO',
+  verification: {
+    google: 'ZDKD7epdSCSsAka9gbtuUxsMqcFoU65ciK9QatLodss',
+  },
 };
 
 export default function RootLayout({
