@@ -1,9 +1,76 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { getArticle, formatDate } from '@/lib/articles';
+import { Metadata } from 'next';
+import { getArticle, getArticles, formatDate } from '@/lib/articles';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CodeBlock from '@/components/CodeBlock';
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://kobo-rits.vercel.app';
+
+// 動的メタデータの生成
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const article = await getArticle(id);
+
+  if (!article) {
+    return {
+      title: '記事が見つかりません',
+    };
+  }
+
+  return {
+    title: article.title,
+    description:
+      article.excerpt || `${article.title} - 立命館大学KOBO【非公式】`,
+    keywords: [
+      'KOBO',
+      '立命館大学',
+      'OIC',
+      '大阪いばらきキャンパス',
+      '3Dプリント',
+      'デジタルファブリケーション',
+      article.title,
+    ],
+    openGraph: {
+      title: `${article.title} | KOBO【非公式】`,
+      description:
+        article.excerpt || `${article.title} - 立命館大学KOBO【非公式】`,
+      type: 'article',
+      url: `${SITE_URL}/articles/${id}`,
+      images: [
+        {
+          url: article.coverImage,
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        },
+      ],
+      publishedTime: article.date,
+      authors: [article.author.name],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${article.title} | KOBO【非公式】`,
+      description:
+        article.excerpt || `${article.title} - 立命館大学KOBO【非公式】`,
+      images: [article.coverImage],
+    },
+  };
+}
+
+// 静的パスの生成（SEO向上のため）
+export async function generateStaticParams() {
+  const articles = await getArticles();
+  return articles.map((article) => ({
+    id: article.id,
+  }));
+}
 
 export default async function ArticlePage({
   params,
