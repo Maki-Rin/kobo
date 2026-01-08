@@ -1,8 +1,32 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getArticles, type Article } from '@/lib/articles';
+
+export const metadata: Metadata = {
+  title: '記事一覧',
+  description:
+    '立命館大学OIC（大阪いばらきキャンパス）KOBO【非公式】の記事一覧。3Dプリント、FlashPrint、Orca Slicer、フィラメントなどデジタルファブリケーションに関するチュートリアルと情報を掲載。',
+  keywords: [
+    'KOBO',
+    '立命館大学',
+    'OIC',
+    '大阪いばらきキャンパス',
+    '3Dプリント',
+    'FlashPrint',
+    'Orca Slicer',
+    'チュートリアル',
+    'デジタルファブリケーション',
+  ],
+  openGraph: {
+    title: '記事一覧 | KOBO【非公式】',
+    description:
+      '立命館大学KOBO【非公式】の記事一覧。3Dプリントやデジタルファブリケーションに関する情報を掲載。',
+    type: 'website',
+  },
+};
 
 interface ArticleCardProps {
   article: Article;
