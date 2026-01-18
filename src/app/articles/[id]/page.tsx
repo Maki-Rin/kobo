@@ -24,6 +24,11 @@ export async function generateMetadata({
     };
   }
 
+  // 画像URLを絶対URLに変換
+  const absoluteImageUrl = article.coverImage.startsWith('http')
+    ? article.coverImage
+    : `${SITE_URL}${article.coverImage}`;
+
   return {
     title: article.title,
     description:
@@ -37,15 +42,29 @@ export async function generateMetadata({
       'デジタルファブリケーション',
       article.title,
     ],
+    authors: [{ name: article.author.name }],
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
+    alternates: {
+      canonical: `${SITE_URL}/articles/${id}`,
+    },
     openGraph: {
       title: `${article.title} | KOBO【非公式】`,
       description:
         article.excerpt || `${article.title} - 立命館大学KOBO【非公式】`,
       type: 'article',
       url: `${SITE_URL}/articles/${id}`,
+      siteName: 'KOBO【非公式】',
+      locale: 'ja_JP',
       images: [
         {
-          url: article.coverImage,
+          url: absoluteImageUrl,
           width: 1200,
           height: 630,
           alt: article.title,
@@ -59,7 +78,7 @@ export async function generateMetadata({
       title: `${article.title} | KOBO【非公式】`,
       description:
         article.excerpt || `${article.title} - 立命館大学KOBO【非公式】`,
-      images: [article.coverImage],
+      images: [absoluteImageUrl],
     },
   };
 }
@@ -84,8 +103,44 @@ export default async function ArticlePage({
     notFound();
   }
 
+  // 画像URLを絶対URLに変換
+  const absoluteImageUrl = article.coverImage.startsWith('http')
+    ? article.coverImage
+    : `${SITE_URL}${article.coverImage}`;
+
+  // 構造化データ（JSON-LD）
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description:
+      article.excerpt || `${article.title} - 立命館大学KOBO【非公式】`,
+    image: absoluteImageUrl,
+    datePublished: article.date,
+    dateModified: article.date,
+    author: {
+      '@type': 'Person',
+      name: article.author.name,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'KOBO【非公式】',
+      url: SITE_URL,
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${SITE_URL}/articles/${id}`,
+    },
+  };
+
   return (
     <div className='min-h-screen bg-white'>
+      {/* 構造化データ */}
+      <script
+        type='application/ld+json'
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Header */}
       <Header />
 

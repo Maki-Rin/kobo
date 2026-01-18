@@ -56,12 +56,21 @@ export const metadata: Metadata = {
     siteName: 'KOBO【非公式】',
     type: 'website',
     locale: 'ja_JP',
+    images: [
+      {
+        url: `${SITE_URL}/images/top1.jpg`,
+        width: 1200,
+        height: 630,
+        alt: 'KOBO【非公式】 | 立命館大学OIC',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'KOBO【非公式】 | 立命館大学OIC',
     description:
       '立命館大学OIC（大阪いばらきキャンパス）KOBO【非公式】- 3Dプリント・デジタルファブリケーションの情報サイト',
+    images: [`${SITE_URL}/images/top1.jpg`],
   },
   robots: {
     index: true,

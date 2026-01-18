@@ -5,6 +5,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getArticles, type Article } from '@/lib/articles';
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://kobo-rits.vercel.app';
+
 export const metadata: Metadata = {
   title: '記事一覧',
   description:
@@ -20,11 +23,41 @@ export const metadata: Metadata = {
     'チュートリアル',
     'デジタルファブリケーション',
   ],
+  authors: [{ name: 'KOBO【非公式】' }],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    canonical: `${SITE_URL}/articles`,
+  },
   openGraph: {
     title: '記事一覧 | KOBO【非公式】',
     description:
       '立命館大学KOBO【非公式】の記事一覧。3Dプリントやデジタルファブリケーションに関する情報を掲載。',
+    url: `${SITE_URL}/articles`,
+    siteName: 'KOBO【非公式】',
     type: 'website',
+    locale: 'ja_JP',
+    images: [
+      {
+        url: `${SITE_URL}/images/top1.jpg`,
+        width: 1200,
+        height: 630,
+        alt: '記事一覧 | KOBO【非公式】',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '記事一覧 | KOBO【非公式】',
+    description:
+      '立命館大学KOBO【非公式】の記事一覧。3Dプリントやデジタルファブリケーションに関する情報を掲載。',
+    images: [`${SITE_URL}/images/top1.jpg`],
   },
 };
 
