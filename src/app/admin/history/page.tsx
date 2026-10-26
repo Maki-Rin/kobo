@@ -17,7 +17,7 @@ export default async function HistoryPage() {
   if (!user) redirect('/admin');
   const history = await getStore().history(30);
   return (
-    <div className='space-y-6'>
+    <div className='mx-auto max-w-4xl space-y-6'>
       <div>
         <h1 className='text-2xl font-bold'>変更履歴</h1>
         <p className='mt-2 text-sm text-slate-600'>

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/editor/auth';
-import ArticleEditor from '../../_components/ArticleEditor';
+import { newArticleId } from '@/lib/editor/articles';
+import ArticleEditor from '../../_components/editor/ArticleEditor';
 
 export default async function NewArticlePage() {
   const user = await currentUser();
@@ -10,9 +11,9 @@ export default async function NewArticlePage() {
     <ArticleEditor
       isNew
       baseSha={null}
-      saved={false}
+      notice=''
       initial={{
-        id: '',
+        id: newArticleId(today),
         title: '',
         date: today,
         excerpt: '',
@@ -20,7 +21,7 @@ export default async function NewArticlePage() {
         authorAvatar: '',
         coverImage: '',
         body: '',
-        published: true,
+        published: false,
       }}
     />
   );

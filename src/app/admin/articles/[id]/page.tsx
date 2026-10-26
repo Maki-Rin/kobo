@@ -1,7 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { currentUser } from '@/lib/editor/auth';
 import { loadArticle } from '@/lib/editor/articles';
-import ArticleEditor from '../../_components/ArticleEditor';
+import ArticleEditor from '../../_components/editor/ArticleEditor';
+
+const notices: Record<string, string> = {
+  published: '公開しました。1〜2分でサイトに反映されます。',
+  draft: '下書きを保存しました。サイトにはまだ出ません。',
+};
 
 export default async function EditArticlePage({
   params,
@@ -21,7 +26,7 @@ export default async function EditArticlePage({
       isNew={false}
       initial={article.draft}
       baseSha={article.sha}
-      saved={saved === '1'}
+      notice={notices[saved ?? ''] ?? ''}
     />
   );
 }

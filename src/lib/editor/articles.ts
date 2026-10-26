@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import matter from 'gray-matter';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
@@ -36,15 +37,19 @@ export interface ArticleSummary {
   published: boolean;
 }
 
-export interface UploadedImage {
+export interface StagedImage {
   name: string;
-  data: Buffer;
+  sha: string;
 }
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
-const MAX_IMAGES = 10;
+const MAX_IMAGES = 30;
 const NEW_ID = /^[a-z0-9][a-z0-9-]{1,59}$/;
 const IMAGE_NAME = /^[a-z0-9_-]+\.(jpg|png|webp|gif)$/;
+
+export function newArticleId(date: string): string {
+  return `${date.replaceAll('-', '')}-${crypto.randomBytes(3).toString('hex')}`;
+}
 
 const articlePath = (id: string) => `${ARTICLE_DIR}/${id}.md`;
 
@@ -117,10 +122,23 @@ export function imagePublicPath(articleId: string, name: string): string {
   return `/images/articles/${articleId}/${name}`;
 }
 
+function checkImage(data: Buffer): string | null {
+  const type = detectImageType(data);
+  if (!type) return '対応していない画像の形式です（JPEG・PNG・WebP・GIF）';
+  if (data.length > MAX_IMAGE_BYTES) return '画像が大きすぎます（3MBまで）';
+  return null;
+}
+
+export async function stageImage(data: Buffer): Promise<{ sha: string; type: string }> {
+  const problem = checkImage(data);
+  if (problem) throw new EditorError([problem]);
+  return { sha: await getStore().stage(data), type: detectImageType(data)! };
+}
+
 async function validate(
   draft: ArticleDraft,
   isNew: boolean,
-  images: UploadedImage[]
+  images: StagedImage[]
 ): Promise<FileChange[]> {
   const store = getStore();
   const errors: string[] = [];
@@ -138,7 +156,7 @@ async function validate(
     errors.push('日付が正しくありません');
   }
   if (draft.excerpt.length > 200) errors.push('概要は200文字までです');
-  if (!draft.authorName.trim()) errors.push('書いた人の名前を入れてください');
+  if (draft.published && !draft.authorName.trim()) errors.push('書いた人の名前を入れてください');
   if (!draft.body.trim()) errors.push('本文が空です');
 
   if (images.length > MAX_IMAGES) {
@@ -147,29 +165,28 @@ async function validate(
   const uploaded = new Set<string>();
   const changes: FileChange[] = [];
   for (const image of images) {
-    const type = detectImageType(image.data);
-    if (!IMAGE_NAME.test(image.name) || !type || !image.name.endsWith(`.${type}`)) {
-      errors.push(`画像 ${image.name} の形式に対応していません（JPEG・PNG・WebP・GIF）`);
+    const data = await store.staged(image.sha);
+    const type = data ? detectImageType(data) : null;
+    if (!data || !IMAGE_NAME.test(image.name) || !type || !image.name.endsWith(`.${type}`)) {
+      errors.push(`画像 ${image.name} を読み込めませんでした。もう一度追加してください`);
       continue;
     }
-    if (image.data.length > MAX_IMAGE_BYTES) {
-      errors.push(`画像 ${image.name} が大きすぎます（3MBまで）`);
+    const problem = checkImage(data);
+    if (problem) {
+      errors.push(`画像 ${image.name}: ${problem}`);
       continue;
     }
     const publicPath = imagePublicPath(draft.id, image.name);
-    if (await store.exists(`public${publicPath}`)) {
-      errors.push(`画像 ${image.name} はすでにあります`);
-      continue;
-    }
+    if (await store.exists(`public${publicPath}`)) continue;
     uploaded.add(publicPath);
-    changes.push({ path: `public${publicPath}`, content: image.data });
+    changes.push({ path: `public${publicPath}`, blobSha: image.sha });
   }
 
   const missing = async (url: string) =>
     url.startsWith('/') && !uploaded.has(url) && !(await store.exists(`public${url}`));
 
   if (!draft.coverImage) {
-    errors.push('カバー画像を選んでください');
+    if (draft.published) errors.push('カバー画像を選んでください');
   } else if (await missing(draft.coverImage)) {
     errors.push(`カバー画像が見つかりません: ${draft.coverImage}`);
   }
@@ -203,7 +220,7 @@ function sanitizeDraft(raw: Record<string, unknown>): ArticleDraft {
 
 export async function saveArticle(
   user: User,
-  input: { draft: Record<string, unknown>; isNew: boolean; baseSha: string | null; images: UploadedImage[] }
+  input: { draft: Record<string, unknown>; isNew: boolean; baseSha: string | null; images: StagedImage[] }
 ): Promise<string> {
   const draft = sanitizeDraft(input.draft);
   if (!input.isNew && (!input.baseSha || !(await getStore().exists(articlePath(draft.id))))) {
@@ -212,7 +229,7 @@ export async function saveArticle(
   const changes = await validate(draft, input.isNew, input.images);
   const filePath = articlePath(draft.id);
   changes.push({ path: filePath, content: Buffer.from(toMarkdown(draft)) });
-  const action = input.isNew ? '記事を追加' : draft.published ? '記事を更新' : '記事を非公開に';
+  const action = !draft.published ? '下書きを保存' : input.isNew ? '記事を公開' : '記事を更新';
   const id = await getStore().commit({
     changes,
     expected: { [filePath]: input.isNew ? null : input.baseSha },

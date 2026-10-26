@@ -10,10 +10,9 @@ export interface StoredFile {
   sha: string;
 }
 
-export interface FileChange {
-  path: string;
-  content: Buffer;
-}
+export type FileChange =
+  | { path: string; content: Buffer }
+  | { path: string; blobSha: string };
 
 export interface CommitRecord {
   id: string;
@@ -39,6 +38,8 @@ export interface ContentStore {
   list(dir: string): Promise<string[]>;
   exists(filePath: string): Promise<boolean>;
   commit(request: CommitRequest): Promise<string>;
+  stage(content: Buffer): Promise<string>;
+  staged(sha: string): Promise<Buffer | null>;
   history(limit: number): Promise<CommitRecord[]>;
   detail(id: string): Promise<CommitDetail>;
 }
@@ -92,11 +93,31 @@ interface LocalEntry {
   files: { path: string; before: string | null; afterSha: string }[];
 }
 
+const BLOB_SHA = /^[0-9a-f]{40}$/;
+
 class LocalStore implements ContentStore {
   private logFile: string;
+  private blobDir: string;
 
   constructor(private root: string) {
     this.logFile = path.join(root, '.editor-local/history.json');
+    this.blobDir = path.join(root, '.editor-local/blobs');
+  }
+
+  async stage(content: Buffer): Promise<string> {
+    const sha = gitBlobSha(content);
+    await fs.mkdir(this.blobDir, { recursive: true });
+    await fs.writeFile(path.join(this.blobDir, sha), content);
+    return sha;
+  }
+
+  async staged(sha: string): Promise<Buffer | null> {
+    if (!BLOB_SHA.test(sha)) return null;
+    try {
+      return await fs.readFile(path.join(this.blobDir, sha));
+    } catch {
+      return null;
+    }
   }
 
   private resolve(filePath: string) {
@@ -143,13 +164,16 @@ class LocalStore implements ContentStore {
     }
     const files: LocalEntry['files'] = [];
     for (const change of request.changes) {
+      const content =
+        'content' in change ? change.content : await this.staged(change.blobSha);
+      if (!content) throw new Error(`画像が見つかりません: ${change.path}`);
       const before = await this.read(change.path);
       await fs.mkdir(path.dirname(this.resolve(change.path)), { recursive: true });
-      await fs.writeFile(this.resolve(change.path), change.content);
+      await fs.writeFile(this.resolve(change.path), content);
       files.push({
         path: change.path,
         before: before ? before.content.toString('base64') : null,
-        afterSha: gitBlobSha(change.content),
+        afterSha: gitBlobSha(content),
       });
     }
     const log = await this.log();
@@ -287,6 +311,23 @@ class GitHubStore implements ContentStore {
     };
   }
 
+  async stage(content: Buffer): Promise<string> {
+    const blob = await this.api<{ sha: string }>('/git/blobs', {
+      method: 'POST',
+      body: { content: content.toString('base64'), encoding: 'base64' },
+    });
+    return blob.sha;
+  }
+
+  async staged(sha: string): Promise<Buffer | null> {
+    if (!BLOB_SHA.test(sha)) return null;
+    try {
+      return await this.blob(sha);
+    } catch {
+      return null;
+    }
+  }
+
   private async blob(sha: string): Promise<Buffer> {
     const body = await this.api<{ content: string }>(`/git/blobs/${sha}`);
     return Buffer.from(body.content, 'base64');
@@ -319,11 +360,8 @@ class GitHubStore implements ContentStore {
     }
     const tree = [];
     for (const change of request.changes) {
-      const blob = await this.api<{ sha: string }>('/git/blobs', {
-        method: 'POST',
-        body: { content: change.content.toString('base64'), encoding: 'base64' },
-      });
-      tree.push({ path: change.path, mode: '100644', type: 'blob', sha: blob.sha });
+      const sha = 'content' in change ? await this.stage(change.content) : change.blobSha;
+      tree.push({ path: change.path, mode: '100644', type: 'blob', sha });
     }
     const newTree = await this.api<{ sha: string }>('/git/trees', {
       method: 'POST',

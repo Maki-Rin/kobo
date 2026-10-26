@@ -17,7 +17,7 @@ export default async function AdminPage() {
   const addDevice = addDeviceInviteAction.bind(null, user.id);
 
   return (
-    <div className='space-y-8'>
+    <div className='mx-auto max-w-4xl space-y-8'>
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <h1 className='text-2xl font-bold'>記事</h1>
         <Link
@@ -37,7 +37,7 @@ export default async function AdminPage() {
             >
               <span className='font-medium'>{article.title || article.id}</span>
               {!article.published && (
-                <span className='rounded-full bg-slate-200 px-2 py-0.5 text-xs'>非公開</span>
+                <span className='rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900'>下書き</span>
               )}
               <span className='ml-auto text-sm text-slate-500'>{article.date}</span>
             </Link>

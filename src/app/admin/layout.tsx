@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className='min-h-screen bg-slate-50 text-slate-900'>
       <header className='border-b border-slate-200 bg-white'>
-        <div className='mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3'>
+        <div className='mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3'>
           <Link href='/admin' className='font-bold'>
             KOBO 投稿画面
           </Link>
@@ -46,7 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
       </header>
-      <main className='mx-auto max-w-5xl px-4 py-8'>{children}</main>
+      <main className='mx-auto max-w-7xl px-4 py-6'>{children}</main>
     </div>
   );
 }

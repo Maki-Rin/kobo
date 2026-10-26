@@ -29,6 +29,8 @@ import {
   EditorError,
   revertCommit,
   saveArticle,
+  stageImage,
+  type StagedImage,
 } from '@/lib/editor/articles';
 import { ConflictError } from '@/lib/editor/store';
 import { renderPreviewHtml } from '@/lib/editor/preview';
@@ -107,21 +109,34 @@ export async function previewAction(body: string) {
   });
 }
 
-export async function saveArticleAction(formData: FormData) {
+export async function uploadImageAction(formData: FormData) {
+  return attempt(async () => {
+    await requireUser();
+    const file = formData.get('image');
+    if (!(file instanceof File)) throw new EditorError(['画像が選ばれていません']);
+    return stageImage(Buffer.from(await file.arrayBuffer()));
+  });
+}
+
+export async function saveArticleAction(input: {
+  draft: Record<string, unknown>;
+  isNew: boolean;
+  baseSha: string | null;
+  images: StagedImage[];
+}) {
   return attempt(async () => {
     const user = await requireUser();
-    const draft = JSON.parse(String(formData.get('draft'))) as Record<string, unknown>;
-    const isNew = formData.get('isNew') === 'true';
-    const baseSha = (formData.get('baseSha') as string | null) || null;
-    const images = await Promise.all(
-      formData.getAll('images').map(async (entry) => {
-        const file = entry as File;
-        return { name: file.name, data: Buffer.from(await file.arrayBuffer()) };
-      })
-    );
-    const commitId = await saveArticle(user, { draft, isNew, baseSha, images });
+    const images = Array.isArray(input.images)
+      ? input.images.map((image) => ({ name: String(image.name), sha: String(image.sha) }))
+      : [];
+    const commitId = await saveArticle(user, {
+      draft: input.draft,
+      isNew: Boolean(input.isNew),
+      baseSha: typeof input.baseSha === 'string' ? input.baseSha : null,
+      images,
+    });
     revalidatePath('/admin');
-    return { commitId, id: String(draft.id) };
+    return { commitId, id: String(input.draft.id) };
   });
 }
 

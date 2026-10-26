@@ -8,7 +8,7 @@ export default async function MembersPage() {
   if (!user || !canManageMembers(user)) redirect('/admin');
   const members = await listMembers();
   return (
-    <div className='space-y-8'>
+    <div className='mx-auto max-w-4xl space-y-8'>
       <h1 className='text-2xl font-bold'>メンバー</h1>
 
       <section className='space-y-3 rounded-xl border border-slate-200 bg-white p-4'>
