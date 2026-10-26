@@ -20,17 +20,6 @@ export default function LinkCard({ url }: LinkCardProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (metadata) {
-      console.log('LinkCard metadata loaded:', {
-        url,
-        hasImage: !!metadata.image,
-        imageUrl: metadata.image,
-        title: metadata.title,
-      });
-    }
-  }, [metadata, url]);
-
-  useEffect(() => {
     const fetchMetadata = async () => {
       try {
         setLoading(true);
@@ -88,7 +77,7 @@ export default function LinkCard({ url }: LinkCardProps) {
       href={url}
       target='_blank'
       rel='noopener noreferrer'
-      className='block border rounded-lg hover:shadow-lg hover:border-gray-500 transition-all duration-200 bg-white no-underline overflow-hidden my-4'
+      className='not-prose block border rounded-lg hover:shadow-lg hover:border-gray-500 transition-all duration-200 bg-white no-underline overflow-hidden my-4'
     >
       <div className='flex items-center'>
         <div className='flex-1 min-w-0 pl-4'>

@@ -51,3 +51,145 @@ body {
   max-width: 65ch;
   line-height: 1.5;
 }
+
+@layer components {
+  .article-body h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid currentColor;
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    font-weight: 800;
+    scroll-margin-top: 6rem;
+  }
+
+  .article-body h3 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    scroll-margin-top: 6rem;
+  }
+
+  .article-body p:not(.not-prose *) {
+    margin-block: 1.5rem;
+    font-size: 1.125rem;
+    line-height: 2rem;
+  }
+
+  .article-body a {
+    color: var(--color-blue-600);
+    text-decoration: underline;
+    transition: color 150ms;
+  }
+
+  .article-body a:hover {
+    color: var(--color-blue-800);
+  }
+
+  .article-body strong {
+    font-weight: 800;
+  }
+
+  .article-body ul {
+    margin-block: 1.5rem;
+    padding-left: 1.5rem;
+    list-style: disc;
+  }
+
+  .article-body ol {
+    margin-block: 1.5rem;
+    padding-left: 2rem;
+    list-style: decimal;
+  }
+
+  .article-body li {
+    margin-block: 0.75rem;
+  }
+
+  .article-body li::marker {
+    font-size: 1.125rem;
+  }
+
+  .article-body blockquote {
+    padding-block: 0.0625rem;
+    padding-left: 1.5rem;
+    border-left: 4px solid currentColor;
+    font-style: italic;
+  }
+
+  .article-body img:not(.not-prose *) {
+    display: block;
+    max-height: 500px;
+    margin-inline: auto;
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .article-body code {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--color-gray-200);
+    font-size: 1rem;
+  }
+
+  .article-body table {
+    margin-block: 1.5rem;
+    border-collapse: collapse;
+  }
+
+  .article-body th,
+  .article-body td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-slate-300);
+  }
+
+  .code-block {
+    position: relative;
+    margin-block: 0.75rem;
+  }
+
+  .code-block pre {
+    overflow-x: auto;
+    padding: 2.5rem 1rem 0.5rem;
+    border-radius: 0.5rem;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .code-block pre code {
+    padding: 0;
+    background: transparent;
+    font-size: inherit;
+  }
+
+  .code-block-language {
+    position: absolute;
+    top: 0;
+    left: 1rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0 0 4px 4px;
+    background: rgb(255 255 255 / 0.2);
+    color: white;
+    font-family: monospace;
+    font-size: 0.75rem;
+  }
+
+  .code-block-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 200ms;
+  }
+}

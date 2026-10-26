@@ -1,9 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import matter from 'gray-matter';
-import { remark } from 'remark';
-import html from 'remark-html';
-import * as cheerio from 'cheerio';
+import type { Root as HastRoot } from 'hast';
+import { markdownToPlainText, renderMarkdown, type Section } from './markdown';
 
 export interface Article {
   id: string;
@@ -15,12 +14,8 @@ export interface Article {
     avatar: string;
   };
   coverImage: string;
-  content?: string;
-  sections?: {
-    id: string;
-    title: string;
-    level: number;
-  }[];
+  content?: HastRoot;
+  sections?: Section[];
 }
 
 export interface ArticleFrontMatter {
@@ -104,66 +99,7 @@ export async function getArticle(id: string): Promise<Article | undefined> {
     const { data, content } = matter(fileContents);
     const frontMatter = data as ArticleFrontMatter;
 
-    // Extract headings to create table of contents (h2 and h3)
-    const headingRegex = /^(#{2,3}) (.*$)/gm;
-    const sections: { id: string; title: string; level: number }[] = [];
-    let match;
-    let index = 0;
-
-    while ((match = headingRegex.exec(content)) !== null) {
-      const level = match[1].length; // ## = 2, ### = 3
-      const title = match[2].trim();
-
-      if (title) {
-        // Generate ID from title
-        const sectionId =
-          title
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^\w\u00A0-\uFFFF-]/g, '')
-            .replace(/^-+|-+$/g, '') || `section-${index}`;
-
-        sections.push({ id: sectionId, title, level });
-        index++;
-      }
-    }
-
-    // Use remark to convert markdown into HTML string
-    const result = await remark().use(html).process(content);
-
-    let contentHtml = result.toString();
-
-    // Manually add IDs to the h2 and h3 elements in the HTML
-    sections.forEach((section) => {
-      const headingTag = section.level === 2 ? 'h2' : 'h3';
-
-      // Create a more flexible regex to match headings
-      const headingRegex = new RegExp(
-        `<${headingTag}>(.*?)<\/${headingTag}>`,
-        'gi'
-      );
-
-      // Find and replace the heading with the exact title
-      contentHtml = contentHtml.replace(headingRegex, (match, titleContent) => {
-        // Clean up the title content for comparison
-        const cleanTitle = titleContent.trim().replace(/\s+/g, ' ');
-        const cleanSectionTitle = section.title.trim().replace(/\s+/g, ' ');
-
-        if (cleanTitle === cleanSectionTitle) {
-          // Add inline styles for h3 elements to ensure they're applied
-          const inlineStyle =
-            headingTag === 'h3'
-              ? ' style="font-weight: bold !important; color: hsl(var(--primary)) !important; font-size: 1.5rem !important; margin-top: 2rem !important; margin-bottom: 1rem !important; scroll-margin-top: 6rem !important;"'
-              : '';
-
-          return `<${headingTag} id="${section.id}"${inlineStyle}>${section.title}</${headingTag}>`;
-        }
-        return match;
-      });
-    });
-
-    // Convert image and caption pairs into semantic figure elements for styling
-    contentHtml = convertImageCaptions(contentHtml);
+    const { tree, sections } = await renderMarkdown(content);
 
     // Generate excerpt if not provided
     const excerpt = frontMatter.excerpt || generateExcerpt(content);
@@ -175,7 +111,7 @@ export async function getArticle(id: string): Promise<Article | undefined> {
       date: frontMatter.date,
       author: frontMatter.author,
       coverImage: frontMatter.coverImage,
-      content: contentHtml,
+      content: tree,
       sections,
     };
   } catch (error) {
@@ -186,16 +122,7 @@ export async function getArticle(id: string): Promise<Article | undefined> {
 
 // Generate excerpt from content
 function generateExcerpt(content: string, maxLength: number = 160): string {
-  // Remove markdown syntax and get plain text
-  const plainText = content
-    .replace(/#{1,6}\s+/g, '') // Remove headings
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links
-    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold
-    .replace(/\*([^*]+)\*/g, '$1') // Remove italic
-    .replace(/`([^`]+)`/g, '$1') // Remove code
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // Remove images
-    .replace(/\n+/g, ' ') // Replace newlines with spaces
-    .trim();
+  const plainText = markdownToPlainText(content);
 
   if (plainText.length <= maxLength) {
     return plainText;
@@ -224,88 +151,4 @@ export function formatDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
   });
-}
-
-function convertImageCaptions(html: string): string {
-  const $ = cheerio.load(html, { decodeEntities: false });
-
-  $('p').each((_index: number, element: cheerio.Element) => {
-    const paragraph = $(element);
-    const childNodes = paragraph.contents().toArray() as cheerio.Element[];
-
-    const meaningfulNodes = childNodes.filter((node) => {
-      if (node.type === 'comment') {
-        return false;
-      }
-      if (node.type === 'text') {
-        return typeof node.data === 'string' && node.data.trim().length > 0;
-      }
-      return true;
-    });
-
-    if (!meaningfulNodes.length) return;
-
-    const imageNode = meaningfulNodes.find(
-      (node) => node.type === 'tag' && node.name === 'img'
-    );
-    if (!imageNode) return;
-
-    // 画像以外に意味のあるテキストが混在する場合は変換しない
-    const hasExtraText = meaningfulNodes.some(
-      (node) => node !== imageNode && node.type === 'text'
-    );
-    if (hasExtraText) return;
-
-    let captionHtml: string | undefined;
-    let nextParagraphToRemove: cheerio.Cheerio | undefined;
-
-    const inlineCaptionNode = meaningfulNodes.find(
-      (node) =>
-        node !== imageNode &&
-        node.type === 'tag' &&
-        (node.name === 'em' || node.name === 'i')
-    );
-
-    if (inlineCaptionNode) {
-      captionHtml = $(inlineCaptionNode).html()?.trim();
-    }
-
-    if (!captionHtml) {
-      const next = paragraph.next();
-      if (next.length && next.is('p')) {
-        const nextNodes = next.contents().toArray() as cheerio.Element[];
-        const inlineNodes = nextNodes.filter((node) => {
-          if (node.type === 'comment') {
-            return false;
-          }
-          if (node.type === 'text') {
-            return typeof node.data === 'string' && node.data.trim().length > 0;
-          }
-          return true;
-        });
-
-        if (inlineNodes.length === 1) {
-          const candidate = inlineNodes[0];
-          if (
-            candidate.type === 'tag' &&
-            (candidate.name === 'em' || candidate.name === 'i')
-          ) {
-            captionHtml = $(candidate).html()?.trim();
-            nextParagraphToRemove = next;
-          }
-        }
-      }
-    }
-
-    if (!captionHtml) return;
-
-    const figure = $('<figure class="article-figure"></figure>');
-    figure.append($(imageNode).clone());
-    figure.append(`<figcaption>${captionHtml}</figcaption>`);
-
-    paragraph.replaceWith(figure);
-    nextParagraphToRemove?.remove();
-  });
-
-  return $.root().html() ?? '';
 }

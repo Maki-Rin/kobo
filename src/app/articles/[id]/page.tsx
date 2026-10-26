@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import { getArticle, getArticles, formatDate } from '@/lib/articles';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import CodeBlock from '@/components/CodeBlock';
+import MarkdownContent from '@/components/MarkdownContent';
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || 'https://kobo-rits.vercel.app';
@@ -180,30 +180,9 @@ export default async function ArticlePage({
           <div className='grid grid-cols-1 md:grid-cols-[1fr_250px] gap-8'>
             {/* 記事の本文 */}
             <article>
-              <CodeBlock
-                content={article.content || ''}
-                className='prose prose-lg max-w-none dark:prose-invert
-prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
-[&_h2]:font-extrabold [&_h2]:text-primary [&_h2]:mt-10 [&_h2]:mb-6
-[&_h2]:text-3xl [&_h2]:border-b-2 [&_h2]:border-muted [&_h2]:pb-3 [&_h2]:scroll-mt-24
-[&_h3]:!font-bold [&_h3]:!text-primary [&_h3]:!mt-8 [&_h3]:!mb-4
-[&_h3]:!text-2xl [&_h3]:!scroll-mt-24
-[&_p]:text-lg [&_p]:leading-8 [&_p]:my-6
-[&_a:not(.no-underline)]:text-blue-600 [&_a:not(.no-underline)]:underline hover:[&_a:not(.no-underline)]:text-blue-800 transition-colors
-[&_.not-prose]:!font-normal [&_.not-prose]:!text-base [&_.not-prose]:!leading-normal [&_.not-prose]:!my-0 [&_.not-prose]:!p-0 [&_.not-prose]:!border-0
-[&_.not-prose_*]:!font-normal [&_.not-prose_*]:!text-base [&_.not-prose_*]:!leading-normal [&_.not-prose_*]:!my-0 [&_.not-prose_*]:!p-0 [&_.not-prose_*]:!border-0
-[&_.not-prose_a]:!no-underline [&_.not-prose_a]:!text-inherit
-[&_img]:rounded-xl [&_img]:shadow-lg [&_img]:max-h-[500px] [&_img]:mx-auto [&_img]:block [&_img]:mb-0
-[&_figure]:!my-6 [&_figure]:!flex [&_figure]:!flex-col [&_figure]:!items-center [&_figure]:!gap-2
-[&_figure>figcaption]:!mt-1 [&_figure>figcaption]:!text-xs [&_figure>figcaption]:!text-muted-foreground [&_figure>figcaption]:!text-center [&_figure>figcaption]:!not-italic [&_figure>figcaption]:!max-w-prose
-[&_strong]:text-primary [&_strong]:font-extrabold
-[&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:my-3
-[&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-8
-[&_ul>li::marker]:text-lg [&_ol>li::marker]:text-lg
-[&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:bg-muted/10 [&_blockquote]:py-0.25
-[&_code]:bg-gray-200 [&_code]:p-2 [&_code]:rounded-lg [&_code]:text-base
-[&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-5 [&_pre]:rounded-xl [&_pre]:my-6 [&_pre_code]:bg-transparent'
-              />
+              {article.content && (
+                <MarkdownContent tree={article.content} className='article-body' />
+              )}
             </article>
 
             {/* 目次（デスクトップでは本文の右側に固定表示） */}
@@ -218,18 +197,8 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
                       className={`block hover:text-foreground transition-colors ${
                         section.level === 2
                           ? 'font-semibold text-sm text-foreground py-2'
-                          : 'ml-8 text-sm text-muted-foreground font-normal'
+                          : 'ml-8 border-l-2 border-slate-300 py-1 pl-4 text-sm text-muted-foreground font-normal'
                       }`}
-                      style={
-                        section.level === 3
-                          ? {
-                              borderLeft: '2px solid #cbd5e1',
-                              paddingLeft: '1rem',
-                              paddingTop: '0.25rem',
-                              paddingBottom: '0.25rem',
-                            }
-                          : {}
-                      }
                     >
                       {section.title}
                     </a>
