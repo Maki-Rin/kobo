@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { loginOptionsAction, loginVerifyAction } from '../actions';
+import AuthCard from './AuthCard';
 import ErrorList from './ErrorList';
 import SharedDeviceCheckbox from './SharedDeviceCheckbox';
+import { button } from './ui';
 
 export default function LoginPanel() {
   const router = useRouter();
@@ -31,25 +33,18 @@ export default function LoginPanel() {
   };
 
   return (
-    <section className='mx-auto max-w-md space-y-6 rounded-xl border border-slate-200 bg-white p-6'>
-      <div>
-        <h1 className='text-xl font-bold'>ログイン</h1>
-        <p className='mt-2 text-sm text-slate-600'>
-          登録した端末の指紋・顔認証・PINでログインします。この端末で登録していない場合は、表示されるQRコードを自分のスマホで読み取ってください。
-        </p>
-      </div>
+    <AuthCard title='ログイン'>
+      <p className='text-sm leading-6 text-slate-600'>
+        登録した端末の指紋・顔認証・PINでログインします。この端末で登録していない場合は、表示されるQRコードを自分のスマホで読み取ってください。
+      </p>
       <SharedDeviceCheckbox checked={shared} onChange={setShared} />
       <ErrorList errors={errors} />
-      <button
-        onClick={login}
-        disabled={busy}
-        className='w-full rounded-lg bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-700 disabled:opacity-50'
-      >
+      <button onClick={login} disabled={busy} className={`${button('primary', 'lg')} w-full`}>
         {busy ? '確認中…' : 'パスキーでログイン'}
       </button>
-      <p className='text-xs text-slate-500'>
+      <p className='text-xs leading-5 text-slate-500'>
         スマホを持っていない・なくしたときは、まとめ役に「ログインリンク」を発行してもらってください。
       </p>
-    </section>
+    </AuthCard>
   );
 }

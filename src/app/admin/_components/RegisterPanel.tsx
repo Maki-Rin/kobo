@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { startRegistration } from '@simplewebauthn/browser';
 import { registrationOptionsAction, registrationVerifyAction } from '../actions';
+import AuthCard from './AuthCard';
 import ErrorList from './ErrorList';
 import SharedDeviceCheckbox from './SharedDeviceCheckbox';
+import { button } from './ui';
 
 export default function RegisterPanel({
   token,
@@ -40,29 +42,20 @@ export default function RegisterPanel({
   };
 
   return (
-    <section className='mx-auto max-w-md space-y-6 rounded-xl border border-slate-200 bg-white p-6'>
-      <div>
-        <h1 className='text-xl font-bold'>
-          {addingDevice ? `${displayName} さんの端末を追加` : `${displayName} さん、ようこそ`}
-        </h1>
-        <div className='mt-3 space-y-2 text-sm text-slate-600'>
-          <p>この端末にパスキーを作ります。次回からは指紋・顔認証・PINだけでログインできます。パスワードはありません。</p>
-          <p>
-            <strong>自分のスマホかPCで開いてください。</strong>
-            工房の共有PCで開いた場合は、表示されるQRコードを自分のスマホで読み取ると、パスキーはスマホ側に保存されます。
-          </p>
-          <p>iPhone・MacならiCloudキーチェーン、AndroidならGoogleパスワードマネージャーに保存され、同じアカウントの端末で使えます。</p>
-        </div>
+    <AuthCard title={addingDevice ? `${displayName} さんの端末を追加` : `${displayName} さん、ようこそ`}>
+      <div className='space-y-3 text-sm leading-6 text-slate-600'>
+        <p>この端末にパスキーを作ります。次回からは指紋・顔認証・PINだけでログインできます。パスワードはありません。</p>
+        <p>
+          <strong className='text-slate-900'>自分のスマホかPCで開いてください。</strong>
+          工房の共有PCで開いた場合は、表示されるQRコードを自分のスマホで読み取ると、パスキーはスマホ側に保存されます。
+        </p>
+        <p>iPhone・MacならiCloudキーチェーン、AndroidならGoogleパスワードマネージャーに保存され、同じアカウントの端末で使えます。</p>
       </div>
       <SharedDeviceCheckbox checked={shared} onChange={setShared} />
       <ErrorList errors={errors} />
-      <button
-        onClick={register}
-        disabled={busy}
-        className='w-full rounded-lg bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-700 disabled:opacity-50'
-      >
+      <button onClick={register} disabled={busy} className={`${button('primary', 'lg')} w-full`}>
         {busy ? '作成中…' : 'パスキーを作成'}
       </button>
-    </section>
+    </AuthCard>
   );
 }

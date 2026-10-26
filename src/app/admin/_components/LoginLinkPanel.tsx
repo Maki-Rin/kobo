@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginLinkAction } from '../actions';
+import AuthCard from './AuthCard';
 import ErrorList from './ErrorList';
 import SharedDeviceCheckbox from './SharedDeviceCheckbox';
+import { button } from './ui';
 
 export default function LoginLinkPanel({ token }: { token: string }) {
   const router = useRouter();
@@ -22,22 +24,15 @@ export default function LoginLinkPanel({ token }: { token: string }) {
   };
 
   return (
-    <section className='mx-auto max-w-md space-y-6 rounded-xl border border-slate-200 bg-white p-6'>
-      <div>
-        <h1 className='text-xl font-bold'>ログインリンク</h1>
-        <p className='mt-2 text-sm text-slate-600'>
-          まとめ役が発行した1回だけ使えるリンクです。ログイン後、自分のスマホがあれば記事一覧の画面から「端末を追加」しておくと次から楽です。
-        </p>
-      </div>
+    <AuthCard title='ログインリンク'>
+      <p className='text-sm leading-6 text-slate-600'>
+        まとめ役が発行した、1回だけ使えるリンクです。自分のスマホがあれば、ログイン後に記事一覧の「端末を追加」からパスキーを作っておくと次から楽です。
+      </p>
       <SharedDeviceCheckbox checked={shared} onChange={setShared} />
       <ErrorList errors={errors} />
-      <button
-        onClick={login}
-        disabled={busy}
-        className='w-full rounded-lg bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-700 disabled:opacity-50'
-      >
+      <button onClick={login} disabled={busy} className={`${button('primary', 'lg')} w-full`}>
         ログイン
       </button>
-    </section>
+    </AuthCard>
   );
 }

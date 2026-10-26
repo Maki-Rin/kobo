@@ -153,11 +153,15 @@ body {
 
   .code-block pre {
     overflow-x: auto;
-    padding: 2.5rem 1rem 0.5rem;
+    padding: 1rem 3.25rem 1rem 1rem;
     border-radius: 0.5rem;
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
     font-size: 0.9rem;
     line-height: 1.5;
+  }
+
+  .code-block:has(.code-block-language) pre {
+    padding-top: 2.25rem;
   }
 
   .code-block pre code {

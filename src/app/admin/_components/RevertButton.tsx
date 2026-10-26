@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { revertAction } from '../actions';
 import ErrorList from './ErrorList';
+import { button } from './ui';
 
 export default function RevertButton({ commitId }: { commitId: string }) {
   const router = useRouter();
@@ -20,22 +21,18 @@ export default function RevertButton({ commitId }: { commitId: string }) {
   };
 
   return (
-    <div className='space-y-2'>
+    <div className='flex flex-col items-end gap-2'>
       {stage === 'confirm' ? (
-        <span className='flex gap-2'>
-          <button onClick={run} className='rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700'>
-            戻す
-          </button>
-          <button onClick={() => setStage('idle')} className='rounded border border-slate-300 px-3 py-1 text-sm'>
+        <div className='flex gap-2'>
+          <button onClick={() => setStage('idle')} className={button('secondary', 'sm')}>
             やめる
           </button>
-        </span>
+          <button onClick={run} className={button('danger', 'sm')}>
+            戻す
+          </button>
+        </div>
       ) : (
-        <button
-          onClick={() => setStage('confirm')}
-          disabled={stage === 'busy'}
-          className='rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50'
-        >
+        <button onClick={() => setStage('confirm')} disabled={stage === 'busy'} className={button('secondary', 'sm')}>
           {stage === 'busy' ? '戻しています…' : 'この変更を戻す'}
         </button>
       )}

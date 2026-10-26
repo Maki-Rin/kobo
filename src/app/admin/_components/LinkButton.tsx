@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { ActionResult } from '../actions';
 import ErrorList from './ErrorList';
+import { button, input } from './ui';
 
 export default function LinkButton({
   label,
@@ -32,21 +33,17 @@ export default function LinkButton({
   };
 
   return (
-    <div className='space-y-2'>
-      <button
-        type='button'
-        onClick={run}
-        className='rounded border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100'
-      >
+    <div className='space-y-3'>
+      <button type='button' onClick={run} className={button('secondary', 'sm')}>
         {label}
       </button>
       <ErrorList errors={errors} />
       {url && (
-        <div className='space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm'>
-          <p>{note}</p>
+        <div className='space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3.5'>
+          <p className='text-sm text-amber-950'>{note}</p>
           <div className='flex gap-2'>
-            <input readOnly value={url} className='min-w-0 flex-1 rounded border border-slate-300 bg-white px-2 py-1 font-mono text-xs' />
-            <button type='button' onClick={copy} className='rounded bg-slate-900 px-3 py-1 text-white'>
+            <input readOnly value={url} className={`${input} font-mono text-xs`} onFocus={(e) => e.target.select()} />
+            <button type='button' onClick={copy} className={button('primary')}>
               {copied ? 'コピーしました' : 'コピー'}
             </button>
           </div>

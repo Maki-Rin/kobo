@@ -39,6 +39,22 @@ function transform(node: ElementContent): ElementContent {
 
 export async function renderPreviewHtml(body: string): Promise<string> {
   const { tree } = await renderMarkdown(body);
-  const root: Root = { ...tree, children: tree.children.map((n) => (n.type === 'doctype' ? n : transform(n as ElementContent))) };
+  const flat = tree.children.flatMap((node) => {
+    if ((node as { type: string }).type !== 'root') return [node];
+    const nested = node as unknown as Root;
+    return nested.children.map((child) => ({ ...child, position: child.position ?? nested.position }));
+  });
+  const root: Root = {
+    ...tree,
+    children: flat.map((node) => {
+      if (node.type !== 'element') return node;
+      const line = node.position?.start.line;
+      const result = transform(node);
+      if (line && result.type === 'element') {
+        result.properties = { ...result.properties, 'data-line': line };
+      }
+      return result;
+    }),
+  };
   return toHtml(root);
 }

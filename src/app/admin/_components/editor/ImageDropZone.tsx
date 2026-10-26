@@ -44,7 +44,7 @@ export default function ImageDropZone({
         setOver(false);
         onFiles(imageFiles(event.dataTransfer.files));
       }}
-      className={`cursor-pointer rounded-xl border-2 border-dashed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+      className={`cursor-pointer rounded-lg border-2 border-dashed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
         over ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:border-slate-500 hover:bg-slate-50'
       } ${className}`}
     >
