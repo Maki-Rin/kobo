@@ -6,7 +6,7 @@ import { getPublicPrinters } from '@/lib/printers-server';
 
 export const metadata: Metadata = {
   title: '3Dプリンター稼働状況 | KOBO',
-  description: 'KOBOに設置された3Dプリンターの現在の稼働状況です。',
+  description: 'KOBOの3Dプリンターが今空いているかを確認できます。',
 };
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +26,8 @@ export default async function PrintersPage() {
             3Dプリンター稼働状況
           </h1>
           <p className='mt-3 max-w-3xl text-slate-600'>
-            状態閲覧専用です。この画面から印刷申請やプリンター操作はできません。
-            表示が古い場合は、現地のプリンター表示を優先してください。
+            KOBOの3Dプリンターが今空いているかを確認できます。
+            表示は少し遅れることがあるので、迷ったら現地のプリンターを見てください。
           </p>
         </div>
         <PrinterStatus initialResult={initialResult} />

@@ -8,8 +8,6 @@ author:
 coverImage: '/images/flashprint.png'
 ---
 
-> この記事はFlashPrintのスライス操作を参照するために残しています。Adventurer 5M Proの現在のLAN接続と送信にはFlash Studio Desktopを使用し、KOBOスタッフの案内を優先してください。
-
 ## 1. FlashPrintのインストール
 
 * [FlashForgeの公式サイト](https://flashforge.jp/flashprint5/)から最新版をダウンロード・インストールしてください。
