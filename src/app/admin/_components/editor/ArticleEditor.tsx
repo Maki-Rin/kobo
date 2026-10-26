@@ -7,6 +7,7 @@ import type { ArticleDraft } from '@/lib/editor/articles';
 import { previewAction, saveArticleAction, uploadImageAction } from '../../actions';
 import { badge, button, fontFamily } from '../ui';
 import { IMAGE_ACCEPT } from './ImageDropZone';
+import EditorBackdrop from './EditorBackdrop';
 import SettingsPanel from './SettingsPanel';
 import { ImageError, imageFiles, prepareImage } from './prepareImage';
 
@@ -30,6 +31,7 @@ const PREVIEW_DELAY = 300;
 const AUTOSAVE_DELAY = 800;
 const IMAGE_PATH = /^\/images\/articles\/[^/]+\/([^/]+)$/;
 const SPLIT_KEY = 'kobo-editor:split';
+const NUMBERS_KEY = 'kobo-editor-pref:numbers';
 
 const autosaveKey = (isNew: boolean, id: string) => `kobo-editor:${isNew ? 'new' : id}`;
 
@@ -122,10 +124,13 @@ export default function ArticleEditor({
   const [restorable, setRestorable] = useState<Autosave | null>(null);
   const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
   const [caretLine, setCaretLine] = useState(1);
+  const [numbers, setNumbers] = useState(true);
+  const [scrollbar, setScrollbar] = useState(0);
 
   const mainRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const bodyFileInput = useRef<HTMLInputElement>(null);
   const selection = useRef<{ start: number; end: number } | null>(null);
   const dragDepth = useRef(0);
@@ -143,6 +148,7 @@ export default function ArticleEditor({
   useEffect(() => {
     const saved = readStorage<number>(SPLIT_KEY);
     if (saved) setSplit(saved);
+    if (readStorage<boolean>(NUMBERS_KEY) === false) setNumbers(false);
     if (window.matchMedia('(max-width: 767px)').matches) setView('write');
   }, []);
 
@@ -228,6 +234,27 @@ export default function ArticleEditor({
       pane.scrollTo({ top: pane.scrollTop + rect.top - paneRect.top - paneRect.height * 0.3, behavior: 'smooth' });
     }
   }, [caretLine, renderedPreview]);
+
+  useEffect(() => {
+    const textarea = bodyRef.current;
+    if (!textarea) return;
+    const measure = () => setScrollbar(textarea.offsetWidth - textarea.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, [view]);
+
+  const syncScroll = () => {
+    const textarea = bodyRef.current;
+    if (textarea && backdropRef.current) {
+      backdropRef.current.style.transform = `translateY(${-textarea.scrollTop}px)`;
+    }
+  };
+
+  useEffect(syncScroll, [draft.body, numbers, split, view]);
+
+  const surface = `${numbers ? 'pl-[max(3.5rem,calc((100%_-_40rem)/2))]' : 'pl-[max(1.25rem,calc((100%_-_40rem)/2))]'} pr-[max(1.25rem,calc((100%_-_40rem)/2))] py-8 text-base leading-[1.7]`;
 
   const trackCaret = () => {
     const textarea = bodyRef.current;
@@ -609,7 +636,21 @@ export default function ArticleEditor({
             >
               ＋ 画像
             </button>
-            <div className='relative ml-auto'>
+            <div className='relative ml-auto flex items-center gap-0.5'>
+              <button
+                type='button'
+                aria-pressed={numbers}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  setNumbers((value) => {
+                    writeStorage(NUMBERS_KEY, !value);
+                    return !value;
+                  });
+                }}
+                className={`${button('ghost', 'sm')} px-2 ${numbers ? 'text-slate-900' : 'text-slate-400'}`}
+              >
+                行番号
+              </button>
               <ToolButton onClick={() => setHelpOpen((open) => !open)} label='書き方'>
                 書き方
               </ToolButton>
@@ -643,36 +684,47 @@ export default function ArticleEditor({
             />
           </div>
 
-          <textarea
-            ref={bodyRef}
-            value={draft.body}
-            onChange={(event) => {
-              update('body', event.target.value);
-              trackCaret();
-            }}
-            onSelect={trackCaret}
-            onKeyUp={trackCaret}
-            onClick={trackCaret}
-            onPaste={(event) => {
-              const files = imageFiles(event.clipboardData.files);
-              if (files.length === 0) return;
-              event.preventDefault();
-              trackCaret();
-              insertImages(files);
-            }}
-            onDragOver={(event) => {
-              if (event.dataTransfer.types.includes('Files')) event.preventDefault();
-            }}
-            onDrop={(event) => {
-              const files = imageFiles(event.dataTransfer.files);
-              if (files.length === 0) return;
-              event.preventDefault();
-              insertImages(files);
-            }}
-            placeholder={'ここに本文を書きます。\n\n画像は、ドラッグ＆ドロップ・コピーして貼り付け・「＋ 画像」ボタンで入れられます。'}
-            aria-label='本文（Markdown）'
-            className='min-h-0 w-full flex-1 resize-none bg-[#fcfbf8] px-[max(1.25rem,calc((100%_-_40rem)/2))] py-8 text-base leading-[1.7] text-stone-800 placeholder:text-stone-400 focus:outline-none'
-          />
+          <div className='relative min-h-0 flex-1 bg-[#fcfbf8]'>
+            <EditorBackdrop
+              ref={backdropRef}
+              value={draft.body}
+              caretLine={caretLine}
+              numbers={numbers}
+              className={`${surface} will-change-transform`}
+              rightInset={scrollbar}
+            />
+            <textarea
+              ref={bodyRef}
+              value={draft.body}
+              onChange={(event) => {
+                update('body', event.target.value);
+                trackCaret();
+              }}
+              onSelect={trackCaret}
+              onKeyUp={trackCaret}
+              onClick={trackCaret}
+              onScroll={syncScroll}
+              onPaste={(event) => {
+                const files = imageFiles(event.clipboardData.files);
+                if (files.length === 0) return;
+                event.preventDefault();
+                trackCaret();
+                insertImages(files);
+              }}
+              onDragOver={(event) => {
+                if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+              }}
+              onDrop={(event) => {
+                const files = imageFiles(event.dataTransfer.files);
+                if (files.length === 0) return;
+                event.preventDefault();
+                insertImages(files);
+              }}
+              placeholder={'ここに本文を書きます。\n\n画像は、ドラッグ＆ドロップ・コピーして貼り付け・「＋ 画像」ボタンで入れられます。'}
+              aria-label='本文（Markdown）'
+              className={`absolute inset-0 size-full resize-none whitespace-pre-wrap break-words bg-transparent text-stone-800 placeholder:text-stone-400 focus:outline-none ${surface}`}
+            />
+          </div>
 
           <button
             type='button'
