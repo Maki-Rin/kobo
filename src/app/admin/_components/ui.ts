@@ -32,4 +32,4 @@ export const badge = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs 
 export const pageTitle = 'text-xl font-bold';
 
 export const fontFamily =
-  'var(--font-geist-sans), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif';
+  '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif';

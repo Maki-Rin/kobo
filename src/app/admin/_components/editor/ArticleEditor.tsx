@@ -671,9 +671,7 @@ export default function ArticleEditor({
             }}
             placeholder={'ここに本文を書きます。\n\n画像は、ドラッグ＆ドロップ・コピーして貼り付け・「＋ 画像」ボタンで入れられます。'}
             aria-label='本文（Markdown）'
-            className={`min-h-0 w-full flex-1 resize-none bg-white px-6 py-5 font-mono text-[15px] leading-7 placeholder:font-sans placeholder:text-slate-400 focus:outline-none ${
-              view === 'write' ? 'md:px-[max(1.5rem,calc((100%_-_48rem)/2))]' : ''
-            }`}
+            className='min-h-0 w-full flex-1 resize-none bg-[#fcfbf8] px-[max(1.25rem,calc((100%_-_40rem)/2))] py-8 text-base leading-[1.9] tracking-[0.02em] text-stone-800 placeholder:text-stone-400 focus:outline-none'
           />
 
           <button
@@ -682,7 +680,7 @@ export default function ArticleEditor({
               trackCaret();
               bodyFileInput.current?.click();
             }}
-            className='flex h-10 shrink-0 items-center justify-center gap-1 border-t border-dashed border-slate-300 px-4 text-xs text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700'
+            className='flex h-10 shrink-0 items-center justify-center gap-1 border-t border-dashed border-stone-300 bg-[#fcfbf8] px-4 text-xs text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700'
           >
             <span className='hidden md:inline'>
               画像はドラッグ＆ドロップ ／ コピーして貼り付け（⌘V・Ctrl+V）／ <span className='underline underline-offset-2'>クリックして選ぶ</span>
@@ -724,14 +722,14 @@ export default function ArticleEditor({
 
         <section
           aria-label='プレビュー'
-          className={`min-w-0 flex-1 flex-col bg-white ${view === 'write' ? 'hidden' : view === 'split' ? 'hidden md:flex' : 'flex'}`}
+          className={`min-w-0 flex-1 flex-col bg-slate-100 ${view === 'write' ? 'hidden' : view === 'split' ? 'hidden md:flex' : 'flex'}`}
         >
-          <div className='flex h-11 shrink-0 items-center justify-between border-b border-slate-200 px-4 text-sm'>
+          <div className='flex h-11 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 text-sm'>
             <span className='font-medium text-slate-700'>プレビュー</span>
-            <span className='text-xs text-slate-500'>サイトでの見え方・書いている場所についていきます</span>
+            <span className='truncate text-xs text-slate-500'>公開したときの見た目です</span>
           </div>
-          <div ref={previewRef} className='min-h-0 flex-1 overflow-y-auto'>
-            <article className='mx-auto max-w-3xl px-6 py-8 md:px-10'>
+          <div ref={previewRef} className='min-h-0 flex-1 overflow-y-auto md:px-6'>
+            <article style={{ fontFamily: 'Arial, Helvetica, sans-serif' }} className='mx-auto my-6 max-w-3xl bg-white px-6 py-8 shadow-sm ring-1 ring-slate-200 md:my-8 md:rounded-lg md:px-10 md:py-10'>
               {draft.coverImage && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={resolveSrc(draft.coverImage)} alt='' className='mb-6 aspect-[1200/630] w-full rounded-lg object-cover' />
