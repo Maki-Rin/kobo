@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
 import EventCard from '@/components/EventCard';
+import PrinterStatusStrip from '@/components/PrinterStatusStrip';
 import { type Article } from '@/lib/articles';
 import { type Work, getWorks } from '@/lib/works';
 import { type Event, getEvents } from '@/lib/events';
@@ -244,6 +245,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <PrinterStatusStrip />
 
       {/* Main Content - 3段構成 */}
       <main className='container mx-auto px-6 py-12'>

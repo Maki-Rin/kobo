@@ -9,7 +9,7 @@ import type {
 } from '@/lib/printer-types';
 import { parsePrinterApiResult } from '@/lib/printer-types';
 
-const availabilityLabels: Record<PublicPrinter['availability'], string> = {
+export const availabilityLabels: Record<PublicPrinter['availability'], string> = {
   online: 'オンライン',
   stale: '更新遅延',
   offline: 'オフライン',
@@ -18,7 +18,7 @@ const availabilityLabels: Record<PublicPrinter['availability'], string> = {
   unknown: '不明',
 };
 
-const stateLabels: Record<PublicPrinter['state'], string> = {
+export const stateLabels: Record<PublicPrinter['state'], string> = {
   unknown: '状態不明',
   idle: '待機中',
   preparing: '準備中',
@@ -28,7 +28,7 @@ const stateLabels: Record<PublicPrinter['state'], string> = {
   error: 'エラー',
 };
 
-const stateStyles: Record<PublicPrinter['state'], string> = {
+export const stateStyles: Record<PublicPrinter['state'], string> = {
   unknown: 'bg-slate-100 text-slate-700',
   idle: 'bg-emerald-100 text-emerald-800',
   preparing: 'bg-amber-100 text-amber-900',
