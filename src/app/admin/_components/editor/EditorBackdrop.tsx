@@ -42,7 +42,7 @@ const EditorBackdrop = memo(
             {lines.map((line, index) => (
               <div
                 key={index}
-                className={`relative -mx-2 whitespace-pre-wrap break-words rounded-[3px] px-2 ${kindStyles[kinds[index]]} ${
+                className={`relative -mx-2 whitespace-pre-wrap break-words px-2 ${kinds[index] === 'code' || kinds[index] === 'fence' ? '' : 'rounded-[3px]'} ${kindStyles[kinds[index]]} ${
                   index + 1 === caretLine && kinds[index] === 'text' ? 'bg-stone-100' : ''
                 }`}
               >
