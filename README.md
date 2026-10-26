@@ -1,5 +1,22 @@
 # KOBO の Web サイト作るぞ！
 
+## 3Dプリンター稼働状況
+
+`/printers` は `kobo-server` の読み取り専用public APIを、Next.jsのserver-side route経由で表示します。ブラウザへCloudflare側のURLやcredentialを渡しません。
+
+ローカルでは `.env.local` に次を設定します。
+
+```text
+KOBO_PRINTER_PUBLIC_API_BASE_URL=https://your-worker.example
+```
+
+```bash
+npm ci
+npm run dev
+```
+
+未設定またはAPI停止時もサイト全体は停止せず、`/printers`だけに取得不能の案内を表示します。public API contractのsource of truthは隣接する`kobo-server/docs/04-kobo-integration-contract.md`です。
+
 ### 開発者
 
 [臼井義人](https://www.usuiyoshito.com)，牧野倫太郎
