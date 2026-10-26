@@ -9,11 +9,13 @@ import {
   type PublicKeyCredentialRequestOptionsJSON,
   type RegistrationResponseJSON,
 } from '@simplewebauthn/server';
+import { headers } from 'next/headers';
 import { getDb } from './db';
 import { editorConfig } from './config';
 import {
   audit,
   createUser,
+  deviceLabel,
   findActiveUser,
   findInvite,
   markInviteUsed,
@@ -138,8 +140,8 @@ export async function finishRegistration(
   const { credential } = verification.registrationInfo;
   const db = await getDb();
   await db.run(
-    `INSERT INTO credentials (id, user_id, public_key, counter, transports, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO credentials (id, user_id, public_key, counter, transports, created_at, label)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       credential.id,
       userId,
@@ -147,6 +149,7 @@ export async function finishRegistration(
       credential.counter,
       credential.transports ? JSON.stringify(credential.transports) : null,
       new Date().toISOString(),
+      deviceLabel((await headers()).get('user-agent') ?? ''),
     ]
   );
   await markInviteUsed(invite.tokenHash);

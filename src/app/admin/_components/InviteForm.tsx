@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Role } from '@/lib/editor/auth';
 import { createInviteAction } from '../actions';
 import LinkButton from './LinkButton';
-import { input } from './ui';
+import { input, select } from './ui';
 
 export default function InviteForm({ canInviteDeveloper }: { canInviteDeveloper: boolean }) {
   const [name, setName] = useState('');
@@ -18,7 +18,7 @@ export default function InviteForm({ canInviteDeveloper }: { canInviteDeveloper:
           placeholder='名前（記事の「書いた人」に使われます）'
           className={input}
         />
-        <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={`${input} sm:w-36`}>
+        <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={`${select} w-full sm:w-36`}>
           <option value='editor'>編集者</option>
           <option value='lead'>まとめ役</option>
           {canInviteDeveloper && <option value='developer'>開発者</option>}

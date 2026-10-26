@@ -247,3 +247,119 @@ export async function createUser(
     [id, displayName, role, nowIso()]
   );
 }
+
+export function deviceLabel(userAgent: string): string {
+  const os = /iPhone/.test(userAgent)
+    ? 'iPhone'
+    : /iPad/.test(userAgent)
+      ? 'iPad'
+      : /Android/.test(userAgent)
+        ? 'Android'
+        : /Macintosh|Mac OS X/.test(userAgent)
+          ? 'Mac'
+          : /Windows/.test(userAgent)
+            ? 'Windows'
+            : 'その他の端末';
+  const browser = /Edg\//.test(userAgent)
+    ? 'Edge'
+    : /Firefox\//.test(userAgent)
+      ? 'Firefox'
+      : /Chrome\/|CriOS\//.test(userAgent)
+        ? 'Chrome'
+        : /Safari\//.test(userAgent)
+          ? 'Safari'
+          : '';
+  return browser ? `${os}・${browser}` : os;
+}
+
+export interface Passkey {
+  id: string;
+  label: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export async function listPasskeys(userId: string): Promise<Passkey[]> {
+  const db = await getDb();
+  const rows = await db.all<{ id: string; label: string | null; created_at: string; last_used_at: string | null }>(
+    'SELECT id, label, created_at, last_used_at FROM credentials WHERE user_id = ? ORDER BY created_at',
+    [userId]
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.label,
+    createdAt: row.created_at,
+    lastUsedAt: row.last_used_at,
+  }));
+}
+
+export async function deletePasskey(actor: User, credentialId: string) {
+  const db = await getDb();
+  const [row] = await db.all<{ user_id: string }>('SELECT user_id FROM credentials WHERE id = ?', [credentialId]);
+  if (!row) return;
+  if (row.user_id !== actor.id && !canManageMembers(actor)) {
+    throw new Error('まとめ役だけができる操作です');
+  }
+  await db.run('DELETE FROM credentials WHERE id = ?', [credentialId]);
+  await audit(actor.id, 'passkey.delete', row.user_id, credentialId);
+}
+
+export interface PendingInvite {
+  id: string;
+  kind: 'register' | 'login';
+  displayName: string | null;
+  role: Role | null;
+  targetName: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export async function listPendingInvites(): Promise<PendingInvite[]> {
+  const db = await getDb();
+  const rows = await db.all<{
+    token_hash: string;
+    kind: 'register' | 'login';
+    display_name: string | null;
+    role: Role | null;
+    target_name: string | null;
+    created_by_name: string | null;
+    created_at: string;
+    expires_at: string;
+  }>(
+    `SELECT i.token_hash, i.kind, i.display_name, i.role, t.display_name AS target_name,
+       c.display_name AS created_by_name, i.created_at, i.expires_at
+     FROM invites i
+     LEFT JOIN users t ON t.id = i.user_id
+     LEFT JOIN users c ON c.id = i.created_by
+     WHERE i.used_at IS NULL AND i.expires_at > ?
+     ORDER BY i.created_at DESC`,
+    [nowIso()]
+  );
+  return rows.map((row) => ({
+    id: row.token_hash,
+    kind: row.kind,
+    displayName: row.display_name,
+    role: row.role,
+    targetName: row.target_name,
+    createdByName: row.created_by_name,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+  }));
+}
+
+export async function revokeInvite(actor: User, tokenHash: string) {
+  const db = await getDb();
+  await db.run('UPDATE invites SET expires_at = ? WHERE token_hash = ? AND used_at IS NULL', [nowIso(), tokenHash]);
+  await audit(actor.id, 'invite.revoke', tokenHash);
+}
+
+export async function setUserRole(actor: User, userId: string, role: Role) {
+  if (userId === actor.id) throw new Error('自分の役割は変えられません');
+  if (role === 'developer' && actor.role !== 'developer') throw new Error('開発者にできるのは開発者だけです');
+  const db = await getDb();
+  const [target] = await db.all<{ role: Role }>('SELECT role FROM users WHERE id = ?', [userId]);
+  if (target?.role === 'developer' && actor.role !== 'developer') throw new Error('開発者の役割は変えられません');
+  await db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId]);
+  await audit(actor.id, 'user.role', userId, role);
+}

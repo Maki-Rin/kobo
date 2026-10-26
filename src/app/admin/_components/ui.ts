@@ -33,3 +33,6 @@ export const pageTitle = 'text-xl font-bold';
 
 export const fontFamily =
   '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif';
+
+export const select =
+  'h-9 rounded-md border border-slate-300 bg-white pl-3 pr-8 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900/10';

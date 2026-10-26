@@ -168,6 +168,7 @@ class LocalStore implements ContentStore {
         'content' in change ? change.content : await this.staged(change.blobSha);
       if (!content) throw new Error(`画像が見つかりません: ${change.path}`);
       const before = await this.read(change.path);
+      await this.stage(content);
       await fs.mkdir(path.dirname(this.resolve(change.path)), { recursive: true });
       await fs.writeFile(this.resolve(change.path), content);
       files.push({

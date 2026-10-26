@@ -7,6 +7,7 @@ import { visit } from 'unist-util-visit';
 import { renderMarkdown } from '../markdown';
 import type { User } from './auth';
 import { audit } from './auth';
+import { recordArticleEvent, type ArticleAction } from './activity';
 import { ConflictError, getStore, type FileChange } from './store';
 
 export const ARTICLE_DIR = 'src/content/articles';
@@ -35,6 +36,8 @@ export interface ArticleSummary {
   title: string;
   date: string;
   published: boolean;
+  coverImage: string;
+  authorName: string;
 }
 
 export interface StagedImage {
@@ -53,7 +56,7 @@ export function newArticleId(date: string): string {
 
 const articlePath = (id: string) => `${ARTICLE_DIR}/${id}.md`;
 
-function parseArticle(id: string, source: string): ArticleDraft {
+export function parseArticle(id: string, source: string): ArticleDraft {
   const { data, content } = matter(source);
   return {
     id,
@@ -88,7 +91,14 @@ export async function listArticles(): Promise<ArticleSummary[]> {
       const file = await store.read(filePath);
       const id = filePath.slice(ARTICLE_DIR.length + 1, -3);
       const draft = parseArticle(id, file?.content.toString('utf8') ?? '');
-      return { id, title: draft.title, date: draft.date, published: draft.published };
+      return {
+        id,
+        title: draft.title,
+        date: draft.date,
+        published: draft.published,
+        coverImage: draft.coverImage,
+        authorName: draft.authorName,
+      };
     })
   );
   return articles.sort((a, b) => b.date.localeCompare(a.date));
@@ -223,19 +233,28 @@ export async function saveArticle(
   input: { draft: Record<string, unknown>; isNew: boolean; baseSha: string | null; images: StagedImage[] }
 ): Promise<string> {
   const draft = sanitizeDraft(input.draft);
-  if (!input.isNew && (!input.baseSha || !(await getStore().exists(articlePath(draft.id))))) {
+  const previous = input.isNew ? null : await loadArticle(draft.id);
+  if (!input.isNew && (!input.baseSha || !previous)) {
     throw new EditorError(['編集する記事が見つかりません']);
   }
   const changes = await validate(draft, input.isNew, input.images);
   const filePath = articlePath(draft.id);
   changes.push({ path: filePath, content: Buffer.from(toMarkdown(draft)) });
-  const action = !draft.published ? '下書きを保存' : input.isNew ? '記事を公開' : '記事を更新';
+  const action = !draft.published ? '下書きを保存' : previous?.draft.published ? '記事を更新' : '記事を公開';
   const id = await getStore().commit({
     changes,
     expected: { [filePath]: input.isNew ? null : input.baseSha },
     title: `📝 ${action}: ${draft.title}`,
     editor: user,
   });
+  const event: ArticleAction = !draft.published
+    ? previous?.draft.published
+      ? 'unpublish'
+      : 'draft'
+    : previous?.draft.published
+      ? 'update'
+      : 'publish';
+  await recordArticleEvent({ articleId: draft.id, title: draft.title, action: event, userId: user.id, commitId: id });
   await audit(user.id, 'article.save', draft.id, id);
   return id;
 }
@@ -275,6 +294,18 @@ export async function revertCommit(user: User, commitId: string): Promise<string
     title: `↩️ 元に戻す: ${detail.title}`,
     editor: user,
   });
+  for (const change of changes) {
+    if (!change.path.endsWith('.md')) continue;
+    const articleId = change.path.slice(ARTICLE_DIR.length + 1, -3);
+    const restored = 'content' in change ? parseArticle(articleId, change.content.toString('utf8')) : null;
+    await recordArticleEvent({
+      articleId,
+      title: restored?.title ?? articleId,
+      action: 'revert',
+      userId: user.id,
+      commitId: id,
+    });
+  }
   await audit(user.id, 'commit.revert', commitId, id);
   return id;
 }

@@ -15,7 +15,10 @@
 ```sh
 npx wrangler d1 create kobo-editor
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0001_init.sql
+npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0002_activity.sql
 ```
+
+`db/editor/migrations/` にファイルが増えたら、番号の順に同じコマンドで実行する（ローカルの SQLite は起動時に自動で適用される）。
 
 1行目の出力にある `database_id` を控える。
 

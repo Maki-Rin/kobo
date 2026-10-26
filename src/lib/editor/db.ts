@@ -46,14 +46,19 @@ async function localSqlite(file: string): Promise<Db> {
   const { DatabaseSync } = await import('node:sqlite');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
-  const exists = db
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'")
-    .all();
-  if (exists.length === 0) {
-    const dir = path.join(process.cwd(), 'db/editor/migrations');
-    for (const name of fs.readdirSync(dir).sort()) {
+  db.exec('CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY)');
+  const applied = new Set(
+    (db.prepare('SELECT name FROM _migrations').all() as { name: string }[]).map((row) => row.name)
+  );
+  const hasUsers =
+    db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'").all().length > 0;
+  const dir = path.join(process.cwd(), 'db/editor/migrations');
+  for (const name of fs.readdirSync(dir).sort()) {
+    if (applied.has(name)) continue;
+    if (!(name.startsWith('0001') && hasUsers)) {
       db.exec(fs.readFileSync(path.join(dir, name), 'utf8'));
     }
+    db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
   }
   return {
     all: async <T>(sql: string, params: SqlValue[] = []) =>

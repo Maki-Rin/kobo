@@ -1,46 +1,99 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { currentUser } from '@/lib/editor/auth';
-import { getStore } from '@/lib/editor/store';
+import { currentUser, listMembers } from '@/lib/editor/auth';
+import { listArticles } from '@/lib/editor/articles';
+import { articleActionLabels, recentEvents, type ArticleEvent } from '@/lib/editor/activity';
+import HistoryFilters from '../_components/HistoryFilters';
 import RevertButton from '../_components/RevertButton';
-import { card, pageTitle } from '../_components/ui';
+import { button, card, pageTitle } from '../_components/ui';
 
-const formatter = new Intl.DateTimeFormat('ja-JP', {
-  timeZone: 'Asia/Tokyo',
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+const dayFormatter = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric', weekday: 'short' });
+const timeFormatter = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' });
+const dayKey = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' });
 
-export default async function HistoryPage() {
+const actionColors: Record<ArticleEvent['action'], string> = {
+  publish: 'bg-emerald-500',
+  update: 'bg-blue-500',
+  draft: 'bg-amber-400',
+  unpublish: 'bg-slate-400',
+  revert: 'bg-red-400',
+};
+
+async function load(article?: string, user?: string) {
+  const [events, articles, members] = await Promise.all([
+    recentEvents({ articleId: article, userId: user, limit: 100 }),
+    listArticles(),
+    listMembers(),
+  ]);
+  const today = dayKey.format(new Date());
+  const yesterday = dayKey.format(new Date(Date.now() - 86_400_000));
+  const groups = new Map<string, ArticleEvent[]>();
+  for (const event of events) {
+    const key = dayKey.format(new Date(event.at));
+    const label = key === today ? '今日' : key === yesterday ? '昨日' : dayFormatter.format(new Date(event.at));
+    groups.set(label, [...(groups.get(label) ?? []), event]);
+  }
+  return { groups: [...groups], articles, members };
+}
+
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ article?: string; user?: string }>;
+}) {
   const user = await currentUser();
   if (!user) redirect('/admin');
-  const history = await getStore().history(30);
+  const filters = await searchParams;
+  const { groups, articles, members } = await load(filters.article, filters.user);
+
   return (
     <div className='space-y-6'>
       <div>
         <h1 className={pageTitle}>変更履歴</h1>
-        <p className='mt-2 text-sm leading-6 text-slate-600'>
-          記事の変更の記録です（新しい順に30件）。「戻す」と、その変更の前の状態に戻す変更が新しく記録されます。
+        <p className='mt-1 text-sm leading-6 text-slate-500'>
+          投稿画面からの変更の記録です。「戻す」と、その変更の前の状態に戻す変更が新しく記録されます。
           {user.role === 'editor' && '自分の変更だけ戻せます。'}
         </p>
       </div>
-      <ul className={`${card} divide-y divide-slate-100`}>
-        {history.map((entry) => (
-          <li key={entry.id} className='flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5'>
-            <div className='min-w-0 flex-1'>
-              <p className='truncate font-medium'>{entry.title}</p>
-              <p className='mt-0.5 text-sm text-slate-500'>
-                {formatter.format(new Date(entry.at))}・{entry.authorName}
-                {!entry.editorId && '（開発者）'}
-              </p>
-            </div>
-            {(user.role !== 'editor' || entry.editorId === user.id) && <RevertButton commitId={entry.id} />}
-          </li>
-        ))}
-        {history.length === 0 && <li className='px-4 py-3.5 text-sm text-slate-500'>まだ記録がありません</li>}
-      </ul>
+      <HistoryFilters
+        articles={articles.map((a) => ({ id: a.id, title: a.title }))}
+        members={members.map((m) => ({ id: m.id, displayName: m.displayName }))}
+      />
+      {groups.length === 0 && (
+        <p className={`${card} px-4 py-10 text-center text-sm text-slate-500`}>まだ記録がありません</p>
+      )}
+      {groups.map(([label, events]) => (
+        <section key={label} className='space-y-2'>
+          <h2 className='text-sm font-bold text-slate-500'>{label}</h2>
+          <ul className={`${card} divide-y divide-slate-100`}>
+            {events.map((event) => (
+              <li key={`${event.commitId}-${event.articleId}`} className='flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3'>
+                <span className='w-12 shrink-0 text-sm tabular-nums text-slate-500'>
+                  {timeFormatter.format(new Date(event.at))}
+                </span>
+                <span className={`size-2 shrink-0 rounded-full ${actionColors[event.action]}`} aria-hidden='true' />
+                <p className='min-w-0 flex-1 text-sm leading-6'>
+                  <span className='font-medium'>{event.userName ?? '不明'}</span>
+                  <span className='text-slate-500'> が </span>
+                  <Link href={`/admin/articles/${event.articleId}`} className='font-medium hover:underline'>
+                    {event.title}
+                  </Link>
+                  <span className='text-slate-500'> を{articleActionLabels[event.action]}</span>
+                </p>
+                <div className='flex items-start gap-2'>
+                  <Link
+                    href={`/admin/history/${event.commitId}?article=${encodeURIComponent(event.articleId)}`}
+                    className={button('ghost', 'sm')}
+                  >
+                    変更を見る
+                  </Link>
+                  {(user.role !== 'editor' || event.userId === user.id) && <RevertButton commitId={event.commitId} />}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

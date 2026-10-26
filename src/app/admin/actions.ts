@@ -10,12 +10,15 @@ import { editorConfig } from '@/lib/editor/config';
 import {
   canManageMembers,
   createInvite,
+  deletePasskey,
   endSession,
   findActiveUser,
   findInvite,
   markInviteUsed,
   requireUser,
+  revokeInvite,
   setUserDisabled,
+  setUserRole,
   startSession,
   type Role,
 } from '@/lib/editor/auth';
@@ -188,6 +191,36 @@ export async function setDisabledAction(userId: string, disabled: boolean) {
     const user = await requireManager();
     if (userId === user.id) throw new EditorError(['自分自身は無効にできません']);
     await setUserDisabled(user, userId, disabled);
+    revalidatePath('/admin/members');
+  });
+}
+
+export async function deletePasskeyAction(credentialId: string) {
+  return attempt(async () => {
+    const user = await requireUser();
+    await deletePasskey(user, credentialId);
+    revalidatePath('/admin/account');
+    revalidatePath('/admin/members');
+  });
+}
+
+export async function revokeInviteAction(id: string) {
+  return attempt(async () => {
+    const user = await requireManager();
+    await revokeInvite(user, id);
+    revalidatePath('/admin/members');
+  });
+}
+
+export async function setRoleAction(userId: string, role: Role) {
+  return attempt(async () => {
+    const user = await requireManager();
+    if (!['editor', 'lead', 'developer'].includes(role)) throw new EditorError(['役割が正しくありません']);
+    try {
+      await setUserRole(user, userId, role);
+    } catch (error) {
+      throw new EditorError([error instanceof Error ? error.message : '役割を変えられませんでした']);
+    }
     revalidatePath('/admin/members');
   });
 }
