@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import type {
   PrinterApiResult,
   PublicPrinter,
@@ -226,10 +225,20 @@ export default function PrinterStatus({
           {data === null ? '更新時刻不明' : `データ更新: ${formatDate(data.generatedAt)}`}
           {refreshing && ' · 更新確認中'}
         </p>
-        <Link href='/articles/printer-status' className='font-semibold text-blue-700 hover:underline'>
-          状態表示の見方
-        </Link>
       </div>
+
+      <details className='mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700'>
+        <summary className='cursor-pointer font-semibold'>表示の見方</summary>
+        <ul className='mt-3 space-y-1'>
+          <li>待機中：空いています。</li>
+          <li>造形中：印刷しています。</li>
+          <li>回収待ち：印刷は終わったけど、造形物がまだ残っています。</li>
+          <li>オフライン：状態が取れていません。電源が切れているだけのことも。</li>
+        </ul>
+        <p className='mt-3'>
+          見るだけのページなので、印刷したいときはスタッフに声をかけてください。印刷中のファイル名は表示されるので、名前など知られたくない情報は入れないでね。
+        </p>
+      </details>
     </div>
   );
 }
