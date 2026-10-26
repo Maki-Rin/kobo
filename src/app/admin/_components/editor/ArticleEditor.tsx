@@ -671,7 +671,7 @@ export default function ArticleEditor({
             }}
             placeholder={'ここに本文を書きます。\n\n画像は、ドラッグ＆ドロップ・コピーして貼り付け・「＋ 画像」ボタンで入れられます。'}
             aria-label='本文（Markdown）'
-            className='min-h-0 w-full flex-1 resize-none bg-[#fcfbf8] px-[max(1.25rem,calc((100%_-_40rem)/2))] py-8 text-base leading-[1.9] tracking-[0.02em] text-stone-800 placeholder:text-stone-400 focus:outline-none'
+            className='min-h-0 w-full flex-1 resize-none bg-[#fcfbf8] px-[max(1.25rem,calc((100%_-_40rem)/2))] py-8 text-base leading-[1.7] text-stone-800 placeholder:text-stone-400 focus:outline-none'
           />
 
           <button
