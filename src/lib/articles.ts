@@ -27,6 +27,7 @@ export interface ArticleFrontMatter {
     avatar: string;
   };
   coverImage: string;
+  published?: boolean;
 }
 
 const articlesDirectory = path.join(process.cwd(), 'src/content/articles');
@@ -53,6 +54,7 @@ export async function getArticles(): Promise<Article[]> {
       const { data } = matter(fileContents);
 
       const frontMatter = data as ArticleFrontMatter;
+      if (frontMatter.published === false) continue;
       const id = path.basename(file, '.md');
 
       // Generate excerpt if not provided
@@ -98,6 +100,7 @@ export async function getArticle(id: string): Promise<Article | undefined> {
     // Use gray-matter to parse the article metadata and content
     const { data, content } = matter(fileContents);
     const frontMatter = data as ArticleFrontMatter;
+    if (frontMatter.published === false) return undefined;
 
     const { tree, sections } = await renderMarkdown(content);
 

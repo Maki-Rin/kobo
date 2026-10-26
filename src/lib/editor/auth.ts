@@ -1,0 +1,249 @@
+import crypto from 'crypto';
+import { cookies } from 'next/headers';
+import { getDb } from './db';
+
+export type Role = 'editor' | 'lead' | 'developer';
+
+export const roleLabels: Record<Role, string> = {
+  editor: '編集者',
+  lead: 'まとめ役',
+  developer: '開発者',
+};
+
+export interface User {
+  id: string;
+  displayName: string;
+  role: Role;
+}
+
+interface UserRow {
+  id: string;
+  display_name: string;
+  role: Role;
+  disabled_at: string | null;
+}
+
+export interface Invite {
+  tokenHash: string;
+  kind: 'register' | 'login';
+  displayName: string | null;
+  role: Role | null;
+  userId: string | null;
+}
+
+const SESSION_COOKIE = 'kobo_editor_session';
+const SESSION_DAYS = 30;
+const SHARED_SESSION_HOURS = 2;
+const REGISTER_INVITE_DAYS = 7;
+const LOGIN_LINK_MINUTES = 15;
+
+export function randomToken(): string {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+export function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+const isoAfter = (ms: number) => new Date(Date.now() + ms).toISOString();
+const nowIso = () => new Date().toISOString();
+
+export function canManageMembers(user: User): boolean {
+  return user.role === 'lead' || user.role === 'developer';
+}
+
+export async function audit(
+  actorId: string | null,
+  action: string,
+  target?: string,
+  detail?: string
+) {
+  const db = await getDb();
+  await db.run(
+    'INSERT INTO audit_log (at, actor_id, action, target, detail) VALUES (?, ?, ?, ?, ?)',
+    [nowIso(), actorId, action, target ?? null, detail ?? null]
+  );
+}
+
+export async function createInvite(options: {
+  kind: 'register' | 'login';
+  displayName?: string;
+  role?: Role;
+  userId?: string;
+  createdBy: string | null;
+}): Promise<string> {
+  const token = randomToken();
+  const ttl =
+    options.kind === 'register'
+      ? REGISTER_INVITE_DAYS * 24 * 60 * 60 * 1000
+      : LOGIN_LINK_MINUTES * 60 * 1000;
+  const db = await getDb();
+  await db.run(
+    `INSERT INTO invites (token_hash, kind, display_name, role, user_id, created_by, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      hashToken(token),
+      options.kind,
+      options.displayName ?? null,
+      options.role ?? null,
+      options.userId ?? null,
+      options.createdBy,
+      nowIso(),
+      isoAfter(ttl),
+    ]
+  );
+  await audit(
+    options.createdBy,
+    options.kind === 'register' ? 'invite.create' : 'login_link.create',
+    options.userId ?? options.displayName
+  );
+  return token;
+}
+
+export async function findInvite(
+  token: string,
+  kind: Invite['kind']
+): Promise<Invite | null> {
+  const db = await getDb();
+  const [row] = await db.all<{
+    token_hash: string;
+    kind: Invite['kind'];
+    display_name: string | null;
+    role: Role | null;
+    user_id: string | null;
+  }>(
+    `SELECT token_hash, kind, display_name, role, user_id FROM invites
+     WHERE token_hash = ? AND kind = ? AND used_at IS NULL AND expires_at > ?`,
+    [hashToken(token), kind, nowIso()]
+  );
+  if (!row) return null;
+  return {
+    tokenHash: row.token_hash,
+    kind: row.kind,
+    displayName: row.display_name,
+    role: row.role,
+    userId: row.user_id,
+  };
+}
+
+export async function markInviteUsed(tokenHash: string) {
+  const db = await getDb();
+  await db.run('UPDATE invites SET used_at = ? WHERE token_hash = ?', [
+    nowIso(),
+    tokenHash,
+  ]);
+}
+
+export async function findActiveUser(id: string): Promise<User | null> {
+  const db = await getDb();
+  const [row] = await db.all<UserRow>(
+    'SELECT id, display_name, role, disabled_at FROM users WHERE id = ?',
+    [id]
+  );
+  if (!row || row.disabled_at) return null;
+  return { id: row.id, displayName: row.display_name, role: row.role };
+}
+
+export async function startSession(userId: string, shared: boolean) {
+  const token = randomToken();
+  const ttl = shared
+    ? SHARED_SESSION_HOURS * 60 * 60 * 1000
+    : SESSION_DAYS * 24 * 60 * 60 * 1000;
+  const db = await getDb();
+  await db.run(
+    'INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
+    [hashToken(token), userId, nowIso(), isoAfter(ttl)]
+  );
+  const store = await cookies();
+  store.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    ...(shared ? {} : { maxAge: ttl / 1000 }),
+  });
+  await audit(userId, 'login', undefined, shared ? 'shared' : undefined);
+}
+
+export async function currentUser(): Promise<User | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const db = await getDb();
+  const [row] = await db.all<UserRow>(
+    `SELECT users.id, users.display_name, users.role, users.disabled_at
+     FROM sessions JOIN users ON users.id = sessions.user_id
+     WHERE sessions.token_hash = ? AND sessions.expires_at > ?`,
+    [hashToken(token), nowIso()]
+  );
+  if (!row || row.disabled_at) return null;
+  return { id: row.id, displayName: row.display_name, role: row.role };
+}
+
+export async function requireUser(): Promise<User> {
+  const user = await currentUser();
+  if (!user) throw new Error('ログインが必要です');
+  return user;
+}
+
+export async function endSession() {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (token) {
+    const db = await getDb();
+    await db.run('DELETE FROM sessions WHERE token_hash = ?', [hashToken(token)]);
+  }
+  store.delete(SESSION_COOKIE);
+}
+
+export interface Member extends User {
+  createdAt: string;
+  disabledAt: string | null;
+  passkeys: number;
+}
+
+export async function listMembers(): Promise<Member[]> {
+  const db = await getDb();
+  const rows = await db.all<
+    UserRow & { created_at: string; passkeys: number }
+  >(
+    `SELECT users.id, users.display_name, users.role, users.created_at, users.disabled_at,
+       (SELECT COUNT(*) FROM credentials WHERE credentials.user_id = users.id) AS passkeys
+     FROM users ORDER BY users.created_at`
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    displayName: row.display_name,
+    role: row.role,
+    createdAt: row.created_at,
+    disabledAt: row.disabled_at,
+    passkeys: row.passkeys,
+  }));
+}
+
+export async function setUserDisabled(
+  actor: User,
+  userId: string,
+  disabled: boolean
+) {
+  const db = await getDb();
+  await db.run('UPDATE users SET disabled_at = ? WHERE id = ?', [
+    disabled ? nowIso() : null,
+    userId,
+  ]);
+  if (disabled) {
+    await db.run('DELETE FROM sessions WHERE user_id = ?', [userId]);
+  }
+  await audit(actor.id, disabled ? 'user.disable' : 'user.enable', userId);
+}
+
+export async function createUser(
+  id: string,
+  displayName: string,
+  role: Role
+) {
+  const db = await getDb();
+  await db.run(
+    'INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)',
+    [id, displayName, role, nowIso()]
+  );
+}

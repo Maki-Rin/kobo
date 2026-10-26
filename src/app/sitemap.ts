@@ -1,26 +1,17 @@
 import type { MetadataRoute } from 'next';
+import { getArticles } from '@/lib/articles';
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || 'https://kobo-rits.vercel.app';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  // 記事のスラッグリスト
-  const articles = [
-    '3DPRINT',
-    '3dmodel',
-    'filament',
-    'flashprint',
-    'gcode',
-    'orca-flashforge',
-    'slicer',
-  ];
+  const articles = await getArticles();
 
-  // 記事ページのサイトマップエントリ
-  const articleEntries: MetadataRoute.Sitemap = articles.map((slug) => ({
-    url: `${SITE_URL}/articles/${slug}`,
-    lastModified: now,
+  const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
+    url: `${SITE_URL}/articles/${article.id}`,
+    lastModified: new Date(article.date),
     changeFrequency: 'weekly',
     priority: 0.7,
   }));
