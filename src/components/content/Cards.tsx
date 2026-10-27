@@ -2,17 +2,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Entry } from '@/lib/content-schema';
 import { excerptOf } from '@/lib/content';
-import { peopleNames } from '@/lib/people';
 import { formatEventDate } from '@/lib/event-format';
-import { MachineTags, StatusBadge, TypeBadge } from './Labels';
+import { peopleNames } from '@/lib/people';
+import { StatusBadge, TypeBadge } from './Labels';
 
 function Cover({ src, alt, ratio = 'aspect-video', position = '' }: { src: string; alt: string; ratio?: string; position?: string }) {
   return (
-    <div className={`relative ${ratio} overflow-hidden bg-gray-100`}>
+    <div className={`relative ${ratio} overflow-hidden border-b-2 border-ink bg-off`}>
       {src ? (
-        <Image src={src} alt={alt} fill sizes='(min-width: 768px) 33vw, 100vw' className={`object-cover transition-transform duration-300 group-hover:scale-[1.03] ${position}`} />
+        <Image src={src} alt={alt} fill sizes='(min-width: 768px) 33vw, 100vw' className={`object-cover ${position}`} />
       ) : (
-        <div className='flex size-full items-center justify-center text-sm text-gray-400'>画像なし</div>
+        <div className='flex size-full items-center justify-center text-sm text-muted'>画像なし</div>
       )}
     </div>
   );
@@ -20,18 +20,15 @@ function Cover({ src, alt, ratio = 'aspect-video', position = '' }: { src: strin
 
 export function ArticleCard({ entry }: { entry: Entry }) {
   return (
-    <Link href={`/articles/${entry.id}`} className='group flex flex-col overflow-hidden rounded-lg bg-white shadow-md transition-shadow hover:shadow-lg'>
+    <Link href={`/articles/${entry.id}`} className='pop-card flex flex-col'>
       <Cover src={entry.coverImage} alt={entry.title} />
-      <div className='flex flex-1 flex-col gap-3 p-5'>
+      <div className='flex flex-1 flex-col gap-2 px-4 pb-4 pt-3'>
         <div className='flex items-center gap-2'>
           <TypeBadge type={entry.type} />
-          <span className='text-xs text-gray-500'>{entry.date}</span>
+          <span className='text-xs font-semibold text-muted'>{entry.date}</span>
         </div>
-        <h3 className='text-lg font-bold leading-snug text-gray-900'>{entry.title}</h3>
-        <p className='line-clamp-2 text-sm leading-6 text-gray-600'>{excerptOf(entry)}</p>
-        <div className='mt-auto'>
-          <MachineTags machines={entry.machines} />
-        </div>
+        <h3 className='text-[17px] font-bold leading-snug'>{entry.title}</h3>
+        <p className='line-clamp-2 text-sm leading-6 text-muted'>{excerptOf(entry)}</p>
       </div>
     </Link>
   );
@@ -39,15 +36,14 @@ export function ArticleCard({ entry }: { entry: Entry }) {
 
 export function WorkCard({ entry }: { entry: Entry }) {
   return (
-    <Link href={`/works/${entry.id}`} className='group block overflow-hidden rounded-lg bg-white shadow-md transition-shadow hover:shadow-lg'>
+    <Link href={`/works/${entry.id}`} className='pop-card'>
       <Cover src={entry.coverImage} alt={entry.title} ratio='aspect-square' />
-      <div className='space-y-2 p-4'>
+      <div className='space-y-1 px-3 pb-3 pt-2.5'>
         <div className='flex items-center gap-2'>
-          <h3 className='min-w-0 flex-1 truncate font-bold text-gray-900'>{entry.title}</h3>
+          <h3 className='min-w-0 flex-1 truncate font-bold'>{entry.title}</h3>
           {entry.status === 'wip' && <StatusBadge status='wip' />}
         </div>
-        <p className='text-xs text-gray-500'>{peopleNames(entry.authors, entry.legacyAuthor)}</p>
-        <MachineTags machines={entry.machines} />
+        <p className='truncate text-xs font-semibold text-muted'>{peopleNames(entry.authors, entry.legacyAuthor)}</p>
       </div>
     </Link>
   );
@@ -55,23 +51,19 @@ export function WorkCard({ entry }: { entry: Entry }) {
 
 export function EventCard({ entry, past }: { entry: Entry; past: boolean }) {
   return (
-    <Link href={`/events/${entry.id}`} className='group flex flex-col overflow-hidden rounded-lg bg-white shadow-md transition-shadow hover:shadow-lg'>
+    <Link href={`/events/${entry.id}`} className='pop-card flex flex-col'>
       <Cover src={entry.coverImage} alt={entry.title} ratio='aspect-[4/3]' position='object-top' />
-      <div className='flex flex-1 flex-col gap-2 p-5'>
-        <div className='flex flex-wrap items-center gap-2'>
+      <div className='flex flex-1 flex-col gap-2 px-4 pb-4 pt-3'>
+        <div>
           {past ? (
-            entry.record ? (
-              <span className='rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-900'>開催記録あり</span>
-            ) : (
-              <span className='rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold text-gray-600'>開催済み</span>
-            )
+            <span className={`pop-chip ${entry.record ? 'bg-free' : 'bg-off'}`}>{entry.record ? '記録あり' : '開催済み'}</span>
           ) : (
-            <span className='rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900'>開催予定</span>
+            <span className='pop-chip bg-accent'>開催予定</span>
           )}
         </div>
-        <h3 className='text-lg font-bold leading-snug text-gray-900'>{entry.title}</h3>
-        <p className='text-sm text-gray-700'>{formatEventDate(entry)}</p>
-        {entry.place && <p className='text-sm text-gray-500'>{entry.place}</p>}
+        <h3 className='text-[17px] font-bold leading-snug'>{entry.title}</h3>
+        <p className='text-sm font-semibold'>{formatEventDate(entry)}</p>
+        {entry.place && <p className='text-sm text-muted'>{entry.place}</p>}
       </div>
     </Link>
   );

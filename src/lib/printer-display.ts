@@ -101,11 +101,11 @@ export function describePrinter(printer: PublicPrinter, now = new Date()): Print
 }
 
 export const toneStyles: Record<Tone, string> = {
-  free: 'bg-emerald-100 text-emerald-900',
-  busy: 'bg-blue-100 text-blue-900',
-  wait: 'bg-amber-100 text-amber-900',
-  alert: 'bg-red-100 text-red-800',
-  off: 'bg-slate-100 text-slate-600',
+  free: 'bg-free',
+  busy: 'bg-busy',
+  wait: 'bg-wait',
+  alert: 'bg-alert',
+  off: 'bg-off',
 };
 
 export const tonePriority: Record<Tone, number> = { free: 0, busy: 1, wait: 2, alert: 3, off: 4 };

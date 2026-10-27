@@ -42,22 +42,22 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   return (
     <div className='min-h-screen bg-white'>
       <Header />
-      <main className='container mx-auto px-6 py-10'>
-        <div className='mx-auto max-w-5xl'>
-          <Link href='/works' className='text-sm text-gray-500 hover:underline'>
+      <main className='mx-auto max-w-6xl px-4 py-8 md:px-8'>
+        <div>
+          <Link href='/works' className='text-sm font-semibold underline-offset-4 hover:underline'>
             ← 作品一覧
           </Link>
-          <div className='mt-4 grid gap-8 md:grid-cols-[3fr_2fr]'>
+          <div className='mt-5 grid gap-8 md:grid-cols-[3fr_2fr]'>
             <div className='space-y-3'>
               {images.map((src, index) => (
-                <div key={src} className='relative aspect-[4/3] overflow-hidden rounded-lg bg-gray-100'>
+                <div key={src} className='relative aspect-[4/3] overflow-hidden rounded-2xl border-2 border-ink bg-off'>
                   <Image src={src} alt={`${entry.title} ${index + 1}`} fill sizes='(min-width: 768px) 60vw, 100vw' className='object-contain' priority={index === 0} />
                 </div>
               ))}
             </div>
             <div className='space-y-6'>
               <div>
-                <h1 className='text-3xl font-bold leading-tight'>{entry.title}</h1>
+                <h1 className='text-3xl font-extrabold leading-tight'>{entry.title}</h1>
                 {authors.length > 0 && (
                   <ul className='mt-4 flex flex-wrap gap-4'>
                     {authors.map((person) => (
@@ -69,10 +69,10 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
                   </ul>
                 )}
               </div>
-              <dl className='divide-y divide-gray-100 rounded-lg border border-gray-200 text-sm'>
+              <dl className='divide-y divide-line-soft rounded-xl border-2 border-ink text-sm'>
                 {facts.map(([label, value]) => (
                   <div key={label as string} className='flex items-start gap-4 px-4 py-3'>
-                    <dt className='w-24 shrink-0 text-gray-500'>{label}</dt>
+                    <dt className='w-24 shrink-0 font-semibold text-muted'>{label}</dt>
                     <dd className='min-w-0 flex-1'>{value}</dd>
                   </div>
                 ))}

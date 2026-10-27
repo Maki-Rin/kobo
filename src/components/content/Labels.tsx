@@ -3,20 +3,16 @@ import { articleTypeLabels, workStatusLabels, type ArticleType, type WorkStatus 
 import { machineName } from '@/lib/content';
 
 const typeStyles: Record<ArticleType, string> = {
-  guide: 'bg-sky-100 text-sky-900',
-  tech: 'bg-violet-100 text-violet-900',
+  guide: 'bg-busy',
+  tech: 'bg-wait',
 };
 
 export function TypeBadge({ type }: { type: ArticleType }) {
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${typeStyles[type]}`}>{articleTypeLabels[type]}</span>;
+  return <span className={`pop-chip ${typeStyles[type]}`}>{articleTypeLabels[type]}</span>;
 }
 
 export function StatusBadge({ status }: { status: WorkStatus }) {
-  return (
-    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${status === 'done' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}`}>
-      {workStatusLabels[status]}
-    </span>
-  );
+  return <span className={`pop-chip ${status === 'done' ? 'bg-free' : 'bg-wait'}`}>{workStatusLabels[status]}</span>;
 }
 
 export function MachineTags({ machines, basePath }: { machines: string[]; basePath?: string }) {
@@ -26,11 +22,11 @@ export function MachineTags({ machines, basePath }: { machines: string[]; basePa
       {machines.map((slug) => (
         <li key={slug}>
           {basePath ? (
-            <Link href={`${basePath}?machine=${slug}`} className='rounded-full border border-gray-300 px-2.5 py-0.5 text-xs text-gray-700 hover:bg-gray-100'>
+            <Link href={`${basePath}?machine=${slug}`} className='pop-chip hover:bg-cream'>
               {machineName(slug)}
             </Link>
           ) : (
-            <span className='rounded-full border border-gray-300 px-2.5 py-0.5 text-xs text-gray-700'>{machineName(slug)}</span>
+            <span className='pop-chip'>{machineName(slug)}</span>
           )}
         </li>
       ))}
@@ -54,15 +50,26 @@ export function FilterChips({
           <Link
             href={hrefFor(option.value)}
             aria-current={current === option.value ? 'page' : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm ${
-              current === option.value ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+            className={`inline-flex items-center gap-1.5 rounded-full border-2 border-ink px-3.5 py-1.5 text-sm font-semibold transition-[transform,box-shadow] duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-pop ${
+              current === option.value ? 'bg-accent' : 'bg-paper'
             }`}
           >
             {option.label}
-            {option.count !== undefined && <span className='text-xs opacity-70'>{option.count}</span>}
+            {option.count !== undefined && <span className='text-xs font-normal text-muted'>{option.count}</span>}
           </Link>
         </li>
       ))}
     </ul>
+  );
+}
+
+export function PageHeading({ title, children }: { title: string; children?: React.ReactNode }) {
+  return (
+    <div className='space-y-4'>
+      <h1 className='text-3xl font-extrabold tracking-tight md:text-4xl'>
+        <span className='marker'>{title}</span>
+      </h1>
+      {children}
+    </div>
   );
 }

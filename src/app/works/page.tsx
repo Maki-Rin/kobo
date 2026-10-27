@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { WorkCard } from '@/components/content/Cards';
-import { FilterChips } from '@/components/content/Labels';
+import { FilterChips, PageHeading } from '@/components/content/Labels';
 import { getEntries, machines } from '@/lib/content';
 
 export const metadata: Metadata = {
@@ -19,12 +19,13 @@ export default async function WorksPage({ searchParams }: { searchParams: Promis
   return (
     <div className='min-h-screen bg-white'>
       <Header />
-      <main className='container mx-auto px-6 py-12'>
-        <div className='mx-auto mb-10 max-w-6xl'>
-          <h1 className='text-4xl font-bold'>作品</h1>
-          <p className='mt-3 text-lg text-gray-600'>KOBOでつくられたもの。どの機材で、どうやってつくったかも載せています。</p>
+      <main className='mx-auto max-w-6xl px-4 py-10 md:px-8'>
+        <div className='mb-8'>
+          <PageHeading title='作品'>
+            <p className='text-[15px] leading-7 text-muted'>KOBOでつくったものを載せたい人は、スタッフに声をかけてください。</p>
+          </PageHeading>
           {usedMachines.length > 1 && (
-            <div className='mt-6'>
+            <div className='mt-5'>
               <FilterChips
                 options={[
                   { value: 'all', label: 'すべて', count: all.length },
@@ -40,12 +41,14 @@ export default async function WorksPage({ searchParams }: { searchParams: Promis
             </div>
           )}
         </div>
-        <div className='mx-auto grid max-w-6xl grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4'>
+        <div className='grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4'>
           {shown.map((entry) => (
             <WorkCard key={entry.id} entry={entry} />
           ))}
         </div>
-        {shown.length === 0 && <p className='mx-auto max-w-6xl py-10 text-center text-gray-500'>まだ作品がありません。</p>}
+        {shown.length === 0 && (
+          <p className='rounded-xl border-2 border-dashed border-line-soft px-6 py-10 text-center text-muted'>まだ作品がありません。</p>
+        )}
       </main>
       <Footer />
     </div>

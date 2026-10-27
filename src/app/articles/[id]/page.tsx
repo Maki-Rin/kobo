@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getArticle, getArticles, formatDate } from '@/lib/articles';
@@ -135,78 +136,63 @@ export default async function ArticlePage({
   };
 
   return (
-    <div className='min-h-screen bg-white'>
-      {/* 構造化データ */}
-      <script
-        type='application/ld+json'
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
-      {/* Header */}
+    <div className='min-h-screen bg-paper'>
+      <script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Header />
 
-      <div className='px-4 py-8'>
-        <div className='max-w-6xl mx-auto'>
-          {/* 記事のヘッダー */}
-          <header className='grid grid-cols-1 md:grid-cols-[1fr_250px] gap-8'>
-            <div className='mb-4'>
-              <div className='mb-3 flex flex-wrap items-center gap-2'>
+      <main className='mx-auto max-w-6xl px-4 py-8 md:px-8'>
+        <Link href='/articles' className='text-sm font-semibold underline-offset-4 hover:underline'>
+          ← まなぶ
+        </Link>
+        <div className='mt-5 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_240px]'>
+          <article className='min-w-0'>
+            <header className='space-y-4'>
+              <div className='flex flex-wrap items-center gap-2'>
                 <TypeBadge type={article.type} />
                 <MachineTags machines={article.machines} basePath='/articles' />
               </div>
-              <h1 className='text-4xl font-bold'>{article.title}</h1>
-              <div className='my-4 flex items-center gap-4'>
-                <Image
-                  src={article.author.avatar || '/placeholder.svg'}
-                  alt={article.author.name}
-                  width={40}
-                  height={40}
-                  className='rounded-full'
-                />
-                <div>
-                  <p className='text-sm font-medium'>{article.author.name}</p>
-                  <p className='text-sm text-gray-500'>{formatDate(article.date)}</p>
+              <h1 className='text-3xl font-extrabold leading-tight md:text-4xl'>{article.title}</h1>
+              <div className='flex items-center gap-3'>
+                {article.author.avatar && (
+                  <Image src={article.author.avatar} alt='' width={36} height={36} className='rounded-full border-2 border-ink' />
+                )}
+                <div className='text-sm'>
+                  <p className='font-semibold'>{article.author.name}</p>
+                  <p className='text-muted'>{formatDate(article.date)}</p>
                 </div>
               </div>
-              <div className='relative h-[200px] w-full md:h-[400px]'>
-                <Image src={article.coverImage || '/placeholder.svg'} alt='' fill className='rounded-lg object-cover' />
+              <div className='relative aspect-[1200/630] overflow-hidden rounded-2xl border-2 border-ink bg-off'>
+                <Image src={article.coverImage || '/placeholder.svg'} alt='' fill priority sizes='(min-width: 1024px) 800px, 100vw' className='object-cover' />
               </div>
+            </header>
+            <div className='mt-8'>
+              {article.content && <MarkdownContent tree={article.content} className='article-body' />}
             </div>
-          </header>
+          </article>
 
-          {/* 記事の本文 + 目次（デスクトップでは横並び） */}
-          <div className='grid grid-cols-1 md:grid-cols-[1fr_250px] gap-8'>
-            {/* 記事の本文 */}
-            <article>
-              {article.content && (
-                <MarkdownContent tree={article.content} className='article-body' />
-              )}
-            </article>
-
-            {/* 目次（デスクトップでは本文の右側に固定表示） */}
-            <aside className='order-first md:order-last'>
-              <div className='md:sticky md:top-20 space-y-4'>
-                <h3 className='font-semibold mb-4'>目次</h3>
-                <nav className='space-y-2'>
+          {(article.sections?.length ?? 0) > 0 && (
+            <aside className='order-first lg:order-last'>
+              <nav className='rounded-xl border-2 border-ink p-4 lg:sticky lg:top-6' aria-label='目次'>
+                <p className='mb-2 text-sm font-extrabold'>目次</p>
+                <ul className='space-y-1 text-sm'>
                   {article.sections?.map((section, index) => (
-                    <a
-                      key={section.id || `section-${index}`}
-                      href={`#${section.id}`}
-                      className={`block hover:text-foreground transition-colors ${
-                        section.level === 2
-                          ? 'font-semibold text-sm text-foreground py-2'
-                          : 'ml-8 border-l-2 border-slate-300 py-1 pl-4 text-sm text-muted-foreground font-normal'
-                      }`}
-                    >
-                      {section.title}
-                    </a>
+                    <li key={section.id || `section-${index}`}>
+                      <a
+                        href={`#${section.id}`}
+                        className={`block rounded-md px-2 py-1 hover:bg-cream ${
+                          section.level === 2 ? 'font-semibold' : 'ml-3 border-l-2 border-line-soft pl-3 text-muted'
+                        }`}
+                      >
+                        {section.title}
+                      </a>
+                    </li>
                   ))}
-                </nav>
-              </div>
+                </ul>
+              </nav>
             </aside>
-          </div>
+          )}
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

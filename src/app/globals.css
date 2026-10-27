@@ -8,8 +8,24 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic UI', Meiryo, sans-serif;
   --font-mono: var(--font-geist-mono);
+}
+
+@theme {
+  --color-ink: #111111;
+  --color-paper: #ffffff;
+  --color-cream: #fffbea;
+  --color-accent: #ffd400;
+  --color-muted: #555555;
+  --color-line-soft: #d9d9d2;
+  --color-free: #c9f5d6;
+  --color-busy: #cfe6ff;
+  --color-wait: #ffe0ee;
+  --color-alert: #ffd6cc;
+  --color-off: #ecece8;
+  --shadow-pop: 4px 4px 0 #111111;
+  --shadow-pop-lg: 6px 6px 0 #111111;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,9 +36,69 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'palt';
+}
+
+@layer components {
+  .pop-card {
+    display: block;
+    overflow: hidden;
+    border: 2px solid var(--color-ink);
+    border-radius: 12px;
+    background: var(--color-paper);
+    transition: transform 150ms, box-shadow 150ms;
+  }
+
+  a.pop-card:hover,
+  button.pop-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-pop);
+  }
+
+  .pop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    border: 2px solid var(--color-ink);
+    border-radius: 9999px;
+    background: var(--color-accent);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: var(--shadow-pop);
+    transition: transform 120ms, box-shadow 120ms;
+  }
+
+  .pop-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-pop-lg);
+  }
+
+  .pop-btn-secondary {
+    background: var(--color-paper);
+  }
+
+  .pop-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 9999px;
+    background: var(--color-paper);
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  .marker {
+    background: linear-gradient(transparent 62%, var(--color-accent) 62%);
+  }
 }
 
 .article-figure {

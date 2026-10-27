@@ -3,7 +3,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getEntries, machines } from '@/lib/content';
 import { ArticleCard } from '@/components/content/Cards';
-import { FilterChips } from '@/components/content/Labels';
+import { FilterChips, PageHeading } from '@/components/content/Labels';
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || 'https://kobo-rits.vercel.app';
@@ -90,13 +90,14 @@ export default async function ArticlesPage({
   return (
     <div className='min-h-screen bg-white'>
       <Header />
-      <main className='container mx-auto px-6 py-12'>
-        <div className='mx-auto mb-10 max-w-6xl'>
-          <h1 className='text-4xl font-bold'>まなぶ</h1>
-          <p className='mt-3 text-lg text-gray-600'>
-            機材やソフトの使い方（ガイド）と、使ってみて分かったこと（テック）をまとめています。
-          </p>
-          <div className='mt-6 space-y-3'>
+      <main className='mx-auto max-w-6xl px-4 py-10 md:px-8'>
+        <div className='mb-8'>
+          <PageHeading title='まなぶ'>
+            <p className='text-[15px] leading-7 text-muted'>
+              ガイドは機材やソフトの使い方を順番に、テックは使ってみて分かったことやトラブルの直し方を書いています。
+            </p>
+          </PageHeading>
+          <div className='mt-5 space-y-3'>
             <FilterChips
               options={typeOptions.map((option) => ({
                 ...option,
@@ -115,12 +116,16 @@ export default async function ArticlesPage({
           </div>
         </div>
 
-        <div className='mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+        <div className='grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3'>
           {shown.map((entry) => (
             <ArticleCard key={entry.id} entry={entry} />
           ))}
         </div>
-        {shown.length === 0 && <p className='mx-auto max-w-6xl py-10 text-center text-gray-500'>まだ記事がありません。</p>}
+        {shown.length === 0 && (
+          <p className='rounded-xl border-2 border-dashed border-line-soft px-6 py-10 text-center text-muted'>
+            {type === 'tech' ? 'テックの記事はまだありません。' : 'まだ記事がありません。'}
+          </p>
+        )}
       </main>
       <Footer />
     </div>

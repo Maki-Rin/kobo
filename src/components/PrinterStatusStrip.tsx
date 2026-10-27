@@ -7,7 +7,8 @@ import { parsePrinterApiResult } from '@/lib/printer-types';
 import { describePrinter, tonePriority, toneStyles } from '@/lib/printer-display';
 import OpenHours from './OpenHours';
 
-const MAX_PRINTERS = 3;
+const timeFormatter = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' });
+const dayFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' });
 
 export default function PrinterStatusStrip() {
   const [printers, setPrinters] = useState<PublicPrinter[] | null>(null);
@@ -24,7 +25,7 @@ export default function PrinterStatusStrip() {
           setNow(new Date());
         }
       } catch {
-        // トップページでは取得失敗時に何も出さない
+        // 取れないときは開室時間だけ出す
       }
     };
     load();
@@ -35,42 +36,57 @@ export default function PrinterStatusStrip() {
     };
   }, []);
 
-  if (printers === null || printers.length === 0 || now === null) return null;
-
-  const views = printers
-    .map((printer) => ({ printer, view: describePrinter(printer, now) }))
-    .sort((a, b) => tonePriority[a.view.tone] - tonePriority[b.view.tone]);
+  const views =
+    printers && now
+      ? printers
+          .map((printer) => ({ printer, view: describePrinter(printer, now) }))
+          .sort((a, b) => tonePriority[a.view.tone] - tonePriority[b.view.tone])
+      : [];
   const available = views.filter(({ view }) => view.available).length;
+  const today = now ? dayFormatter.format(now) : '';
+  const finished = views
+    .map(({ printer }) => printer)
+    .filter((printer) => printer.lastWork?.endedAt && dayFormatter.format(new Date(printer.lastWork.endedAt)) === today)
+    .slice(0, 3);
 
   return (
-    <section className='border-b border-gray-200 bg-gray-50'>
-      <div className='container mx-auto flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between'>
-        <div className='space-y-2'>
-          <OpenHours compact />
-          <div className='flex items-baseline gap-3'>
-            <h2 className='text-sm font-bold text-gray-500'>3Dプリンター</h2>
-            <p className='text-gray-900'>
-              <span className='text-3xl font-bold'>{available}</span>
-              <span className='ml-1 text-sm'>台 空き / {printers.length}台</span>
-            </p>
+    <section className='relative z-10 mx-auto -mt-10 max-w-6xl px-4 md:px-8'>
+      <div className='rounded-2xl border-2 border-ink bg-paper p-4 shadow-pop md:p-5'>
+        <OpenHours compact />
+        <div className='mt-3 flex flex-col gap-4 md:flex-row md:items-center'>
+          <div className='shrink-0'>
+            <p className='text-xs font-bold text-muted'>3Dプリンター</p>
+            {printers ? (
+              <p className='mt-1 whitespace-nowrap'>
+                <span className='text-[44px] font-extrabold leading-none'>{available}</span>
+                <span className='ml-1 text-sm font-semibold'>台 空き / {printers.length}台</span>
+              </p>
+            ) : (
+              <p className='mt-1 text-sm text-muted'>状態を読み込み中…</p>
+            )}
           </div>
+          <ul className='flex flex-1 flex-wrap gap-2'>
+            {views.map(({ printer, view }) => (
+              <li key={printer.id} className={`pop-chip ${toneStyles[view.tone]}`}>
+                <span>{printer.displayName}</span>
+                <span className='font-normal'>{view.label}</span>
+              </li>
+            ))}
+          </ul>
+          <Link href='/printers' className='pop-btn self-start md:self-auto'>
+            全部見る →
+          </Link>
         </div>
-
-        <ul className='flex flex-wrap gap-2'>
-          {views.slice(0, MAX_PRINTERS).map(({ printer, view }) => (
-            <li
-              key={printer.id}
-              className='flex items-center gap-2 rounded-full border border-gray-200 bg-white py-1 pl-3 pr-1 text-sm'
-            >
-              <span className='font-medium text-gray-900'>{printer.displayName}</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${toneStyles[view.tone]}`}>{view.label}</span>
-            </li>
-          ))}
-        </ul>
-
-        <Link href='/printers' className='text-sm font-bold text-gray-900 hover:underline'>
-          すべて見る &gt;&gt;
-        </Link>
+        {finished.length > 0 && (
+          <p className='mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t-[1.5px] border-dashed border-line-soft pt-3 text-sm'>
+            <span className='font-bold'>今日終わった印刷</span>
+            {finished.map((printer) => (
+              <span key={printer.id}>
+                {printer.displayName} {timeFormatter.format(new Date(printer.lastWork!.endedAt!))}に終了
+              </span>
+            ))}
+          </p>
+        )}
       </div>
     </section>
   );

@@ -31,46 +31,46 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
       : null;
 
   return (
-    <article className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${view.tone === 'off' ? 'opacity-80' : ''}`}>
+    <article className={`rounded-2xl border-2 border-ink bg-paper p-5 ${view.tone === 'off' ? 'bg-off/40' : ''}`}>
       <div className='flex items-start justify-between gap-4'>
         <div>
-          <h2 className='text-xl font-bold'>{printer.displayName}</h2>
-          <p className='mt-1 text-sm text-slate-500'>{printer.model}</p>
+          <h2 className='text-lg font-extrabold'>{printer.displayName}</h2>
+          <p className='mt-0.5 text-sm text-muted'>{printer.model}</p>
         </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${toneStyles[view.tone]}`}>{view.label}</span>
+        <span className={`pop-chip shrink-0 ${toneStyles[view.tone]}`}>{view.label}</span>
       </div>
 
-      {view.note && <p className='mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950'>{view.note}</p>}
-      {view.detail && <p className='mt-3 text-sm text-slate-500'>{view.detail}</p>}
+      {view.note && <p className='mt-3 rounded-lg border-[1.5px] border-ink bg-cream px-3 py-2 text-sm'>{view.note}</p>}
+      {view.detail && <p className='mt-3 text-sm text-muted'>{view.detail}</p>}
 
       {view.progress !== null && (
         <div className='mt-5'>
           <div className='mb-2 flex justify-between text-sm'>
-            <span className='text-slate-600'>進捗</span>
+            <span className='text-muted'>進捗</span>
             <span className='font-bold'>{Math.round(view.progress)}%</span>
           </div>
           <div
-            className='h-2.5 overflow-hidden rounded-full bg-slate-200'
+            className='h-3 overflow-hidden rounded-full border-[1.5px] border-ink bg-paper'
             role='progressbar'
             aria-label={`${printer.displayName}の造形進捗`}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(view.progress)}
           >
-            <div className='h-full rounded-full bg-blue-600 transition-[width]' style={{ width: `${view.progress}%` }} />
+            <div className='h-full bg-busy transition-[width]' style={{ width: `${view.progress}%` }} />
           </div>
         </div>
       )}
 
-      <dl className='mt-5 space-y-3 border-t border-slate-100 pt-4 text-sm'>
+      <dl className='mt-5 space-y-3 border-t-[1.5px] border-dashed border-line-soft pt-4 text-sm'>
         {printer.state === 'printing' || printer.state === 'paused' || printer.state === 'preparing' ? (
           <>
             <div className='flex items-start justify-between gap-4'>
-              <dt className='shrink-0 text-slate-500'>造形中のファイル</dt>
+              <dt className='shrink-0 text-muted'>造形中のファイル</dt>
               <dd className='min-w-0 break-all text-right font-medium'>{view.fileName ?? '—'}</dd>
             </div>
             <div className='flex items-start justify-between gap-4'>
-              <dt className='shrink-0 text-slate-500'>経過・残り</dt>
+              <dt className='shrink-0 text-muted'>経過・残り</dt>
               <dd className='text-right font-medium'>
                 {minutes(work?.elapsedMinutes) ?? '—'}
                 {remaining !== null && ` ／ あと約${minutes(remaining)}`}
@@ -80,18 +80,18 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
         ) : (
           printer.lastWork && (
             <div className='flex items-start justify-between gap-4'>
-              <dt className='shrink-0 text-slate-500'>前回の印刷</dt>
+              <dt className='shrink-0 text-muted'>前回の印刷</dt>
               <dd className='min-w-0 break-all text-right font-medium'>
                 {printer.lastWork.fileName ?? '—'}
                 {printer.lastWork.endedAt && (
-                  <span className='block text-xs font-normal text-slate-500'>{formatDate(printer.lastWork.endedAt)} に終了</span>
+                  <span className='block text-xs font-normal text-muted'>{formatDate(printer.lastWork.endedAt)} に終了</span>
                 )}
               </dd>
             </div>
           )
         )}
         <div className='flex items-start justify-between gap-4'>
-          <dt className='shrink-0 text-slate-500'>最終確認</dt>
+          <dt className='shrink-0 text-muted'>最終確認</dt>
           <dd className='text-right font-medium'>{formatDate(printer.lastSeenAt)}</dd>
         </div>
       </dl>
@@ -146,9 +146,9 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
   };
 
   return (
-    <div className='mx-auto max-w-6xl' aria-live='polite'>
+    <div aria-live='polite'>
       {error !== null && (
-        <div className='mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950'>
+        <div className='mb-6 rounded-xl border-2 border-ink bg-cream px-4 py-3 text-sm'>
           {error} {data !== null && '最後に取得できた状態を表示しています。'}
         </div>
       )}
@@ -162,17 +162,17 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
             ['登録', summary.total],
           ] as const
         ).map(([label, value]) => (
-          <div key={label} className='rounded-xl border border-slate-200 bg-white p-4'>
-            <p className='text-sm text-slate-500'>{label}</p>
-            <p className='mt-1 text-2xl font-bold'>{value}</p>
+          <div key={label} className='rounded-xl border-2 border-ink bg-paper px-4 py-3'>
+            <p className='text-sm font-semibold text-muted'>{label}</p>
+            <p className='mt-1 text-3xl font-extrabold'>{value}</p>
           </div>
         ))}
       </div>
 
       {views.length === 0 ? (
-        <div className='rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center'>
+        <div className='rounded-2xl border-2 border-dashed border-line-soft p-10 text-center'>
           <h2 className='text-xl font-bold'>プリンター状態を準備中です</h2>
-          <p className='mt-2 text-slate-600'>稼働状況が登録されるまでしばらくお待ちください。</p>
+          <p className='mt-2 text-muted'>稼働状況が登録されるまでしばらくお待ちください。</p>
         </div>
       ) : (
         <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
@@ -182,12 +182,12 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
         </div>
       )}
 
-      <p className='mt-6 text-sm text-slate-500'>
+      <p className='mt-6 text-sm text-muted'>
         {data === null ? '更新時刻不明' : `データ更新: ${formatDate(data.generatedAt)}`}
         {refreshing && ' · 更新確認中'}
       </p>
 
-      <details className='mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700'>
+      <details className='mt-6 rounded-xl border-2 border-ink p-4 text-sm'>
         <summary className='cursor-pointer font-semibold'>表示の見方</summary>
         <ul className='mt-3 space-y-1'>
           <li>空き：使えます。「印刷完了」のときは前の人の造形物が残っていることがあるので、横に置いてから始めてください。</li>

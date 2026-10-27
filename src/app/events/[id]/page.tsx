@@ -49,7 +49,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const { entry, past, announcement, record, works } = loaded;
 
   const info = (
-    <dl className='divide-y divide-gray-100 rounded-lg border border-gray-200 text-sm'>
+    <dl className='divide-y divide-line-soft rounded-xl border-2 border-ink text-sm'>
       {[
         ['日時', formatEventDate(entry)],
         ['場所', entry.place],
@@ -59,7 +59,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         .filter(([, value]) => value)
         .map(([label, value]) => (
           <div key={label} className='flex gap-4 px-4 py-3'>
-            <dt className='w-20 shrink-0 text-gray-500'>{label}</dt>
+            <dt className='w-20 shrink-0 font-semibold text-muted'>{label}</dt>
             <dd>{value}</dd>
           </div>
         ))}
@@ -69,37 +69,36 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   return (
     <div className='min-h-screen bg-white'>
       <Header />
-      <main className='container mx-auto px-6 py-10'>
-        <div className='mx-auto max-w-5xl space-y-8'>
-          <Link href='/events' className='text-sm text-gray-500 hover:underline'>
+      <main className='mx-auto max-w-5xl px-4 py-8 md:px-8'>
+        <div className='space-y-7'>
+          <Link href='/events' className='inline-block text-sm font-semibold underline-offset-4 hover:underline'>
             ← イベント一覧
           </Link>
           <div className='space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                  past ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-900'
-                }`}
-              >
-                {past ? '開催済み' : '開催予定'}
-              </span>
+              <span className={`pop-chip ${past ? 'bg-off' : 'bg-accent'}`}>{past ? '開催済み' : '開催予定'}</span>
               <MachineTags machines={entry.machines} />
             </div>
-            <h1 className='text-3xl font-bold leading-tight md:text-4xl'>{entry.title}</h1>
-            <p className='text-lg text-gray-700'>{formatEventDate(entry)}</p>
+            <h1 className='text-3xl font-extrabold leading-tight md:text-4xl'>{entry.title}</h1>
+            <p className='text-lg font-semibold'>
+              {formatEventDate(entry)}
+              {entry.place && <span className='ml-3 font-normal text-muted'>{entry.place}</span>}
+            </p>
           </div>
 
           {past && record && (
-            <section className='space-y-5 rounded-xl bg-gray-50 p-6 md:p-8'>
-              <h2 className='text-2xl font-bold'>開催記録</h2>
-              {entry.participants && <p className='text-sm text-gray-600'>参加人数: {entry.participants}</p>}
+            <section className='space-y-4 rounded-2xl border-2 border-ink bg-cream p-5 md:p-7'>
+              <div className='flex flex-wrap items-center gap-3'>
+                <h2 className='text-2xl font-extrabold'>開催記録</h2>
+                {entry.participants && <span className='pop-chip'>参加 {entry.participants}</span>}
+              </div>
               <MarkdownContent tree={record} className='article-body' />
             </section>
           )}
 
           {works.length > 0 && (
             <section className='space-y-4'>
-              <h2 className='text-2xl font-bold'>このイベントでつくられた作品</h2>
+              <h2 className='text-xl font-extrabold'>このイベントでつくられた作品</h2>
               <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
                 {works.map((work) => (
                   <WorkCard key={work.id} entry={work} />
@@ -109,31 +108,26 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           )}
 
           {past && !record && (
-            <p className='rounded-lg border border-dashed border-gray-300 px-6 py-5 text-sm text-gray-500'>
+            <p className='rounded-xl border-2 border-dashed border-line-soft px-6 py-5 text-sm text-muted'>
               このイベントの開催記録はまだありません。
             </p>
           )}
 
-          <details open={!past || !record} className='group rounded-xl border border-gray-200'>
-            <summary className='cursor-pointer list-none px-6 py-4 font-bold [&::-webkit-details-marker]:hidden'>
+          <details open={!past || !record} className='group overflow-hidden rounded-2xl border-2 border-ink'>
+            <summary className='cursor-pointer list-none px-5 py-4 font-bold [&::-webkit-details-marker]:hidden'>
               {past ? '開催前のお知らせ' : 'お知らせ'}
-              <span className='ml-2 text-sm font-normal text-gray-500 group-open:hidden'>（開く）</span>
+              <span className='ml-2 text-sm font-normal text-muted group-open:hidden'>（開く）</span>
             </summary>
-            <div className='grid gap-8 border-t border-gray-200 p-6 md:grid-cols-[2fr_3fr]'>
+            <div className='grid gap-6 border-t-2 border-ink p-5 md:grid-cols-[2fr_3fr] md:p-6'>
               {entry.coverImage && (
-                <div className='relative aspect-[1/1.414] overflow-hidden rounded-lg bg-gray-100'>
+                <div className='relative aspect-[1/1.414] overflow-hidden rounded-xl border-2 border-ink bg-off'>
                   <Image src={entry.coverImage} alt={`${entry.title}の告知画像`} fill sizes='(min-width: 768px) 40vw, 100vw' className='object-contain' />
                 </div>
               )}
               <div className='space-y-6'>
                 {info}
                 {!past && entry.applyUrl && (
-                  <a
-                    href={entry.applyUrl}
-                    target='_blank'
-                    rel='noreferrer'
-                    className='inline-flex rounded-lg bg-gray-900 px-5 py-3 font-bold text-white hover:bg-gray-700'
-                  >
+                  <a href={entry.applyUrl} target='_blank' rel='noreferrer' className='pop-btn'>
                     申し込む
                   </a>
                 )}

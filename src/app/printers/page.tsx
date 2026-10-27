@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import PrinterStatus from '@/components/PrinterStatus';
 import OpenHours from '@/components/OpenHours';
+import { PageHeading } from '@/components/content/Labels';
 import { getPublicPrinters } from '@/lib/printers-server';
 
 export const metadata: Metadata = {
@@ -16,23 +17,16 @@ export default async function PrintersPage() {
   const initialResult = await getPublicPrinters();
 
   return (
-    <div className='min-h-screen bg-slate-50 text-slate-950'>
+    <div className='min-h-screen bg-paper'>
       <Header />
-      <main className='container mx-auto px-6 py-10'>
-        <div className='mx-auto mb-8 max-w-6xl'>
-          <p className='mb-2 text-sm font-semibold tracking-[0.2em] text-blue-700'>
-            LIVE STATUS
-          </p>
-          <h1 className='text-3xl font-bold tracking-tight md:text-4xl'>
-            3Dプリンター稼働状況
-          </h1>
-          <p className='mt-3 max-w-3xl text-slate-600'>
-            KOBOの3Dプリンターが今空いているかを確認できます。
-            表示は少し遅れることがあるので、迷ったら現地のプリンターを見てください。
-          </p>
-          <div className='mt-4'>
+      <main className='mx-auto max-w-6xl px-4 py-10 md:px-8'>
+        <div className='mb-8'>
+          <PageHeading title='3Dプリンター稼働状況'>
+            <p className='text-[15px] leading-7 text-muted'>
+              30秒ごとに更新します。表示が少し遅れることがあるので、迷ったら現地のプリンターを見てください。
+            </p>
             <OpenHours />
-          </div>
+          </PageHeading>
         </div>
         <PrinterStatus initialResult={initialResult} />
       </main>
