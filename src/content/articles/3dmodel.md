@@ -1,11 +1,14 @@
 ---
 title: '3Dプリントに必要な3Dモデルデータとは'
 date: '2025-07-09'
+type: guide
 excerpt: 'この記事では、3Dプリントに必要な3Dモデルに関して紹介します。'
 author:
   name: 'Yoshito Usui'
   avatar: '/images/usui.jpg'
 coverImage: '/images/3dmodel.png'
+machines:
+  - 3d-printer
 ---
 
 3Dプリントを行うためには、「3Dモデルデータ」が必要です。

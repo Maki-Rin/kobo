@@ -1,11 +1,14 @@
 ---
 title: 'Orca-Flashforgeの基本的な使い方ガイド'
 date: '2025-07-17'
+type: guide
 excerpt: 'この記事では、スライサであるOrca-FlashForgeの基本的な使い方を紹介します。'
 author:
   name: 'Yoshito Usui'
   avatar: '/images/usui.jpg'
 coverImage: '/images/orca-flashforge.png'
+machines:
+  - 3d-printer
 ---
 
 ## 1. FlashPrintのインストール

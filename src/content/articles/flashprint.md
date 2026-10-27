@@ -1,11 +1,14 @@
 ---
 title: 'FlashPrintの基本的な使い方ガイド'
 date: '2025-07-15'
+type: guide
 excerpt: 'この記事では、スライサであるFlashPrintの基本的な使い方を紹介します。'
 author:
   name: 'Yoshito Usui'
   avatar: '/images/usui.jpg'
 coverImage: '/images/flashprint.png'
+machines:
+  - 3d-printer
 ---
 
 ## 1. FlashPrintのインストール

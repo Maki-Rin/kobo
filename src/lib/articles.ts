@@ -3,6 +3,10 @@ import path from 'path';
 import matter from 'gray-matter';
 import type { Root as HastRoot } from 'hast';
 import { markdownToPlainText, renderMarkdown, type Section } from './markdown';
+import type { ArticleType } from './content-schema';
+
+const articleType = (value: unknown): ArticleType => (value === 'tech' ? 'tech' : 'guide');
+const machineList = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : []);
 
 export interface Article {
   id: string;
@@ -14,6 +18,8 @@ export interface Article {
     avatar: string;
   };
   coverImage: string;
+  type: ArticleType;
+  machines: string[];
   content?: HastRoot;
   sections?: Section[];
 }
@@ -28,6 +34,8 @@ export interface ArticleFrontMatter {
   };
   coverImage: string;
   published?: boolean;
+  type?: string;
+  machines?: string[];
 }
 
 const articlesDirectory = path.join(process.cwd(), 'src/content/articles');
@@ -68,6 +76,8 @@ export async function getArticles(): Promise<Article[]> {
         date: frontMatter.date,
         author: frontMatter.author,
         coverImage: frontMatter.coverImage,
+        type: articleType(frontMatter.type),
+        machines: machineList(frontMatter.machines),
       });
     }
 
@@ -114,6 +124,8 @@ export async function getArticle(id: string): Promise<Article | undefined> {
       date: frontMatter.date,
       author: frontMatter.author,
       coverImage: frontMatter.coverImage,
+      type: articleType(frontMatter.type),
+      machines: machineList(frontMatter.machines),
       content: tree,
       sections,
     };

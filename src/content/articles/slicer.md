@@ -1,11 +1,14 @@
 ---
 title: 'スライサ（Slicer）とは？'
 date: '2025-07-14'
+type: guide
 excerpt: 'この記事では、3Dプリンタで使用するスライサに関して紹介します。'
 author:
   name: 'Yoshito Usui'
   avatar: '/images/usui.jpg'
 coverImage: '/images/slicer.png'
+machines:
+  - 3d-printer
 ---
 
 3Dプリンタで印刷するためには、3Dモデルデータ（STLなど）をプリンタが理解できる形式に変換する必要があります。

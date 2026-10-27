@@ -11,16 +11,18 @@ export default function Header() {
         </h1>
         <nav aria-label='メインナビゲーション'>
           <ul className='flex items-center gap-4 text-sm font-semibold sm:gap-6'>
-            <li>
-              <Link href='/printers' className='hover:text-blue-300 transition-colors'>
-                稼働状況
-              </Link>
-            </li>
-            <li>
-              <Link href='/articles' className='hover:text-blue-300 transition-colors'>
-                使い方
-              </Link>
-            </li>
+            {[
+              ['/printers', '稼働状況'],
+              ['/articles', 'まなぶ'],
+              ['/works', '作品'],
+              ['/events', 'イベント'],
+            ].map(([href, label]) => (
+              <li key={href}>
+                <Link href={href} className='whitespace-nowrap transition-colors hover:text-blue-300'>
+                  {label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
       </div>

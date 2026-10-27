@@ -5,6 +5,7 @@ import { getArticle, getArticles, formatDate } from '@/lib/articles';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MarkdownContent from '@/components/MarkdownContent';
+import { MachineTags, TypeBadge } from '@/components/content/Labels';
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || 'https://kobo-rits.vercel.app';
@@ -148,9 +149,13 @@ export default async function ArticlePage({
         <div className='max-w-6xl mx-auto'>
           {/* 記事のヘッダー */}
           <header className='grid grid-cols-1 md:grid-cols-[1fr_250px] gap-8'>
-            <h1 className='text-4xl font-bold mb-4'>
-              {article.title}
-              <div className='flex items-center gap-4 my-4'>
+            <div className='mb-4'>
+              <div className='mb-3 flex flex-wrap items-center gap-2'>
+                <TypeBadge type={article.type} />
+                <MachineTags machines={article.machines} basePath='/articles' />
+              </div>
+              <h1 className='text-4xl font-bold'>{article.title}</h1>
+              <div className='my-4 flex items-center gap-4'>
                 <Image
                   src={article.author.avatar || '/placeholder.svg'}
                   alt={article.author.name}
@@ -160,20 +165,13 @@ export default async function ArticlePage({
                 />
                 <div>
                   <p className='text-sm font-medium'>{article.author.name}</p>
-                  <p className='text-sm text-muted-foreground'>
-                    {formatDate(article.date)}
-                  </p>
+                  <p className='text-sm text-gray-500'>{formatDate(article.date)}</p>
                 </div>
               </div>
-              <div className='relative w-full h-[200px] md:h-[400px]'>
-                <Image
-                  src={article.coverImage || '/placeholder.svg'}
-                  alt=''
-                  fill
-                  className='rounded-lg object-cover'
-                />
+              <div className='relative h-[200px] w-full md:h-[400px]'>
+                <Image src={article.coverImage || '/placeholder.svg'} alt='' fill className='rounded-lg object-cover' />
               </div>
-            </h1>
+            </div>
           </header>
 
           {/* 記事の本文 + 目次（デスクトップでは横並び） */}

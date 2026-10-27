@@ -1,0 +1,19 @@
+[
+  {
+    "slug": "3d-printer",
+    "name": "3Dプリンター",
+    "models": [
+      "Adventurer 5M Pro"
+    ]
+  },
+  {
+    "slug": "laser-cutter",
+    "name": "レーザーカッター",
+    "models": []
+  },
+  {
+    "slug": "embroidery",
+    "name": "刺繍ミシン",
+    "models": []
+  }
+]
