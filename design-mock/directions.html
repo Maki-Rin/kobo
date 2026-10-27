@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOBO デザイン方向性</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;background:#e9e9e6;color:#111}
+a{color:inherit;text-decoration:none}
+.toc{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;background:#e9e9e6;border-bottom:1px solid #ccc;font-size:14px}
+.toc a{padding:6px 12px;border:1px solid #999;border-radius:999px;background:#fff}
+.label{max-width:1280px;margin:48px auto 12px;padding:0 16px}
+.label h2{margin:0;font-size:22px}
+.label p{margin:4px 0 0;color:#444;font-size:14px}
+.frame{max-width:1280px;margin:0 auto;padding:0 16px}
+.frame>div{overflow:hidden;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+img{display:block;max-width:100%}
+
+/* A 道具っぽい */
+.a{background:#0e0e0e;color:#e8e8e3;font-feature-settings:"palt"}
+.a header{display:flex;flex-wrap:wrap;align-items:flex-start;gap:32px;padding:24px 32px}
+.a .logo{font-size:22px;font-weight:300;line-height:1.1;letter-spacing:.02em;margin-right:auto}
+.a nav{display:flex;flex-wrap:wrap;gap:28px}
+.a nav a{display:flex;gap:10px;align-items:flex-start;font-weight:300;font-size:20px}
+.a nav small{display:block;font-size:11px;color:#9a9a94;margin-top:4px;line-height:1.4}
+.a svg{stroke:#e8e8e3;fill:none;stroke-width:1.2;flex:none}
+.a .hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end;gap:32px;padding:32px 32px 0;background:radial-gradient(ellipse at 70% 40%,#3a3a38 0%,#0e0e0e 65%)}
+.a .hero h1{margin:0 0 48px;font-weight:200;font-size:76px;line-height:1;letter-spacing:-.02em}
+.a .hero h1 b{font-weight:600}
+.a .hero p{margin:0 0 56px;color:#b7b7b0;font-size:15px;line-height:1.8}
+.a .hero img{width:100%;height:420px;object-fit:cover;object-position:center 30%;filter:grayscale(.3) contrast(1.05);border-radius:4px 4px 0 0}
+.a .readout{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:32px;align-items:center;padding:24px 32px;border-top:1px solid #2a2a28;font-family:"SF Mono",ui-monospace,Menlo,monospace}
+.a .big{font-size:56px;font-weight:200;line-height:1}
+.a .big span{font-size:14px;color:#9a9a94;margin-left:6px}
+.a .units{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.a .unit{border:1px solid #333;border-radius:4px;padding:10px 12px;font-size:12px;color:#b7b7b0}
+.a .unit b{display:block;color:#e8e8e3;font-weight:400;font-size:13px;margin-top:4px}
+.a .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#555}
+.a .on{background:#ff5a1f}
+.a .free{background:#e8e8e3}
+.a .more{font-size:13px;border-bottom:1px solid #e8e8e3;padding-bottom:2px}
+.a .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:#2a2a28;border-top:1px solid #2a2a28}
+.a .card{background:#0e0e0e;padding:28px 32px}
+.a .card small{font-family:ui-monospace,Menlo,monospace;color:#ff5a1f;font-size:11px}
+.a .card h3{margin:8px 0 0;font-weight:400;font-size:17px;line-height:1.5}
+
+/* B ポップ */
+.b{background:#fffdf5;color:#111}
+.b header{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:18px 32px;border-bottom:3px solid #111}
+.b .logo{font-weight:900;font-size:28px;letter-spacing:-.02em;margin-right:auto}
+.b .logo span{font-size:13px;font-weight:700;background:#111;color:#ffd400;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
+.b nav{display:flex;flex-wrap:wrap;gap:10px}
+.b nav a{font-weight:800;padding:10px 18px;border:3px solid #111;border-radius:999px;background:#fff;box-shadow:3px 3px 0 #111}
+.b nav a.now{background:#ffd400}
+.b .hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:center;padding:48px 32px}
+.b .hero h1{margin:0;font-weight:900;font-size:96px;line-height:.95;letter-spacing:-.03em}
+.b .hero h1 em{font-style:normal;-webkit-text-stroke:3px #111;color:transparent}
+.b .hero p{font-weight:700;font-size:18px;line-height:1.7;margin:24px 0 0}
+.b .photo{position:relative}
+.b .photo img{width:100%;height:380px;object-fit:cover;border:3px solid #111;border-radius:20px;box-shadow:8px 8px 0 #111}
+.b .sticker{position:absolute;top:-18px;right:24px;transform:rotate(6deg);background:#ffd400;border:3px solid #111;border-radius:999px;padding:10px 18px;font-weight:900;font-size:18px}
+.b .status{margin:0 32px;padding:24px;border:3px solid #111;border-radius:20px;background:#fff;box-shadow:6px 6px 0 #111;display:flex;flex-wrap:wrap;align-items:center;gap:20px}
+.b .status h2{margin:0;font-size:16px;font-weight:900}
+.b .status .big{font-weight:900;font-size:48px;line-height:1}
+.b .status .big small{font-size:16px}
+.b .chips{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.b .chip{border:3px solid #111;border-radius:999px;padding:6px 12px;font-weight:800;font-size:14px;background:#fff}
+.b .chip.free{background:#b6f2c8}
+.b .chip.busy{background:#9fd3ff}
+.b .chip.wait{background:#ffd1e6}
+.b .go{font-weight:900;padding:12px 20px;border:3px solid #111;border-radius:999px;background:#ffd400;box-shadow:3px 3px 0 #111}
+.b .sec{padding:56px 32px 48px}
+.b .sec h2{font-weight:900;font-size:36px;margin:0 0 20px}
+.b .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.b .card{border:3px solid #111;border-radius:16px;padding:20px;background:#fff;box-shadow:5px 5px 0 #111;transition:transform .15s,box-shadow .15s}
+.b .card:hover{transform:translate(-3px,-3px);box-shadow:8px 8px 0 #111}
+.b .card small{font-weight:800;font-size:12px;background:#111;color:#fff;padding:2px 8px;border-radius:999px}
+.b .card h3{margin:12px 0 0;font-size:18px;font-weight:800;line-height:1.5}
+
+/* C 写真主役 */
+.c{background:#111;color:#fff}
+.c .hero{position:relative;height:640px}
+.c .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.c .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 55%,rgba(0,0,0,.7) 100%)}
+.c header{position:absolute;z-index:2;top:0;left:0;right:0;display:flex;flex-wrap:wrap;align-items:center;gap:24px;padding:24px 40px}
+.c .logo{font-weight:800;font-size:24px;margin-right:auto}
+.c nav{display:flex;flex-wrap:wrap;gap:24px;font-weight:700;font-size:15px}
+.c .copy{position:absolute;z-index:2;left:40px;bottom:150px}
+.c .copy h1{margin:0;font-size:84px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.c .copy p{margin:12px 0 0;font-size:16px;font-weight:600}
+.c .panel{position:absolute;z-index:2;left:40px;right:40px;bottom:32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;padding:16px 24px;border-radius:14px;background:rgba(20,20,20,.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.2)}
+.c .panel .big{font-size:36px;font-weight:800;line-height:1}
+.c .panel .big small{font-size:14px;font-weight:600}
+.c .panel ul{display:flex;flex-wrap:wrap;gap:16px;list-style:none;margin:0;padding:0;flex:1;font-size:14px}
+.c .panel li span{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#bbb}
+.c .panel .g{background:#5ee08a}
+.c .panel .bl{background:#6db8ff}
+.c .panel .p{background:#ff9fc8}
+.c .panel a{font-weight:700;font-size:14px}
+.c .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:#111}
+.c .tile{position:relative;height:240px;overflow:hidden}
+.c .tile img{width:100%;height:100%;object-fit:cover;opacity:.75}
+.c .tile h3{position:absolute;left:20px;bottom:16px;margin:0;font-size:18px;font-weight:700}
+
+/* D 今のまま整える */
+.d{background:#fff;color:#111}
+.d header{display:flex;flex-wrap:wrap;align-items:center;gap:24px;padding:20px 40px;background:#000;color:#fff}
+.d .logo{font-weight:800;font-size:22px;margin-right:auto}
+.d .logo span{font-weight:500;font-size:14px;margin-left:6px;color:#bbb}
+.d nav{display:flex;gap:28px;font-size:14px;font-weight:600}
+.d .hero{position:relative;height:420px}
+.d .hero img{width:100%;height:100%;object-fit:cover}
+.d .hero h1{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;margin:0;background:rgba(0,0,0,.3);color:#fff;font-size:64px;font-weight:800}
+.d .strip{display:flex;flex-wrap:wrap;align-items:center;gap:24px;padding:20px 40px;border-bottom:1px solid #e5e5e5;background:#fafafa}
+.d .strip h2{margin:0;font-size:13px;color:#666}
+.d .strip .big{font-size:32px;font-weight:800}
+.d .strip .big small{font-size:14px;font-weight:500;margin-left:4px}
+.d .strip ul{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0;flex:1}
+.d .strip li{border:1px solid #ddd;border-radius:999px;padding:6px 12px;font-size:13px;background:#fff}
+.d .strip li b{margin-left:6px;font-size:12px}
+.d .strip a{font-weight:700;font-size:14px}
+.d .sec{padding:64px 40px;text-align:center}
+.d .sec h2{margin:0;font-size:32px}
+.d .sec p{color:#555;margin:12px 0 32px}
+.d .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;text-align:left}
+.d .card{border:1px solid #eee;border-radius:12px;overflow:hidden}
+.d .card img{width:100%;height:160px;object-fit:cover}
+.d .card h3{margin:0;padding:16px;font-size:16px;line-height:1.5}
+
+.hist{font-size:12px;opacity:.8;width:100%}
+
+@media (max-width:760px){
+  .a .hero,.b .hero{grid-template-columns:minmax(0,1fr)}
+  .a .hero h1{font-size:48px}
+  .b .hero h1{font-size:60px}
+  .c .copy h1{font-size:48px}
+  .a .readout{grid-template-columns:minmax(0,1fr)}
+  .a .units{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .a .cards,.b .cards,.c .grid,.d .cards{grid-template-columns:minmax(0,1fr)}
+  .c .copy{bottom:220px;left:20px}
+  .c .panel{left:16px;right:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="toc">
+  <a href="#a">A 道具っぽい</a>
+  <a href="#b">B ポップ</a>
+  <a href="#c">C 写真が主役</a>
+  <a href="#d">D 今のまま整える</a>
+</div>
+
+<!-- A -->
+<div class="label" id="a"><h2>A 道具っぽい</h2><p>暗い地に細い線と機材の写真。工房の道具感。色は動作中を示すオレンジだけ。（teenage engineering 寄り）</p></div>
+<div class="frame"><div class="a">
+  <header>
+    <div class="logo">KOBO<br>unofficial</div>
+    <nav>
+      <a href="#"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="6" width="20" height="18" rx="2"/><path d="M8 6V3h12v3M9 18h10"/></svg><div>稼働状況<small>プリンター<br>いま空いてる？</small></div></a>
+      <a href="#"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><path d="M5 4h13l5 5v15H5z"/><path d="M18 4v5h5M9 14h10M9 18h7"/></svg><div>使い方<small>3Dプリント<br>スライサ</small></div></a>
+      <a href="#"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="9"/><path d="M14 5v18M5 14h18"/></svg><div>作品<small>みんなの<br>つくったもの</small></div></a>
+      <a href="#"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="4" y="6" width="20" height="18" rx="2"/><path d="M4 11h20M9 3v5M19 3v5"/></svg><div>イベント<small>講習会<br>ワークショップ</small></div></a>
+    </nav>
+  </header>
+  <div class="hero">
+    <div>
+      <h1><b>Let's</b><br>Fab!!</h1>
+      <p>KOBOの3Dプリンターやレーザーカッター、<br>使い方はここにまとめてます。わからなかったらスタッフに聞いてね。</p>
+    </div>
+    <img src="../public/images/Adventure5Mpro.jpg" alt="Adventurer 5M Pro">
+  </div>
+  <div class="readout">
+    <div class="big">3<span>/ 8 台 空き</span></div>
+    <div class="units">
+      <div class="unit"><span class="dot free"></span>01<b>待機中</b></div>
+      <div class="unit"><span class="dot on"></span>02<b>造形中 63% · 残り40分</b></div>
+      <div class="unit"><span class="dot free"></span>03<b>待機中</b></div>
+      <div class="unit"><span class="dot"></span>04<b>回収待ち · 15:32 成功</b></div>
+    </div>
+    <a class="more" href="#">全部見る →</a>
+  </div>
+  <div class="cards">
+    <div class="card"><small>GUIDE 01</small><h3>Adventurer 5M Pro を使った3Dプリント手順</h3></div>
+    <div class="card"><small>GUIDE 02</small><h3>Orca-Flashforgeの基本的な使い方ガイド</h3></div>
+    <div class="card"><small>GUIDE 03</small><h3>フィラメントって何？</h3></div>
+  </div>
+</div></div>
+
+<!-- B -->
+<div class="label" id="b"><h2>B ポップ</h2><p>太い文字、くっきりした黒枠と影、黄色を1色。触ると浮く。状態の色もはっきり。（Gumroad 寄り）</p></div>
+<div class="frame"><div class="b">
+  <header>
+    <div class="logo">KOBO<span>unofficial</span></div>
+    <nav><a class="now" href="#">稼働状況</a><a href="#">使い方</a><a href="#">作品</a><a href="#">イベント</a></nav>
+  </header>
+  <div class="hero">
+    <div>
+      <h1>Let's<br><em>Fab!!</em></h1>
+      <p>3Dプリンター、レーザーカッター、なんでも。<br>使い方はここ。わからなかったらスタッフに声かけてね。</p>
+    </div>
+    <div class="photo"><img src="../public/images/top3.jpg" alt="KOBOの室内"><div class="sticker">いま3台あいてる！</div></div>
+  </div>
+  <div class="status">
+    <h2>3Dプリンター</h2>
+    <div class="big">3<small> / 8台 空き</small></div>
+    <div class="chips">
+      <span class="chip free">1号機 空き</span>
+      <span class="chip busy">2号機 造形中 63%</span>
+      <span class="chip free">3号機 空き</span>
+      <span class="chip wait">4号機 回収待ち</span>
+    </div>
+    <a class="go" href="#">全部見る →</a>
+    <div class="hist">さっき終わった：4号機 14:10–15:32 成功 ／ 6号機 13:05–13:50 失敗</div>
+  </div>
+  <div class="sec">
+    <h2>使い方</h2>
+    <div class="cards">
+      <a class="card" href="#"><small>はじめて</small><h3>Adventurer 5M Pro を使った3Dプリント手順</h3></a>
+      <a class="card" href="#"><small>スライサ</small><h3>Orca-Flashforgeの基本的な使い方ガイド</h3></a>
+      <a class="card" href="#"><small>材料</small><h3>フィラメントって何？</h3></a>
+    </div>
+  </div>
+</div></div>
+
+<!-- C -->
+<div class="label" id="c"><h2>C 写真が主役</h2><p>KOBOの空間写真を全面に。稼働状況は写真の上に半透明のパネルで重ねる。文字は最小限。（SFC 田中研 寄り）</p></div>
+<div class="frame"><div class="c">
+  <div class="hero">
+    <img src="../public/images/top1.jpg" alt="KOBOの外観">
+    <header><div class="logo">KOBO</div><nav><a href="#">稼働状況</a><a href="#">使い方</a><a href="#">作品</a><a href="#">イベント</a></nav></header>
+    <div class="copy"><h1>Let's Fab!!</h1><p>[KOBOのひとこと紹介]</p></div>
+    <div class="panel">
+      <div class="big">3<small> / 8台 空き</small></div>
+      <ul>
+        <li><span class="g"></span>1号機 空き</li>
+        <li><span class="bl"></span>2号機 造形中 63%</li>
+        <li><span class="g"></span>3号機 空き</li>
+        <li><span class="p"></span>4号機 回収待ち（15:32 成功）</li>
+      </ul>
+      <a href="#">全部見る →</a>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="tile"><img src="../public/images/Adventure5Mpro.jpg" alt=""><h3>3Dプリント手順</h3></div>
+    <div class="tile"><img src="../public/images/works/mastersword.jpg" alt=""><h3>作品</h3></div>
+    <div class="tile"><img src="../public/images/top3.jpg" alt=""><h3>イベント</h3></div>
+  </div>
+</div></div>
+
+<!-- D -->
+<div class="label" id="d"><h2>D 今のまま整える</h2><p>今の構成と白黒のまま、余白・文字・状態の帯を整えたもの。比較の基準。</p></div>
+<div class="frame"><div class="d">
+  <header><div class="logo">KOBO<span>unofficial</span></div><nav><a href="#">稼働状況</a><a href="#">使い方</a><a href="#">作品</a><a href="#">イベント</a></nav></header>
+  <div class="hero"><img src="../public/images/top1.jpg" alt="KOBOの外観"><h1>Let's Fab!!</h1></div>
+  <div class="strip">
+    <h2>3Dプリンター</h2>
+    <div class="big">3<small>台 空き / 8台</small></div>
+    <ul><li>1号機<b>待機中</b></li><li>2号機<b>造形中 63%</b></li><li>3号機<b>待機中</b></li></ul>
+    <a href="#">すべて見る &gt;&gt;</a>
+  </div>
+  <div class="sec">
+    <h2>How to Fab</h2>
+    <p>3Dプリンターやスライサの使い方をまとめてます。</p>
+    <div class="cards">
+      <div class="card"><img src="../public/images/Adventure5Mpro.jpg" alt=""><h3>Adventurer 5M Pro を使った3Dプリント手順</h3></div>
+      <div class="card"><img src="../public/images/orca-flashforge.png" alt=""><h3>Orca-Flashforgeの基本的な使い方ガイド</h3></div>
+      <div class="card"><img src="../public/images/top3.jpg" alt=""><h3>フィラメントって何？</h3></div>
+    </div>
+  </div>
+</div></div>
+
+<div style="height:80px"></div>
+</body>
+</html>
