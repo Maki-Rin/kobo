@@ -21,6 +21,21 @@ export interface PrinterView {
 
 const notes = printerNotes as Record<string, PrinterNote>;
 
+const connectionProblems: Partial<Record<PublicPrinter['connection'], { label: string; detail: string }>> = {
+  auth_rejected: {
+    label: '接続設定を確認中',
+    detail: 'プリンターは動いていますが、登録している接続情報（チェックコードなど）が合わず状態を読めません。スタッフが直します。',
+  },
+  firmware_unverified: {
+    label: '接続設定を確認中',
+    detail: 'プリンターのファームウェアが更新されたため、状態の読み取りを止めています。スタッフが確認します。',
+  },
+  bad_response: {
+    label: '状態を読めません',
+    detail: 'プリンターから想定外の応答が返ってきています。',
+  },
+};
+
 export const stateText: Record<PrinterState, string> = {
   unknown: '状態不明',
   idle: '空き',
@@ -83,6 +98,11 @@ export function describePrinter(printer: PublicPrinter, now = new Date()): Print
         ? `更新が遅れています（${timeFormatter.format(new Date(printer.stateObservedAt))} 時点）`
         : null,
     };
+  }
+
+  const problem = connectionProblems[printer.connection];
+  if (problem) {
+    return { ...base, label: problem.label, tone: 'alert', available: false, detail: problem.detail, progress: null };
   }
 
   const closed = openState(now).state !== 'open';

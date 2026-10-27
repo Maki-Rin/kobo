@@ -16,6 +16,10 @@ export type PrinterState =
   | 'awaiting_collection'
   | 'error';
 
+export type ConnectionState = 'ok' | 'unreachable' | 'auth_rejected' | 'firmware_unverified' | 'bad_response';
+
+const connectionValues = new Set<ConnectionState>(['ok', 'unreachable', 'auth_rejected', 'firmware_unverified', 'bad_response']);
+
 export type WorkOutcome = 'success' | 'failed' | 'canceled' | 'unknown';
 
 export interface PublicPrinter {
@@ -24,6 +28,7 @@ export interface PublicPrinter {
   model: string;
   availability: PrinterAvailability;
   state: PrinterState;
+  connection: ConnectionState;
   stateIsCurrent: boolean;
   stateObservedAt: string | null;
   progressPercent: number | null;
@@ -43,7 +48,7 @@ export interface PublicPrinter {
 }
 
 export interface PublicPrintersResponse {
-  schemaVersion: '1.0' | '1.1';
+  schemaVersion: '1.0' | '1.1' | '1.2';
   generatedAt: string;
   printers: PublicPrinter[];
 }
@@ -131,6 +136,11 @@ function parsePrinter(value: unknown): PublicPrinter | null {
     state: stateValues.has(value.state as string)
       ? (value.state as PrinterState)
       : 'unknown',
+    connection: connectionValues.has(value.connection as ConnectionState)
+      ? (value.connection as ConnectionState)
+      : value.availability === 'offline'
+        ? 'unreachable'
+        : 'ok',
     stateIsCurrent:
       typeof value.stateIsCurrent === 'boolean'
         ? value.stateIsCurrent
@@ -167,13 +177,13 @@ function parsePrinter(value: unknown): PublicPrinter | null {
 }
 
 export function parsePublicPrinters(value: unknown): PublicPrintersResponse | null {
-  if (!isRecord(value) || (value.schemaVersion !== '1.0' && value.schemaVersion !== '1.1')) return null;
+  if (!isRecord(value) || !['1.0', '1.1', '1.2'].includes(value.schemaVersion as string)) return null;
   const generatedAt = timestamp(value.generatedAt);
   if (generatedAt === null || !Array.isArray(value.printers)) return null;
   const printers = value.printers.map(parsePrinter);
   if (printers.some((printer) => printer === null)) return null;
   return {
-    schemaVersion: value.schemaVersion,
+    schemaVersion: value.schemaVersion as PublicPrintersResponse['schemaVersion'],
     generatedAt,
     printers: printers as PublicPrinter[],
   };
