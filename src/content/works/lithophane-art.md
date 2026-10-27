@@ -1,9 +1,8 @@
 ---
 title: 'Lithophane Art'
 date: '2025-07-07'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/works/lithophane.jpg'
 images:
   - '/images/works/lithophane.jpg'

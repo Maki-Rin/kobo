@@ -3,9 +3,8 @@ title: 'Adventurer 5M Pro を使った3Dプリント手順'
 date: '2025-07-07'
 type: guide
 excerpt: 'Adventurer 5M Pro を使った3Dプリントの手順を解説します。'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/Adventure5Mpro.jpg'
 machines:
   - 3d-printer

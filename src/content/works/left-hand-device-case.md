@@ -1,9 +1,8 @@
 ---
 title: '自作左手デバイス用ケース'
 date: '2025-07-07'
-author:
-  name: 'Yuki Yamamoto'
-  avatar: '/images/yamamoto.jpg'
+authors:
+  - yuki-yamamoto
 coverImage: '/images/works/nemophila1402.jpg'
 images:
   - '/images/works/nemophila1402.jpg'

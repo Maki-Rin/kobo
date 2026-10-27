@@ -1,9 +1,8 @@
 ---
 title: 'でっかい漫画のコマ'
 date: '2025-07-07'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/works/manga.jpeg'
 images:
   - '/images/works/manga.jpeg'

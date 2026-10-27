@@ -29,8 +29,8 @@ export interface Entry {
   title: string;
   date: string;
   excerpt: string;
-  authorName: string;
-  authorAvatar: string;
+  authors: string[];
+  legacyAuthor: string;
   coverImage: string;
   body: string;
   published: boolean;
@@ -83,8 +83,8 @@ export function emptyEntry(collection: Collection, id: string): Entry {
     title: '',
     date: '',
     excerpt: '',
-    authorName: '',
-    authorAvatar: '',
+    authors: [],
+    legacyAuthor: '',
     coverImage: '',
     body: '',
     published: true,
@@ -113,8 +113,8 @@ export function parseEntry(collection: Collection, id: string, source: string): 
     title: text(data.title),
     date: text(data.date),
     excerpt: text(data.excerpt),
-    authorName: text(data.author?.name).trim(),
-    authorAvatar: text(data.author?.avatar),
+    authors: list(data.authors),
+    legacyAuthor: text(data.author?.name).trim(),
     coverImage: text(data.coverImage),
     body: content.replace(/^\n+/, ''),
     published: data.published !== false,
@@ -150,7 +150,7 @@ export function serializeEntry(entry: Entry): string {
     put('applyUrl', entry.applyUrl);
   }
   put('excerpt', entry.excerpt);
-  if (entry.authorName.trim()) front.author = { name: entry.authorName.trim(), avatar: entry.authorAvatar };
+  put('authors', entry.authors);
   put('coverImage', entry.coverImage);
   if (entry.collection === 'works') {
     put('images', entry.images);

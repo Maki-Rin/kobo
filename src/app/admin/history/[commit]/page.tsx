@@ -12,7 +12,7 @@ const CONTEXT = 3;
 const fieldLabels: [keyof Entry, string][] = [
   ['title', 'タイトル'],
   ['date', '日付'],
-  ['authorName', '書いた人'],
+  ['authors', '書いた人・作った人'],
   ['excerpt', '概要'],
   ['coverImage', 'カバー画像'],
   ['published', '公開'],

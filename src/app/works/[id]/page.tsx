@@ -8,6 +8,7 @@ import MarkdownContent from '@/components/MarkdownContent';
 import { MachineTags, StatusBadge } from '@/components/content/Labels';
 import { excerptOf, getEntries, getEntry } from '@/lib/content';
 import { renderMarkdown } from '@/lib/markdown';
+import { resolvePeople } from '@/lib/people';
 
 export async function generateStaticParams() {
   return (await getEntries('works')).map((entry) => ({ id: entry.id }));
@@ -29,6 +30,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const { tree } = await renderMarkdown(entry.body);
   const images = entry.images.length > 0 ? entry.images : entry.coverImage ? [entry.coverImage] : [];
   const event = entry.event ? await getEntry('events', entry.event) : null;
+  const authors = resolvePeople(entry.authors);
   const facts = [
     ['状態', <StatusBadge key='status' status={entry.status} />],
     ['使った機材', <MachineTags key='machines' machines={entry.machines} basePath='/works' />],
@@ -56,11 +58,15 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
             <div className='space-y-6'>
               <div>
                 <h1 className='text-3xl font-bold leading-tight'>{entry.title}</h1>
-                {entry.authorName && (
-                  <div className='mt-4 flex items-center gap-3'>
-                    {entry.authorAvatar && <Image src={entry.authorAvatar} alt='' width={32} height={32} className='rounded-full' />}
-                    <span className='text-sm font-medium'>{entry.authorName}</span>
-                  </div>
+                {authors.length > 0 && (
+                  <ul className='mt-4 flex flex-wrap gap-4'>
+                    {authors.map((person) => (
+                      <li key={person.id} className='flex items-center gap-2'>
+                        {person.avatar && <Image src={person.avatar} alt='' width={32} height={32} className='rounded-full' />}
+                        <span className='text-sm font-medium'>{person.name}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
               <dl className='divide-y divide-gray-100 rounded-lg border border-gray-200 text-sm'>

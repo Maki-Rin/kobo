@@ -1,9 +1,8 @@
 ---
 title: 'Hairy Lion'
 date: '2025-07-07'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/works/hairlion.JPG'
 images:
   - '/images/works/hairlion.JPG'

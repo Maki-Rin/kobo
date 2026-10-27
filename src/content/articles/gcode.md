@@ -3,9 +3,8 @@ title: 'Gcode（ジーコード）ってなに？'
 date: '2025-07-10'
 type: guide
 excerpt: 'この記事では、3Dプリンタで広く使用されているGcodeに関して紹介します。'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/gcode1.png'
 machines:
   - 3d-printer

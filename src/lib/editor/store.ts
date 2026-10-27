@@ -50,7 +50,8 @@ export class ConflictError extends Error {}
 const WRITABLE = [
   /^src\/content\/(articles|works|events)\/[A-Za-z0-9_-]+\.md$/,
   /^public\/images\/(articles|works|events)\/[A-Za-z0-9_-]+\/[a-z0-9_-]+\.(jpg|png|webp|gif)$/,
-  /^src\/content\/(hours|printers)\.json$/,
+  /^src\/content\/(hours|printers|people)\.json$/,
+  /^public\/images\/people\/[a-z0-9-]+\/[a-z0-9_-]+\.(jpg|png|webp|gif)$/,
 ];
 
 export function isWritable(filePath: string): boolean {

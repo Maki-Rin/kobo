@@ -3,9 +3,8 @@ title: 'スライサ（Slicer）とは？'
 date: '2025-07-14'
 type: guide
 excerpt: 'この記事では、3Dプリンタで使用するスライサに関して紹介します。'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/slicer.png'
 machines:
   - 3d-printer

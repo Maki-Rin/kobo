@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Entry } from '@/lib/content-schema';
 import { excerptOf } from '@/lib/content';
+import { peopleNames } from '@/lib/people';
 import { formatEventDate } from '@/lib/event-format';
 import { MachineTags, StatusBadge, TypeBadge } from './Labels';
 
@@ -45,7 +46,7 @@ export function WorkCard({ entry }: { entry: Entry }) {
           <h3 className='min-w-0 flex-1 truncate font-bold text-gray-900'>{entry.title}</h3>
           {entry.status === 'wip' && <StatusBadge status='wip' />}
         </div>
-        <p className='text-xs text-gray-500'>{entry.authorName}</p>
+        <p className='text-xs text-gray-500'>{peopleNames(entry.authors, entry.legacyAuthor)}</p>
         <MachineTags machines={entry.machines} />
       </div>
     </Link>

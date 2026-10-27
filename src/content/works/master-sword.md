@@ -1,9 +1,8 @@
 ---
 title: 'Master Sword'
 date: '2025-07-07'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/works/mastersword.jpg'
 images:
   - '/images/works/mastersword.jpg'

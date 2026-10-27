@@ -4,8 +4,16 @@ import matter from 'gray-matter';
 import type { Root as HastRoot } from 'hast';
 import { markdownToPlainText, renderMarkdown, type Section } from './markdown';
 import type { ArticleType } from './content-schema';
+import { peopleNames, resolvePeople } from './people';
 
 const articleType = (value: unknown): ArticleType => (value === 'tech' ? 'tech' : 'guide');
+
+function authorOf(frontMatter: ArticleFrontMatter): { name: string; avatar: string } {
+  const ids = Array.isArray(frontMatter.authors) ? frontMatter.authors.map(String) : [];
+  if (ids.length === 0) return { name: frontMatter.author?.name ?? '', avatar: frontMatter.author?.avatar ?? '' };
+  const [first] = resolvePeople(ids);
+  return { name: peopleNames(ids), avatar: first?.avatar ?? '' };
+}
 const machineList = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : []);
 
 export interface Article {
@@ -28,7 +36,8 @@ export interface ArticleFrontMatter {
   title: string;
   date: string;
   excerpt?: string;
-  author: {
+  authors?: string[];
+  author?: {
     name: string;
     avatar: string;
   };
@@ -74,7 +83,7 @@ export async function getArticles(): Promise<Article[]> {
         title: frontMatter.title,
         excerpt,
         date: frontMatter.date,
-        author: frontMatter.author,
+        author: authorOf(frontMatter),
         coverImage: frontMatter.coverImage,
         type: articleType(frontMatter.type),
         machines: machineList(frontMatter.machines),
@@ -122,7 +131,7 @@ export async function getArticle(id: string): Promise<Article | undefined> {
       title: frontMatter.title,
       excerpt,
       date: frontMatter.date,
-      author: frontMatter.author,
+      author: authorOf(frontMatter),
       coverImage: frontMatter.coverImage,
       type: articleType(frontMatter.type),
       machines: machineList(frontMatter.machines),

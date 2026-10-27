@@ -4,6 +4,8 @@ import { currentUser } from '@/lib/editor/auth';
 import { listEntries } from '@/lib/editor/entries';
 import { latestEventByEntry } from '@/lib/editor/activity';
 import { collectionLabels, collections, isCollection, isPastEvent, todayInTokyo, type Collection } from '@/lib/content-schema';
+import { loadPeople } from '@/lib/editor/people';
+import { peopleNames } from '@/lib/people';
 import EntryTable from './_components/EntryTable';
 import LoginPanel from './_components/LoginPanel';
 import { pageTitle } from './_components/ui';
@@ -15,12 +17,17 @@ const leads: Record<Collection, string> = {
 };
 
 async function loadRows(collection: Collection) {
-  const [entries, events] = await Promise.all([listEntries(collection), latestEventByEntry(collection)]);
+  const [entries, events, { people }] = await Promise.all([
+    listEntries(collection),
+    latestEventByEntry(collection),
+    loadPeople(),
+  ]);
   const today = todayInTokyo();
   const rows = entries.map((entry) => {
     const event = events.get(entry.id);
     return {
       ...entry,
+      authorName: peopleNames(entry.authors, entry.legacyAuthor, people),
       isPast: isPastEvent(entry, today),
       updatedAt: event?.at ?? null,
       updatedBy: event?.userName ?? null,

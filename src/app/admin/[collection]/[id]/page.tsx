@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { currentUser } from '@/lib/editor/auth';
 import { listEntries, loadEntry } from '@/lib/editor/entries';
 import { isCollection } from '@/lib/content-schema';
+import { loadPeople } from '@/lib/editor/people';
 import ArticleEditor from '../../_components/editor/ArticleEditor';
 
 const notices: Record<string, string> = {
@@ -22,10 +23,14 @@ export default async function EditEntryPage({
   const entry = await loadEntry(collection, id);
   if (!entry) notFound();
   const { saved } = await searchParams;
-  const eventOptions = collection === 'works' ? await listEntries('events') : [];
+  const [eventOptions, { people }] = await Promise.all([
+    collection === 'works' ? listEntries('events') : Promise.resolve([]),
+    loadPeople(),
+  ]);
   return (
     <ArticleEditor
       eventOptions={eventOptions.map(({ id, title, date }) => ({ id, title, date }))}
+      people={people}
       key={entry.sha}
       isNew={false}
       initial={entry.draft}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import machines from '@/content/machines.json';
 import { isPastEvent, type Entry } from '@/lib/content-schema';
+import type { Person } from '@/lib/people';
 import { badge, button, input, select, textarea } from '../ui';
 import ImageDropZone from './ImageDropZone';
 
@@ -70,6 +71,7 @@ export default function SettingsPanel({
   uploading,
   highlightMissing,
   eventOptions,
+  people,
   onChange,
   onIdChange,
   onCoverFiles,
@@ -85,6 +87,7 @@ export default function SettingsPanel({
   uploading: boolean;
   highlightMissing: boolean;
   eventOptions: EventOption[];
+  people: Person[];
   onChange: <K extends keyof Entry>(key: K, value: Entry[K]) => void;
   onIdChange: (id: string) => void;
   onCoverFiles: (files: File[]) => void;
@@ -285,8 +288,53 @@ export default function SettingsPanel({
 
           {collection !== 'events' && (
             <>
-              <Field label={personLabel} missing={highlightMissing && !draft.authorName.trim()}>
-                <input className={input} value={draft.authorName} onChange={(e) => onChange('authorName', e.target.value)} />
+              <Field
+                label={personLabel}
+                missing={highlightMissing && draft.authors.length === 0}
+                hint={
+                  <>
+                    複数選べます。一覧にない人は{' '}
+                    <a href='/admin/people' target='_blank' className='underline'>
+                      人物の管理
+                    </a>{' '}
+                    で追加してください。
+                  </>
+                }
+              >
+                <div className='flex flex-wrap gap-2'>
+                  {people.map((person) => {
+                    const selected = draft.authors.includes(person.id);
+                    return (
+                      <button
+                        key={person.id}
+                        type='button'
+                        aria-pressed={selected}
+                        onClick={() =>
+                          onChange(
+                            'authors',
+                            selected ? draft.authors.filter((id) => id !== person.id) : [...draft.authors, person.id]
+                          )
+                        }
+                        className={`flex h-9 items-center gap-2 rounded-full border pl-1 pr-3 text-sm ${
+                          selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {person.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={person.avatar} alt='' className='size-7 rounded-full object-cover' />
+                        ) : (
+                          <span className='flex size-7 items-center justify-center rounded-full bg-slate-200 text-xs text-slate-600'>
+                            {person.name.slice(0, 1)}
+                          </span>
+                        )}
+                        {person.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {draft.legacyAuthor && draft.authors.length === 0 && (
+                  <p className='text-xs text-amber-800'>以前の書き方の名前「{draft.legacyAuthor}」が入っています。一覧から選び直してください。</p>
+                )}
               </Field>
               <Field label='日付'>
                 <input type='date' className={input} value={draft.date} onChange={(e) => onChange('date', e.target.value)} />

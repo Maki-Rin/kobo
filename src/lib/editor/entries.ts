@@ -34,7 +34,8 @@ export interface EntrySummary {
   date: string;
   published: boolean;
   coverImage: string;
-  authorName: string;
+  authors: string[];
+  legacyAuthor: string;
   type: Entry['type'];
   status: Entry['status'];
   hasRecord: boolean;
@@ -75,7 +76,8 @@ export async function listEntries(collection: Collection): Promise<EntrySummary[
         date: entry.date,
         published: entry.published,
         coverImage: entry.coverImage,
-        authorName: entry.authorName,
+        authors: entry.authors,
+        legacyAuthor: entry.legacyAuthor,
         type: entry.type,
         status: entry.status,
         hasRecord: entry.record.trim() !== '',
@@ -142,7 +144,7 @@ async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Pr
   if (draft.title.length > 120) errors.push('タイトルは120文字までです');
   if (!validDate(draft.date)) errors.push(draft.collection === 'events' ? '開催日が正しくありません' : '日付が正しくありません');
   if (draft.excerpt.length > 200) errors.push('概要は200文字までです');
-  if (draft.collection !== 'events' && draft.published && !draft.authorName.trim()) {
+  if (draft.collection !== 'events' && draft.published && draft.authors.length === 0) {
     errors.push(draft.collection === 'works' ? '作った人の名前を入れてください' : '書いた人の名前を入れてください');
   }
   if (draft.collection === 'articles' && !draft.body.trim()) errors.push('本文が空です');
@@ -207,8 +209,7 @@ function sanitizeDraft(collection: Collection, raw: Record<string, unknown>): En
     title: text('title').trim(),
     date: text('date'),
     excerpt: text('excerpt').trim(),
-    authorName: text('authorName').trim(),
-    authorAvatar: text('authorAvatar') || (text('authorName').trim() ? '/kobo.svg' : ''),
+    authors: list('authors'),
     coverImage: text('coverImage'),
     body: text('body'),
     published: raw.published !== false,

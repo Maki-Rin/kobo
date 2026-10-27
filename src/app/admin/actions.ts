@@ -36,6 +36,7 @@ import {
   type StagedImage,
 } from '@/lib/editor/entries';
 import { isCollection } from '@/lib/content-schema';
+import { savePeople } from '@/lib/editor/people';
 import { ConflictError } from '@/lib/editor/store';
 import { renderPreviewHtml } from '@/lib/editor/preview';
 
@@ -226,5 +227,16 @@ export async function setRoleAction(userId: string, role: Role) {
       throw new EditorError([error instanceof Error ? error.message : '役割を変えられませんでした']);
     }
     revalidatePath('/admin/members');
+  });
+}
+
+export async function savePeopleAction(input: { people: unknown; baseSha: string | null; images: StagedImage[] }) {
+  return attempt(async () => {
+    const user = await requireUser();
+    const images = Array.isArray(input.images)
+      ? input.images.map((image) => ({ name: String(image.name), sha: String(image.sha) }))
+      : [];
+    await savePeople(user, { people: input.people, baseSha: input.baseSha ?? null, images });
+    revalidatePath('/admin/people');
   });
 }

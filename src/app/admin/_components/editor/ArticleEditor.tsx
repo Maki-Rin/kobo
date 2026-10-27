@@ -9,6 +9,7 @@ import { badge, button, fontFamily } from '../ui';
 import { IMAGE_ACCEPT } from './ImageDropZone';
 import EditorBackdrop from './EditorBackdrop';
 import SettingsPanel, { type EventOption } from './SettingsPanel';
+import { peopleNames, type Person } from '@/lib/people';
 import { ImageError, imageFiles, prepareImage } from './prepareImage';
 
 interface EditorImage {
@@ -113,12 +114,14 @@ export default function ArticleEditor({
   baseSha,
   notice: initialNotice,
   eventOptions = [],
+  people = [],
 }: {
   initial: Entry;
   isNew: boolean;
   baseSha: string | null;
   notice: string;
   eventOptions?: EventOption[];
+  people?: Person[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
@@ -457,7 +460,7 @@ export default function ArticleEditor({
         ? []
         : [
             ...(!next.coverImage ? ['カバー画像'] : []),
-            ...(!next.authorName.trim() ? [collection === 'works' ? '作った人' : '書いた人'] : []),
+            ...(next.authors.length === 0 ? [collection === 'works' ? '作った人' : '書いた人'] : []),
           ]
       : [];
     if (!next.title.trim() || (publish && !next.body.trim()) || missingSettings.length > 0) {
@@ -902,7 +905,7 @@ export default function ArticleEditor({
                   ? [draft.date && dateFormatter.format(new Date(draft.date)), draft.startTime && `${draft.startTime}〜${draft.endTime}`, draft.place]
                       .filter(Boolean)
                       .join('・') || '日時・場所は「設定」で入れます'
-                  : `${draft.authorName || (collection === 'works' ? '作った人' : '書いた人')}・${draft.date ? dateFormatter.format(new Date(draft.date)) : ''}`}
+                  : `${peopleNames(draft.authors, draft.legacyAuthor, people) || (collection === 'works' ? '作った人' : '書いた人')}・${draft.date ? dateFormatter.format(new Date(draft.date)) : ''}`}
               </p>
               {collection === 'works' && draft.images.length > 0 && (
                 <div className='mt-6 grid grid-cols-2 gap-2'>
@@ -934,6 +937,7 @@ export default function ArticleEditor({
           uploading={coverUploading}
           highlightMissing={highlightMissing}
           eventOptions={eventOptions}
+          people={people}
           onChange={update}
           onIdChange={changeId}
           onCoverFiles={setCover}

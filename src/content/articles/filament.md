@@ -3,9 +3,8 @@ title: 'フィラメントって何？'
 date: '2025-07-11'
 type: guide
 excerpt: 'FDM3Dプリンタで使用する材料に関して紹介します'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/filament.JPG'
 machines:
   - 3d-printer
