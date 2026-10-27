@@ -189,13 +189,12 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
         </div>
       )}
 
-      <div className='mb-6 grid grid-cols-2 gap-3 md:grid-cols-4'>
+      <div className='mb-6 grid grid-cols-3 gap-3 md:max-w-xl'>
         {(
           [
             ['空き', summary.available],
             ['造形中', summary.busy],
             ['一時停止・エラー', summary.attention],
-            ['登録', summary.total],
           ] as const
         ).map(([label, value]) => (
           <div key={label} className='rounded-xl border-2 border-ink bg-paper px-4 py-3'>
