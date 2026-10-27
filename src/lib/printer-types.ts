@@ -12,6 +12,7 @@ export type PrinterState =
   | 'preparing'
   | 'printing'
   | 'paused'
+  | 'completed'
   | 'awaiting_collection'
   | 'error';
 
@@ -23,6 +24,8 @@ export interface PublicPrinter {
   model: string;
   availability: PrinterAvailability;
   state: PrinterState;
+  stateIsCurrent: boolean;
+  stateObservedAt: string | null;
   progressPercent: number | null;
   currentWork: {
     fileName: string | null;
@@ -40,7 +43,7 @@ export interface PublicPrinter {
 }
 
 export interface PublicPrintersResponse {
-  schemaVersion: '1.0';
+  schemaVersion: '1.0' | '1.1';
   generatedAt: string;
   printers: PublicPrinter[];
 }
@@ -92,6 +95,7 @@ const stateValues = new Set([
   'preparing',
   'printing',
   'paused',
+  'completed',
   'awaiting_collection',
   'error',
 ]);
@@ -127,6 +131,11 @@ function parsePrinter(value: unknown): PublicPrinter | null {
     state: stateValues.has(value.state as string)
       ? (value.state as PrinterState)
       : 'unknown',
+    stateIsCurrent:
+      typeof value.stateIsCurrent === 'boolean'
+        ? value.stateIsCurrent
+        : value.availability === 'online',
+    stateObservedAt: timestamp(value.stateObservedAt) ?? (value.availability === 'online' ? lastSeenAt : null),
     progressPercent:
       typeof progress === 'number' && Number.isFinite(progress)
         ? Math.min(100, Math.max(0, progress))
@@ -158,13 +167,13 @@ function parsePrinter(value: unknown): PublicPrinter | null {
 }
 
 export function parsePublicPrinters(value: unknown): PublicPrintersResponse | null {
-  if (!isRecord(value) || value.schemaVersion !== '1.0') return null;
+  if (!isRecord(value) || (value.schemaVersion !== '1.0' && value.schemaVersion !== '1.1')) return null;
   const generatedAt = timestamp(value.generatedAt);
   if (generatedAt === null || !Array.isArray(value.printers)) return null;
   const printers = value.printers.map(parsePrinter);
   if (printers.some((printer) => printer === null)) return null;
   return {
-    schemaVersion: '1.0',
+    schemaVersion: value.schemaVersion,
     generatedAt,
     printers: printers as PublicPrinter[],
   };

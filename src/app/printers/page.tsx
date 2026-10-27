@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import PrinterStatus from '@/components/PrinterStatus';
+import OpenHours from '@/components/OpenHours';
 import { getPublicPrinters } from '@/lib/printers-server';
 
 export const metadata: Metadata = {
@@ -29,6 +30,9 @@ export default async function PrintersPage() {
             KOBOの3Dプリンターが今空いているかを確認できます。
             表示は少し遅れることがあるので、迷ったら現地のプリンターを見てください。
           </p>
+          <div className='mt-4'>
+            <OpenHours />
+          </div>
         </div>
         <PrinterStatus initialResult={initialResult} />
       </main>
