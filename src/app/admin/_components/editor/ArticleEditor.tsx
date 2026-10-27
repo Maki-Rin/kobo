@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { ArticleDraft } from '@/lib/editor/articles';
-import { previewAction, saveArticleAction, uploadImageAction } from '../../actions';
+import { articleTypeLabels, collectionLabels, isPastEvent, type Entry } from '@/lib/content-schema';
+import { previewAction, saveEntryAction, uploadImageAction } from '../../actions';
 import { badge, button, fontFamily } from '../ui';
 import { IMAGE_ACCEPT } from './ImageDropZone';
 import EditorBackdrop from './EditorBackdrop';
-import SettingsPanel from './SettingsPanel';
+import SettingsPanel, { type EventOption } from './SettingsPanel';
 import { ImageError, imageFiles, prepareImage } from './prepareImage';
 
 interface EditorImage {
@@ -19,7 +19,7 @@ interface EditorImage {
 }
 
 interface Autosave {
-  draft: ArticleDraft;
+  draft: Entry;
   images: { name: string; sha: string }[];
   baseSha: string | null;
   savedAt: string;
@@ -29,11 +29,22 @@ type View = 'write' | 'split' | 'preview';
 
 const PREVIEW_DELAY = 300;
 const AUTOSAVE_DELAY = 800;
-const IMAGE_PATH = /^\/images\/articles\/[^/]+\/([^/]+)$/;
+const IMAGE_PATH = /^\/images\/[a-z]+\/[^/]+\/([^/]+)$/;
 const SPLIT_KEY = 'kobo-editor:split';
 const NUMBERS_KEY = 'kobo-editor-pref:numbers';
 
-const autosaveKey = (isNew: boolean, id: string) => `kobo-editor:${isNew ? 'new' : id}`;
+const autosaveKey = (entry: Entry, isNew: boolean) => `kobo-editor:${entry.collection}:${isNew ? 'new' : entry.id}`;
+
+type BodyField = 'body' | 'record';
+
+const placeholders: Record<'articles' | 'works' | BodyField, string> = {
+  articles: 'ここに本文を書きます。\n\n画像は、ドラッグ＆ドロップ・コピーして貼り付け・「＋ 画像」ボタンで入れられます。',
+  works: '作品の説明。どんなものか、どうやってつくったか、工夫したところなど。\n\n写真は「設定」の「写真」からまとめて入れられます。',
+  body: '告知の本文。内容、持ち物、対象など。日時・場所・申し込みは「設定」で入れます。',
+  record: '当日の様子を書きます。「ひな形を入れる」で見出しが入ります。\n\n写真は、ドラッグ＆ドロップ・貼り付け・「＋ 画像」でまとめて入れられます。',
+};
+
+const RECORD_TEMPLATE = '## やったこと\n\n\n## 当日の様子\n\n\n## 参加者の声\n\n\n## 次回に向けて\n';
 
 function readStorage<T>(key: string): T | null {
   try {
@@ -101,11 +112,13 @@ export default function ArticleEditor({
   isNew,
   baseSha,
   notice: initialNotice,
+  eventOptions = [],
 }: {
-  initial: ArticleDraft;
+  initial: Entry;
   isNew: boolean;
   baseSha: string | null;
   notice: string;
+  eventOptions?: EventOption[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
@@ -124,6 +137,9 @@ export default function ArticleEditor({
   const [restorable, setRestorable] = useState<Autosave | null>(null);
   const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
   const [caretLine, setCaretLine] = useState(1);
+  const [field, setField] = useState<BodyField>(
+    initial.collection === 'events' && !isNew && isPastEvent(initial) ? 'record' : 'body'
+  );
   const [numbers, setNumbers] = useState(true);
   const [scrollbar, setScrollbar] = useState(0);
 
@@ -135,7 +151,8 @@ export default function ArticleEditor({
   const selection = useRef<{ start: number; end: number } | null>(null);
   const dragDepth = useRef(0);
   const latestDraft = useRef(draft);
-  const key = autosaveKey(isNew, initial.id);
+  const key = autosaveKey(initial, isNew);
+  const collection = initial.collection;
 
   const uploading = images.some((image) => image.status === 'uploading') || coverUploading;
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial]);
@@ -152,11 +169,14 @@ export default function ArticleEditor({
     if (window.matchMedia('(max-width: 767px)').matches) setView('write');
   }, []);
 
-  const update = useCallback(<K extends keyof ArticleDraft>(field: K, value: ArticleDraft[K]) => {
+  const update = useCallback(<K extends keyof Entry>(field: K, value: Entry[K]) => {
     setDraft((current) => ({ ...current, [field]: value }));
   }, []);
 
-  const imagePath = useCallback((name: string, id = draft.id) => `/images/articles/${id}/${name}`, [draft.id]);
+  const imagePath = useCallback(
+    (name: string, id = draft.id) => `/images/${collection}/${id}/${name}`,
+    [collection, draft.id]
+  );
 
   const resolveSrc = useCallback(
     (src: string) => {
@@ -208,14 +228,14 @@ export default function ArticleEditor({
   useEffect(() => {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
-      const result = await previewAction(draft.body);
+      const result = await previewAction(draft[field]);
       if (!cancelled && result.ok) setPreviewHtml(result.value);
     }, PREVIEW_DELAY);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [draft.body]);
+  }, [draft, field]);
 
   const renderedPreview = useMemo(
     () => previewHtml.replace(/src="(\/images\/articles\/[^"]+)"/g, (_m, src: string) => `src="${resolveSrc(src)}"`),
@@ -252,7 +272,7 @@ export default function ArticleEditor({
     }
   };
 
-  useEffect(syncScroll, [draft.body, numbers, split, view]);
+  useEffect(syncScroll, [draft.body, draft.record, field, numbers, split, view]);
 
   const surface = `${numbers ? 'pl-[max(3.5rem,calc((100%_-_40rem)/2))]' : 'pl-[max(1.25rem,calc((100%_-_40rem)/2))]'} pr-[max(1.25rem,calc((100%_-_40rem)/2))] py-8 text-base leading-[1.7]`;
 
@@ -265,10 +285,10 @@ export default function ArticleEditor({
 
   const replaceSelection = (make: (selected: string) => { text: string; select?: [number, number] }) => {
     const textarea = bodyRef.current;
-    const value = draft.body;
+    const value = draft[field];
     const { start, end } = selection.current ?? { start: value.length, end: value.length };
     const { text, select } = make(value.slice(start, end));
-    update('body', value.slice(0, start) + text + value.slice(end));
+    update(field, value.slice(0, start) + text + value.slice(end));
     const [from, to] = select ?? [text.length, text.length];
     selection.current = { start: start + from, end: start + to };
     requestAnimationFrame(() => {
@@ -285,7 +305,7 @@ export default function ArticleEditor({
 
   const linePrefix = (prefix: string, placeholder: string) =>
     replaceSelection((selected) => {
-      const value = draft.body;
+      const value = draft[field];
       const start = selection.current?.start ?? value.length;
       const head = start > 0 && value[start - 1] !== '\n' ? '\n' : '';
       const numbered = prefix === '1. ';
@@ -296,17 +316,19 @@ export default function ArticleEditor({
 
   const replacePlaceholder = (placeholder: string, make: (id: string) => string) => {
     const current = latestDraft.current;
-    const index = current.body.indexOf(placeholder);
+    const target: BodyField = current.body.includes(placeholder) ? 'body' : 'record';
+    const source = current[target];
+    const index = source.indexOf(placeholder);
     if (index === -1) return;
     const replacement = make(current.id);
     const delta = replacement.length - placeholder.length;
     const caret = selection.current;
-    if (caret && caret.start >= index + placeholder.length) {
+    if (target === field && caret && caret.start >= index + placeholder.length) {
       selection.current = { start: caret.start + delta, end: caret.end + delta };
     }
     const next = {
       ...current,
-      body: current.body.slice(0, index) + replacement + current.body.slice(index + placeholder.length),
+      [target]: source.slice(0, index) + replacement + source.slice(index + placeholder.length),
     };
     latestDraft.current = next;
     setDraft(next);
@@ -328,7 +350,7 @@ export default function ArticleEditor({
     if (view === 'preview') setView('split');
     const tokens = files.map(() => `uploading-${randomId()}`);
     replaceSelection((selected) => {
-      const value = draft.body;
+      const value = draft[field];
       const { start, end } = selection.current ?? { start: value.length, end: value.length };
       const before = value.slice(0, start) + selected;
       const after = value.slice(end);
@@ -377,14 +399,42 @@ export default function ArticleEditor({
     }
   };
 
+  const addGallery = async (files: File[]) => {
+    if (files.length === 0) return;
+    setErrors([]);
+    setCoverUploading(true);
+    for (const file of files) {
+      try {
+        const image = await uploadOne(file);
+        setImages((current) => [...current, image]);
+        setDraft((current) => {
+          const path = imagePath(image.name, current.id);
+          return {
+            ...current,
+            images: [...current.images, path],
+            coverImage: current.coverImage || path,
+          };
+        });
+      } catch (error) {
+        setErrors((current) => [
+          ...current,
+          error instanceof ImageError ? error.message : `「${file.name}」をアップロードできませんでした。もう一度試してください`,
+        ]);
+      }
+    }
+    setCoverUploading(false);
+  };
+
   const changeId = (id: string) =>
     setDraft((current) => {
-      const from = `/images/articles/${current.id}/`;
-      const to = `/images/articles/${id}/`;
+      const from = `/images/${collection}/${current.id}/`;
+      const to = `/images/${collection}/${id}/`;
       return {
         ...current,
         id,
         body: current.body.split(from).join(to),
+        record: current.record.split(from).join(to),
+        images: current.images.map((image) => image.split(from).join(to)),
         coverImage: current.coverImage.startsWith(from) ? to + current.coverImage.slice(from.length) : current.coverImage,
       };
     });
@@ -403,7 +453,12 @@ export default function ArticleEditor({
     }
     const next = { ...draft, published: publish };
     const missingSettings = publish
-      ? [...(!next.coverImage ? ['カバー画像'] : []), ...(!next.authorName.trim() ? ['書いた人'] : [])]
+      ? collection === 'events'
+        ? []
+        : [
+            ...(!next.coverImage ? ['カバー画像'] : []),
+            ...(!next.authorName.trim() ? [collection === 'works' ? '作った人' : '書いた人'] : []),
+          ]
       : [];
     if (!next.title.trim() || (publish && !next.body.trim()) || missingSettings.length > 0) {
       setHighlightMissing(true);
@@ -416,12 +471,15 @@ export default function ArticleEditor({
       return;
     }
     const used = images.filter(
-      (image) => image.sha && (next.body.includes(imagePath(image.name)) || next.coverImage === imagePath(image.name))
+      (image) =>
+        image.sha &&
+        [next.body, next.record, next.coverImage, ...next.images].some((text) => text.includes(imagePath(image.name)))
     );
     setSaving(true);
     setErrors([]);
     setNotice('');
-    const result = await saveArticleAction({
+    const result = await saveEntryAction({
+      collection,
       draft: next,
       isNew,
       baseSha,
@@ -434,7 +492,7 @@ export default function ArticleEditor({
     }
     writeStorage(key, null);
     setSettingsOpen(false);
-    router.replace(`/admin/articles/${result.value.id}?saved=${publish ? 'published' : 'draft'}`);
+    router.replace(`/admin/${collection}/${result.value.id}?saved=${publish ? 'published' : 'draft'}`);
     router.refresh();
   };
 
@@ -482,12 +540,16 @@ export default function ArticleEditor({
 
   const bodyImages = useMemo(() => {
     const names = new Set<string>();
-    for (const match of draft.body.matchAll(/!\[[^\]]*\]\((\/images\/articles\/[^)\s]+)\)/g)) {
+    for (const match of `${draft.body}\n${draft.record}`.matchAll(/!\[[^\]]*\]\((\/images\/[a-z]+\/[^)\s]+)\)/g)) {
       const name = match[1].match(IMAGE_PATH)?.[1];
       if (name) names.add(name);
     }
+    for (const image of draft.images) {
+      const name = image.match(IMAGE_PATH)?.[1];
+      if (name) names.add(name);
+    }
     return [...names];
-  }, [draft.body]);
+  }, [draft.body, draft.record, draft.images]);
 
   const viewOptions: { value: View; label: string; desktopOnly?: boolean }[] = [
     { value: 'write', label: '書く' },
@@ -498,20 +560,24 @@ export default function ArticleEditor({
   return (
     <div className='fixed inset-0 z-40 flex flex-col bg-slate-50 text-slate-900 antialiased' style={{ fontFamily }}>
       <header className='flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 bg-white px-3 py-2.5 md:h-14 md:flex-nowrap md:py-0'>
-        <Link href='/admin' className={`${button('ghost', 'sm')} px-2`} aria-label='記事一覧に戻る'>
-          ← <span className='hidden sm:inline'>記事一覧</span>
+        <Link
+          href={collection === 'articles' ? '/admin' : `/admin?c=${collection}`}
+          className={`${button('ghost', 'sm')} px-2`}
+          aria-label={`${collectionLabels[collection]}の一覧に戻る`}
+        >
+          ← <span className='hidden sm:inline'>一覧</span>
         </Link>
         <input
           value={draft.title}
           onChange={(event) => update('title', event.target.value)}
-          placeholder='タイトルを入力'
+          placeholder={collection === 'events' ? 'イベント名を入力' : collection === 'works' ? '作品名を入力' : 'タイトルを入力'}
           aria-label='タイトル'
           className={`h-9 min-w-0 flex-1 rounded-md border border-transparent px-2.5 text-base font-bold placeholder:font-normal placeholder:text-slate-400 hover:border-slate-200 focus:border-slate-400 focus:outline-none md:max-w-xl ${
             highlightMissing && !draft.title.trim() ? 'border-red-300 bg-red-50' : ''
           }`}
         />
         <span className={`${badge} ${primaryPublish ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}`}>
-          {primaryPublish ? '公開中' : '下書き'}
+          {collection === 'articles' ? articleTypeLabels[draft.type] : collectionLabels[collection]}・{primaryPublish ? '公開中' : '下書き'}
         </span>
         <span className='hidden min-w-0 flex-1 truncate text-xs text-slate-500 lg:block' aria-live='polite'>
           {status}
@@ -533,7 +599,7 @@ export default function ArticleEditor({
             ))}
           </div>
           <div className='ml-auto flex items-center gap-2'>
-            <button type='button' onClick={() => setSettingsOpen(true)} className={`${button('secondary')} max-sm:px-2.5`} aria-label='記事の設定'>
+            <button type='button' onClick={() => setSettingsOpen(true)} className={`${button('secondary')} max-sm:px-2.5`} aria-label='設定'>
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
                 <path d='M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z' />
                 <circle cx='12' cy='12' r='3' />
@@ -617,6 +683,44 @@ export default function ArticleEditor({
             view === 'split' ? 'w-full md:w-[var(--split)] md:shrink-0' : 'w-full'
           }`}
         >
+          {collection === 'events' && (
+            <div className='flex shrink-0 gap-1 border-b border-slate-200 bg-slate-50 px-2 pt-2' role='tablist' aria-label='本文の種類'>
+              {(
+                [
+                  ['body', '告知'],
+                  ['record', '開催記録'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type='button'
+                  role='tab'
+                  aria-selected={field === value}
+                  onClick={() => {
+                    setField(value);
+                    selection.current = null;
+                  }}
+                  className={`rounded-t-md border border-b-0 px-4 py-1.5 text-sm ${
+                    field === value ? 'border-slate-200 bg-white font-bold text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {label}
+                  {value === 'record' && draft.record.trim() === '' && isPastEvent(draft) && (
+                    <span className='ml-1.5 rounded-full bg-red-100 px-1.5 text-xs text-red-800'>まだ</span>
+                  )}
+                </button>
+              ))}
+              {field === 'record' && draft.record.trim() === '' && (
+                <button
+                  type='button'
+                  onClick={() => update('record', RECORD_TEMPLATE)}
+                  className={`${button('ghost', 'sm')} ml-auto`}
+                >
+                  ひな形を入れる
+                </button>
+              )}
+            </div>
+          )}
           <div className='flex min-h-11 shrink-0 flex-wrap items-center gap-0.5 border-b border-slate-200 px-2 py-1'>
             <ToolButton onClick={() => linePrefix('## ', '見出し')} label='大きい見出し'>見出し</ToolButton>
             <ToolButton onClick={() => linePrefix('### ', '小見出し')} label='小さい見出し'>小見出し</ToolButton>
@@ -687,7 +791,7 @@ export default function ArticleEditor({
           <div className='relative min-h-0 flex-1 bg-[#fcfbf8]'>
             <EditorBackdrop
               ref={backdropRef}
-              value={draft.body}
+              value={draft[field]}
               caretLine={caretLine}
               numbers={numbers}
               className={`${surface} will-change-transform`}
@@ -695,9 +799,9 @@ export default function ArticleEditor({
             />
             <textarea
               ref={bodyRef}
-              value={draft.body}
+              value={draft[field]}
               onChange={(event) => {
-                update('body', event.target.value);
+                update(field, event.target.value);
                 trackCaret();
               }}
               onSelect={trackCaret}
@@ -720,8 +824,8 @@ export default function ArticleEditor({
                 event.preventDefault();
                 insertImages(files);
               }}
-              placeholder={'ここに本文を書きます。\n\n画像は、ドラッグ＆ドロップ・コピーして貼り付け・「＋ 画像」ボタンで入れられます。'}
-              aria-label='本文（Markdown）'
+              placeholder={placeholders[collection === 'events' ? field : collection]}
+              aria-label={field === 'record' ? '開催記録（Markdown）' : '本文（Markdown）'}
               className={`absolute inset-0 size-full resize-none whitespace-pre-wrap break-words bg-transparent text-stone-800 placeholder:text-stone-400 focus:outline-none ${surface}`}
             />
           </div>
@@ -782,18 +886,34 @@ export default function ArticleEditor({
           </div>
           <div ref={previewRef} className='min-h-0 flex-1 overflow-y-auto md:px-6'>
             <article style={{ fontFamily: 'Arial, Helvetica, sans-serif' }} className='mx-auto my-6 max-w-3xl bg-white px-6 py-8 shadow-sm ring-1 ring-slate-200 md:my-8 md:rounded-lg md:px-10 md:py-10'>
-              {draft.coverImage && (
+              {draft.coverImage && collection !== 'events' && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={resolveSrc(draft.coverImage)} alt='' className='mb-6 aspect-[1200/630] w-full rounded-lg object-cover' />
               )}
+              <p className='mb-2 text-xs font-bold text-slate-500'>
+                {collection === 'articles' ? articleTypeLabels[draft.type] : collectionLabels[collection]}
+                {collection === 'events' && `・${field === 'record' ? '開催記録' : '告知'}`}
+              </p>
               <h1 className='text-3xl font-bold leading-tight'>
                 {draft.title || <span className='text-slate-300'>タイトル</span>}
               </h1>
               <p className='mt-3 text-sm text-slate-500'>
-                {draft.authorName || '書いた人'}・{draft.date ? dateFormatter.format(new Date(draft.date)) : ''}
+                {collection === 'events'
+                  ? [draft.date && dateFormatter.format(new Date(draft.date)), draft.startTime && `${draft.startTime}〜${draft.endTime}`, draft.place]
+                      .filter(Boolean)
+                      .join('・') || '日時・場所は「設定」で入れます'
+                  : `${draft.authorName || (collection === 'works' ? '作った人' : '書いた人')}・${draft.date ? dateFormatter.format(new Date(draft.date)) : ''}`}
               </p>
+              {collection === 'works' && draft.images.length > 0 && (
+                <div className='mt-6 grid grid-cols-2 gap-2'>
+                  {draft.images.map((image) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={image} src={resolveSrc(image)} alt='' className='aspect-[4/3] w-full rounded-md bg-slate-100 object-contain' />
+                  ))}
+                </div>
+              )}
               <div className='mt-8'>
-                {draft.body.trim() ? (
+                {draft[field].trim() ? (
                   <div className='article-body' dangerouslySetInnerHTML={{ __html: renderedPreview }} />
                 ) : (
                   <p className='text-sm text-slate-400'>本文を書くと、ここにサイトでの見え方が出ます。</p>
@@ -809,14 +929,15 @@ export default function ArticleEditor({
           draft={draft}
           isNew={isNew}
           wasPublished={primaryPublish}
-          coverSrc={draft.coverImage ? resolveSrc(draft.coverImage) : null}
+          resolveSrc={resolveSrc}
           coverChoices={bodyImages.map((name) => ({ path: imagePath(name), src: resolveSrc(imagePath(name)) }))}
-          onCoverChoice={(path) => update('coverImage', path)}
-          coverUploading={coverUploading}
+          uploading={coverUploading}
           highlightMissing={highlightMissing}
+          eventOptions={eventOptions}
           onChange={update}
           onIdChange={changeId}
           onCoverFiles={setCover}
+          onGalleryFiles={addGallery}
           onUnpublish={() => save(false)}
           onClose={() => setSettingsOpen(false)}
         />

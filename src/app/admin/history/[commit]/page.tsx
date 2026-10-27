@@ -3,22 +3,44 @@ import { notFound, redirect } from 'next/navigation';
 import { diffLines } from 'diff';
 import { currentUser } from '@/lib/editor/auth';
 import { getStore } from '@/lib/editor/store';
-import { parseArticle, type ArticleDraft } from '@/lib/editor/articles';
+import { entryFromPath } from '@/lib/editor/entries';
+import { parseEntry, type Entry } from '@/lib/content-schema';
 import { card, pageTitle } from '../../_components/ui';
 
 const CONTEXT = 3;
 
-const fieldLabels: [keyof ArticleDraft, string][] = [
+const fieldLabels: [keyof Entry, string][] = [
   ['title', 'タイトル'],
   ['date', '日付'],
   ['authorName', '書いた人'],
   ['excerpt', '概要'],
   ['coverImage', 'カバー画像'],
   ['published', '公開'],
+  ['type', '種類'],
+  ['machines', '使った機材'],
+  ['startTime', '開始'],
+  ['endTime', '終了'],
+  ['place', '場所'],
+  ['capacity', '定員'],
+  ['applyUrl', '申し込み'],
+  ['participants', '参加人数'],
+  ['status', '状態'],
+  ['images', '写真'],
+  ['difficulty', '難易度'],
+  ['duration', 'かかった時間'],
+  ['event', '関連イベント'],
 ];
 
-const show = (value: ArticleDraft[keyof ArticleDraft] | undefined) =>
-  value === undefined || value === '' ? '（なし）' : typeof value === 'boolean' ? (value ? '公開' : '下書き') : String(value);
+const show = (value: Entry[keyof Entry] | undefined) =>
+  value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
+    ? '（なし）'
+    : typeof value === 'boolean'
+      ? value ? '公開' : '下書き'
+      : Array.isArray(value)
+        ? value.join('、')
+        : String(value);
+
+const same = (a: Entry[keyof Entry] | undefined, b: Entry[keyof Entry] | undefined) => JSON.stringify(a) === JSON.stringify(b);
 
 type Line = { kind: 'add' | 'remove' | 'same'; text: string } | { kind: 'skip'; count: number };
 
@@ -69,7 +91,10 @@ export default async function CommitPage({ params }: { params: Promise<{ commit:
   const loaded = await load(commit);
   if (!loaded) notFound();
   const { detail, files } = loaded;
-  const articles = files.filter((file) => file.path.endsWith('.md'));
+  const articles = files.flatMap((file) => {
+    const target = entryFromPath(file.path);
+    return target ? [{ ...file, ...target }] : [];
+  });
   const images = files.filter((file) => file.path.startsWith('public/images/'));
 
   return (
@@ -85,11 +110,13 @@ export default async function CommitPage({ params }: { params: Promise<{ commit:
       </div>
 
       {articles.map((file) => {
-        const id = file.path.split('/').pop()!.replace(/\.md$/, '');
-        const before = file.before ? parseArticle(id, file.before.toString('utf8')) : null;
-        const after = file.after ? parseArticle(id, file.after.toString('utf8')) : null;
-        const fields = fieldLabels.filter(([key]) => before?.[key] !== after?.[key]);
-        const lines = toLines(before?.body.trim() ?? '', after?.body.trim() ?? '');
+        const before = file.before ? parseEntry(file.collection, file.id, file.before.toString('utf8')) : null;
+        const after = file.after ? parseEntry(file.collection, file.id, file.after.toString('utf8')) : null;
+        const fields = fieldLabels.filter(([key]) => !same(before?.[key], after?.[key]));
+        const lines = [
+          ...toLines(before?.body.trim() ?? '', after?.body.trim() ?? ''),
+          ...(before?.record || after?.record ? toLines(before?.record ?? '', after?.record ?? '') : []),
+        ];
         const added = lines.filter((line) => line.kind === 'add').length;
         const removed = lines.filter((line) => line.kind === 'remove').length;
         return (
@@ -104,7 +131,7 @@ export default async function CommitPage({ params }: { params: Promise<{ commit:
             {fields.length > 0 && (
               <dl className='divide-y divide-slate-100 border-b border-slate-200 text-sm'>
                 {fields.map(([key, label]) => (
-                  <div key={key} className='grid gap-1 px-4 py-2.5 sm:grid-cols-[7rem_1fr]'>
+                  <div key={String(key)} className='grid gap-1 px-4 py-2.5 sm:grid-cols-[7rem_1fr]'>
                     <dt className='text-slate-500'>{label}</dt>
                     <dd className='min-w-0 break-all'>
                       {before && <span className='text-red-800 line-through decoration-red-300'>{show(before[key])}</span>}

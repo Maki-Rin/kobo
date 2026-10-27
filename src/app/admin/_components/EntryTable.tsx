@@ -1,18 +1,24 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import { articleTypeLabels, collectionLabels, type ArticleType, type Collection, type WorkStatus } from '@/lib/content-schema';
 import Icon from './Icon';
 import { relativeTime } from './relativeTime';
 import { badge, button, card, input, select } from './ui';
 
-export interface ArticleRow {
+export interface EntryRow {
+  collection: Collection;
   id: string;
   title: string;
   date: string;
   published: boolean;
   coverImage: string;
   authorName: string;
+  type: ArticleType;
+  status: WorkStatus;
+  hasRecord: boolean;
+  isPast: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -26,11 +32,12 @@ const filters: { value: Filter; label: string }[] = [
   { value: 'draft', label: '下書き' },
 ];
 
-function localDraftKeys(): string {
+function localDraftKeys(collection: Collection): string {
+  const prefix = `kobo-editor:${collection}:`;
   try {
     return Object.keys(window.localStorage)
-      .filter((key) => key.startsWith('kobo-editor:') && key !== 'kobo-editor:split')
-      .map((key) => key.slice('kobo-editor:'.length))
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => key.slice(prefix.length))
       .sort()
       .join('\n');
   } catch {
@@ -43,11 +50,12 @@ function subscribe(callback: () => void) {
   return () => window.removeEventListener('storage', callback);
 }
 
-export default function ArticleTable({ articles, now }: { articles: ArticleRow[]; now: number }) {
+export default function EntryTable({ collection, articles, now }: { collection: Collection; articles: EntryRow[]; now: number }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('updated');
   const [query, setQuery] = useState('');
-  const draftKeys = useSyncExternalStore(subscribe, localDraftKeys, () => '');
+  const snapshot = useCallback(() => localDraftKeys(collection), [collection]);
+  const draftKeys = useSyncExternalStore(subscribe, snapshot, () => '');
   const localDrafts = useMemo(() => new Set(draftKeys.split('\n').filter(Boolean)), [draftKeys]);
 
   const counts = useMemo(
@@ -73,13 +81,19 @@ export default function ArticleTable({ articles, now }: { articles: ArticleRow[]
 
   return (
     <div className='space-y-4'>
+      {collection === 'events' && articles.some((a) => a.isPast && !a.hasRecord && a.published) && (
+        <p className='flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950'>
+          <Icon name='pencil' className='text-amber-700' />
+          開催済みで記録がまだないイベントが {articles.filter((a) => a.isPast && !a.hasRecord && a.published).length} 件あります。
+        </p>
+      )}
       {localDrafts.has('new') && (
         <Link
-          href='/admin/articles/new'
+          href={`/admin/${collection}/new`}
           className='flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 hover:bg-amber-100'
         >
           <Icon name='pencil' className='text-amber-700' />
-          <span className='flex-1'>書きかけの新しい記事がこの端末に残っています</span>
+          <span className='flex-1'>書きかけの新しい{collectionLabels[collection]}がこの端末に残っています</span>
           <span className='font-medium'>続きを書く →</span>
         </Link>
       )}
@@ -120,7 +134,7 @@ export default function ArticleTable({ articles, now }: { articles: ArticleRow[]
           className={select}
         >
           <option value='updated'>更新が新しい順</option>
-          <option value='date'>記事の日付順</option>
+          <option value='date'>{collection === 'events' ? '開催日順' : '日付順'}</option>
         </select>
       </div>
 
@@ -140,18 +154,36 @@ export default function ArticleTable({ articles, now }: { articles: ArticleRow[]
             <div className='min-w-0 flex-1'>
               <div className='flex items-center gap-2'>
                 <Link
-                  href={`/admin/articles/${article.id}`}
+                  href={`/admin/${collection}/${article.id}`}
                   className='truncate font-medium after:absolute after:inset-0 group-hover:underline'
                 >
                   {article.title || '（タイトルなし）'}
                 </Link>
-                {!article.published && <span className={`${badge} shrink-0 bg-amber-100 text-amber-900`}>下書き</span>}
+                {collection === 'articles' && (
+                  <span className={`${badge} shrink-0 ${article.type === 'tech' ? 'bg-violet-100 text-violet-900' : 'bg-sky-100 text-sky-900'}`}>
+                    {articleTypeLabels[article.type]}
+                  </span>
+                )}
+                {collection === 'works' && article.status === 'wip' && (
+                  <span className={`${badge} shrink-0 bg-amber-100 text-amber-900`}>制作中</span>
+                )}
+                {collection === 'events' &&
+                  (article.isPast ? (
+                    article.hasRecord ? (
+                      <span className={`${badge} shrink-0 bg-emerald-100 text-emerald-900`}>記録あり</span>
+                    ) : (
+                      <span className={`${badge} shrink-0 bg-red-100 text-red-800`}>記録まだ</span>
+                    )
+                  ) : (
+                    <span className={`${badge} shrink-0 bg-amber-100 text-amber-900`}>開催予定</span>
+                  ))}
+                {!article.published && <span className={`${badge} shrink-0 bg-slate-200 text-slate-700`}>下書き</span>}
                 {localDrafts.has(article.id) && (
                   <span className={`${badge} shrink-0 bg-blue-50 text-blue-800`}>書きかけあり</span>
                 )}
               </div>
               <p className='mt-1 truncate text-xs text-slate-500'>
-                {article.authorName || '書いた人なし'}・記事の日付 {article.date}
+                {collection === 'events' ? `開催日 ${article.date}` : `${article.authorName || '書いた人なし'}・${article.date}`}
                 {article.updatedAt && (
                   <>
                     ・{relativeTime(article.updatedAt, now)}に{article.updatedBy ?? '誰か'}が更新
@@ -162,7 +194,7 @@ export default function ArticleTable({ articles, now }: { articles: ArticleRow[]
             {article.published && (
               <span className='relative z-10 hidden sm:block'>
                 <a
-                  href={`/articles/${article.id}`}
+                  href={`/${collection}/${article.id}`}
                   target='_blank'
                   rel='noreferrer'
                   className={`${button('ghost', 'sm')} text-slate-500`}
@@ -177,7 +209,7 @@ export default function ArticleTable({ articles, now }: { articles: ArticleRow[]
         ))}
         {shown.length === 0 && (
           <li className='px-4 py-10 text-center text-sm text-slate-500'>
-            {articles.length === 0 ? 'まだ記事がありません' : '見つかりませんでした'}
+            {articles.length === 0 ? `まだ${collectionLabels[collection]}がありません` : '見つかりませんでした'}
           </li>
         )}
       </ul>

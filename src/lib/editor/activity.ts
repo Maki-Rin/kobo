@@ -1,4 +1,5 @@
 import { getDb } from './db';
+import type { Collection } from '../content-schema';
 
 export type ArticleAction = 'draft' | 'publish' | 'update' | 'unpublish' | 'revert';
 
@@ -11,6 +12,7 @@ export const articleActionLabels: Record<ArticleAction, string> = {
 };
 
 export interface ArticleEvent {
+  collection: Collection;
   articleId: string;
   title: string;
   action: ArticleAction;
@@ -21,6 +23,7 @@ export interface ArticleEvent {
 }
 
 interface EventRow {
+  collection: Collection;
   article_id: string;
   title: string;
   action: ArticleAction;
@@ -31,6 +34,7 @@ interface EventRow {
 }
 
 const toEvent = (row: EventRow): ArticleEvent => ({
+  collection: row.collection,
   articleId: row.article_id,
   title: row.title,
   action: row.action,
@@ -40,26 +44,27 @@ const toEvent = (row: EventRow): ArticleEvent => ({
   at: row.at,
 });
 
-const SELECT = `SELECT e.article_id, e.title, e.action, e.user_id, u.display_name AS user_name, e.commit_id, e.at
+const SELECT = `SELECT e.collection, e.article_id, e.title, e.action, e.user_id, u.display_name AS user_name, e.commit_id, e.at
   FROM article_events e LEFT JOIN users u ON u.id = e.user_id`;
 
 export async function recordArticleEvent(event: Omit<ArticleEvent, 'userName' | 'at'>) {
   const db = await getDb();
   await db.run(
-    'INSERT INTO article_events (article_id, title, action, user_id, commit_id, at) VALUES (?, ?, ?, ?, ?, ?)',
-    [event.articleId, event.title, event.action, event.userId, event.commitId, new Date().toISOString()]
+    'INSERT INTO article_events (collection, article_id, title, action, user_id, commit_id, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [event.collection, event.articleId, event.title, event.action, event.userId, event.commitId, new Date().toISOString()]
   );
 }
 
-export async function latestEventByArticle(): Promise<Map<string, ArticleEvent>> {
+export async function latestEventByEntry(collection: Collection): Promise<Map<string, ArticleEvent>> {
   const db = await getDb();
   const rows = await db.all<EventRow>(
-    `${SELECT} WHERE e.id IN (SELECT MAX(id) FROM article_events GROUP BY article_id)`
+    `${SELECT} WHERE e.id IN (SELECT MAX(id) FROM article_events WHERE collection = ? GROUP BY article_id)`,
+    [collection]
   );
   return new Map(rows.map((row) => [row.article_id, toEvent(row)]));
 }
 
-export async function recentEvents(options: { userId?: string; articleId?: string; limit: number }) {
+export async function recentEvents(options: { userId?: string; articleId?: string; collection?: Collection; limit: number }) {
   const db = await getDb();
   const where: string[] = [];
   const params: (string | number)[] = [];
@@ -70,6 +75,10 @@ export async function recentEvents(options: { userId?: string; articleId?: strin
   if (options.articleId) {
     where.push('e.article_id = ?');
     params.push(options.articleId);
+  }
+  if (options.collection) {
+    where.push('e.collection = ?');
+    params.push(options.collection);
   }
   const rows = await db.all<EventRow>(
     `${SELECT} ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY e.id DESC LIMIT ?`,

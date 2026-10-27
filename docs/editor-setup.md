@@ -16,6 +16,7 @@
 npx wrangler d1 create kobo-editor
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0001_init.sql
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0002_activity.sql
+npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0003_entry_collection.sql
 ```
 
 `db/editor/migrations/` にファイルが増えたら、番号の順に同じコマンドで実行する（ローカルの SQLite は起動時に自動で適用される）。
@@ -90,7 +91,7 @@ npm run editor:invite -- --name "名前" --role developer
 - 開発作業（develop など）を main に入れる前に、main を取り込む（`git merge origin/main`）。投稿画面の変更は main にしかない。
 - パスキーはドメインに結び付く。独自ドメインに移ると、登録済みのパスキーは使えなくなり、全員の再登録（まとめ役が「端末を追加するリンク」を配る）が必要。
 - Vercel のプレビューURLではパスキーが使えない（本番ドメイン専用）。
-- 投稿画面から書けるのは `src/content/articles/*.md` と `public/images/articles/` だけ。
+- 投稿画面から書けるのは `src/content/{articles,works,events}/*.md`、`public/images/{articles,works,events}/`、`src/content/{hours,printers}.json` だけ。
 
 ## ローカルで試す
 

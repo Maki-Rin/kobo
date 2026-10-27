@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import Icon, { type IconName } from './Icon';
 
 const items: { href: string; label: string; icon: IconName; managerOnly?: boolean }[] = [
-  { href: '/admin', label: '記事', icon: 'articles' },
+  { href: '/admin', label: 'コンテンツ', icon: 'articles' },
   { href: '/admin/history', label: '変更履歴', icon: 'history' },
   { href: '/admin/members', label: 'メンバー', icon: 'members', managerOnly: true },
   { href: '/admin/account', label: 'アカウント', icon: 'account' },
@@ -13,7 +13,7 @@ const items: { href: string; label: string; icon: IconName; managerOnly?: boolea
 
 export default function AdminNav({ canManage, compact = false }: { canManage: boolean; compact?: boolean }) {
   const pathname = usePathname();
-  const active = (href: string) => (href === '/admin' ? pathname === '/admin' || pathname.startsWith('/admin/articles') : pathname.startsWith(href));
+  const active = (href: string) => (href === '/admin' ? pathname === '/admin' || /^\/admin\/(articles|works|events|new)(\/|$)/.test(pathname) : pathname.startsWith(href));
 
   return (
     <nav className={compact ? 'flex gap-1 overflow-x-auto [scrollbar-width:none]' : 'space-y-0.5'}>

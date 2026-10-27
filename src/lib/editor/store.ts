@@ -46,11 +46,11 @@ export interface ContentStore {
 
 export class ConflictError extends Error {}
 
-export const CONTENT_PATHS = ['src/content/articles', 'public/images/articles'];
 
 const WRITABLE = [
-  /^src\/content\/articles\/[A-Za-z0-9_-]+\.md$/,
-  /^public\/images\/articles\/[A-Za-z0-9_-]+\/[a-z0-9_-]+\.(jpg|png|webp|gif)$/,
+  /^src\/content\/(articles|works|events)\/[A-Za-z0-9_-]+\.md$/,
+  /^public\/images\/(articles|works|events)\/[A-Za-z0-9_-]+\/[a-z0-9_-]+\.(jpg|png|webp|gif)$/,
+  /^src\/content\/(hours|printers)\.json$/,
 ];
 
 export function isWritable(filePath: string): boolean {
@@ -386,7 +386,7 @@ class GitHubStore implements ContentStore {
   async history(limit: number): Promise<CommitRecord[]> {
     const commits = await this.api<
       { sha: string; commit: { message: string; author: { name: string; date: string } } }[]
-    >(`/commits?sha=${this.config.branch}&path=src/content/articles&per_page=${limit}`);
+    >(`/commits?sha=${this.config.branch}&path=src/content&per_page=${limit}`);
     return commits.map((c) => {
       const { title, editorName, editorId } = parseMessage(c.commit.message);
       return {

@@ -39,9 +39,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           KOBO 投稿画面
         </Link>
         <div className='px-3 pb-3'>
-          <Link href='/admin/articles/new' className={`${button('primary')} w-full`}>
+          <Link href='/admin/new' className={`${button('primary')} w-full`}>
             <Icon name='plus' />
-            新しい記事を書く
+            新しく書く
           </Link>
         </div>
         <div className='px-3'>
@@ -74,7 +74,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href='/admin' className='text-[15px] font-bold'>
               KOBO 投稿画面
             </Link>
-            <Link href='/admin/articles/new' className={`${button('primary', 'sm')} ml-auto`}>
+            <Link href='/admin/new' className={`${button('primary', 'sm')} ml-auto`}>
               <Icon name='plus' />
               書く
             </Link>

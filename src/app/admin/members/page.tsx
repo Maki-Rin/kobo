@@ -102,7 +102,7 @@ export default async function MembersPage() {
                     <ul className='space-y-1.5 text-sm'>
                       {member.edits.map((edit) => (
                         <li key={`${edit.commitId}-${edit.articleId}`} className='flex flex-wrap gap-x-2'>
-                          <Link href={`/admin/articles/${edit.articleId}`} className='font-medium hover:underline'>
+                          <Link href={`/admin/${edit.collection}/${edit.articleId}`} className='font-medium hover:underline'>
                             {edit.title}
                           </Link>
                           <span className='text-slate-500'>

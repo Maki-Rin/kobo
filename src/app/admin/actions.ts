@@ -31,10 +31,11 @@ import {
 import {
   EditorError,
   revertCommit,
-  saveArticle,
+  saveEntry,
   stageImage,
   type StagedImage,
-} from '@/lib/editor/articles';
+} from '@/lib/editor/entries';
+import { isCollection } from '@/lib/content-schema';
 import { ConflictError } from '@/lib/editor/store';
 import { renderPreviewHtml } from '@/lib/editor/preview';
 
@@ -121,7 +122,8 @@ export async function uploadImageAction(formData: FormData) {
   });
 }
 
-export async function saveArticleAction(input: {
+export async function saveEntryAction(input: {
+  collection: string;
   draft: Record<string, unknown>;
   isNew: boolean;
   baseSha: string | null;
@@ -129,10 +131,12 @@ export async function saveArticleAction(input: {
 }) {
   return attempt(async () => {
     const user = await requireUser();
+    if (!isCollection(input.collection)) throw new EditorError(['種類が正しくありません']);
     const images = Array.isArray(input.images)
       ? input.images.map((image) => ({ name: String(image.name), sha: String(image.sha) }))
       : [];
-    const commitId = await saveArticle(user, {
+    const commitId = await saveEntry(user, {
+      collection: input.collection,
       draft: input.draft,
       isNew: Boolean(input.isNew),
       baseSha: typeof input.baseSha === 'string' ? input.baseSha : null,

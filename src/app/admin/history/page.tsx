@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { currentUser, listMembers } from '@/lib/editor/auth';
-import { listArticles } from '@/lib/editor/articles';
+import { listEntries } from '@/lib/editor/entries';
+import { collectionLabels, collections, isCollection } from '@/lib/content-schema';
 import { articleActionLabels, recentEvents, type ArticleEvent } from '@/lib/editor/activity';
 import HistoryFilters from '../_components/HistoryFilters';
 import RevertButton from '../_components/RevertButton';
@@ -19,12 +20,22 @@ const actionColors: Record<ArticleEvent['action'], string> = {
   revert: 'bg-red-400',
 };
 
-async function load(article?: string, user?: string) {
-  const [events, articles, members] = await Promise.all([
-    recentEvents({ articleId: article, userId: user, limit: 100 }),
-    listArticles(),
+async function load(entry?: string, user?: string) {
+  const [collection, id] = entry?.split('/') ?? [];
+  const [events, lists, members] = await Promise.all([
+    recentEvents({
+      collection: collection && isCollection(collection) ? collection : undefined,
+      articleId: id,
+      userId: user,
+      limit: 100,
+    }),
+    Promise.all(collections.map((item) => listEntries(item))),
     listMembers(),
   ]);
+  const articles = lists.flat().map((item) => ({
+    id: `${item.collection}/${item.id}`,
+    title: `［${collectionLabels[item.collection]}］${item.title || item.id}`,
+  }));
   const today = dayKey.format(new Date());
   const yesterday = dayKey.format(new Date(Date.now() - 86_400_000));
   const groups = new Map<string, ArticleEvent[]>();
@@ -39,12 +50,12 @@ async function load(article?: string, user?: string) {
 export default async function HistoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ article?: string; user?: string }>;
+  searchParams: Promise<{ entry?: string; user?: string }>;
 }) {
   const user = await currentUser();
   if (!user) redirect('/admin');
   const filters = await searchParams;
-  const { groups, articles, members } = await load(filters.article, filters.user);
+  const { groups, articles, members } = await load(filters.entry, filters.user);
 
   return (
     <div className='space-y-6'>
@@ -56,7 +67,7 @@ export default async function HistoryPage({
         </p>
       </div>
       <HistoryFilters
-        articles={articles.map((a) => ({ id: a.id, title: a.title }))}
+        articles={articles}
         members={members.map((m) => ({ id: m.id, displayName: m.displayName }))}
       />
       {groups.length === 0 && (
@@ -75,14 +86,14 @@ export default async function HistoryPage({
                 <p className='min-w-0 flex-1 text-sm leading-6'>
                   <span className='font-medium'>{event.userName ?? '不明'}</span>
                   <span className='text-slate-500'> が </span>
-                  <Link href={`/admin/articles/${event.articleId}`} className='font-medium hover:underline'>
+                  <Link href={`/admin/${event.collection}/${event.articleId}`} className='font-medium hover:underline'>
                     {event.title}
                   </Link>
                   <span className='text-slate-500'> を{articleActionLabels[event.action]}</span>
                 </p>
                 <div className='flex items-start gap-2'>
                   <Link
-                    href={`/admin/history/${event.commitId}?article=${encodeURIComponent(event.articleId)}`}
+                    href={`/admin/history/${event.commitId}`}
                     className={button('ghost', 'sm')}
                   >
                     変更を見る

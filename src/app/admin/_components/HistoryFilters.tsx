@@ -21,12 +21,12 @@ export default function HistoryFilters({
   return (
     <div className='flex flex-wrap gap-3'>
       <select
-        aria-label='記事で絞り込む'
-        value={params.get('article') ?? ''}
-        onChange={(e) => set('article', e.target.value)}
+        aria-label='記事・作品・イベントで絞り込む'
+        value={params.get('entry') ?? ''}
+        onChange={(e) => set('entry', e.target.value)}
         className={`${select} max-w-full`}
       >
-        <option value=''>すべての記事</option>
+        <option value=''>すべての記事・作品・イベント</option>
         {articles.map((article) => (
           <option key={article.id} value={article.id}>
             {article.title || article.id}

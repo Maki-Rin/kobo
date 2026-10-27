@@ -10,8 +10,10 @@ export default function ImageDropZone({
   children,
   className = '',
   label,
+  multiple = false,
 }: {
   onFiles: (files: File[]) => void;
+  multiple?: boolean;
   children?: React.ReactNode;
   className?: string;
   label: string;
@@ -52,6 +54,7 @@ export default function ImageDropZone({
       <input
         ref={input}
         type='file'
+        multiple={multiple}
         accept={IMAGE_ACCEPT}
         className='hidden'
         onChange={(event) => {
