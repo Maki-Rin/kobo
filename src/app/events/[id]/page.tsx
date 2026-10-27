@@ -76,7 +76,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           </Link>
           <div className='space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>
-              <span className={`pop-chip ${past ? 'bg-off' : 'bg-accent'}`}>{past ? '開催済み' : '開催予定'}</span>
+              <span className={`pop-chip ${past ? 'bg-off' : 'bg-primary'}`}>{past ? '開催済み' : '開催予定'}</span>
               <MachineTags machines={entry.machines} />
             </div>
             <h1 className='text-3xl font-extrabold leading-tight md:text-4xl'>{entry.title}</h1>

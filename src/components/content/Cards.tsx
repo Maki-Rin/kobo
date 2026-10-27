@@ -58,7 +58,7 @@ export function EventCard({ entry, past }: { entry: Entry; past: boolean }) {
           {past ? (
             <span className={`pop-chip ${entry.record ? 'bg-free' : 'bg-off'}`}>{entry.record ? '記録あり' : '開催済み'}</span>
           ) : (
-            <span className='pop-chip bg-accent'>開催予定</span>
+            <span className='pop-chip bg-primary'>開催予定</span>
           )}
         </div>
         <h3 className='text-[17px] font-bold leading-snug'>{entry.title}</h3>

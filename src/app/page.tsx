@@ -37,7 +37,7 @@ export default async function HomePage() {
       {next && (
         <div className='mx-auto mt-6 max-w-6xl px-4 md:px-8'>
           <Link href={`/events/${next.id}`} className='pop-card flex flex-wrap items-center gap-x-4 gap-y-1 bg-cream px-5 py-4'>
-            <span className='pop-chip bg-accent'>次のイベント</span>
+            <span className='pop-chip bg-primary'>次のイベント</span>
             <span className='text-lg font-bold'>{next.title}</span>
             <span className='font-semibold'>{formatEventDate(next)}</span>
             {next.place && <span className='text-sm text-muted'>{next.place}</span>}

@@ -51,7 +51,7 @@ export function FilterChips({
             href={hrefFor(option.value)}
             aria-current={current === option.value ? 'page' : undefined}
             className={`inline-flex items-center gap-1.5 rounded-full border-2 border-ink px-3.5 py-1.5 text-sm font-semibold transition-[transform,box-shadow] duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-pop ${
-              current === option.value ? 'bg-accent' : 'bg-paper'
+              current === option.value ? 'bg-primary' : 'bg-paper'
             }`}
           >
             {option.label}

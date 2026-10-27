@@ -3,10 +3,10 @@ version: alpha
 name: KOBO unofficial
 description: 立命館大学OIC KOBO（工房）の非公式サイト。稼働状況・使い方・作品・イベントを、スタッフの口調で楽しげに見せる。
 colors:
+  primary: "#FFD400"
   ink: "#111111"
   paper: "#FFFFFF"
   cream: "#FFFBEA"
-  accent: "#FFD400"
   muted: "#555555"
   line-soft: "#D9D9D2"
   free: "#C9F5D6"
@@ -58,7 +58,7 @@ spacing:
   stack: 16px
 components:
   button:
-    backgroundColor: "{colors.accent}"
+    backgroundColor: "{colors.primary}"
     textColor: "{colors.ink}"
     rounded: "{rounded.full}"
     padding: 10px 16px
@@ -87,6 +87,22 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.full}"
     padding: 4px 10px
+  chip-alert:
+    backgroundColor: "{colors.alert}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.full}"
+    padding: 4px 10px
+  chip-off:
+    backgroundColor: "{colors.off}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.full}"
+    padding: 4px 10px
+  caption:
+    textColor: "{colors.muted}"
+    typography: "{typography.label}"
+  divider:
+    backgroundColor: "{colors.line-soft}"
+    height: 1.5px
   status-band:
     backgroundColor: "{colors.cream}"
     textColor: "{colors.ink}"
@@ -108,7 +124,7 @@ components:
 
 - `ink`（#111）: 文字・枠線・影。黒一色で、グレーの枠線は使わない（区切り線だけ `line-soft`）。
 - `paper`（白）: 基本の背景。`cream` は稼働状況の帯などのひと区切りにだけ使う。
-- `accent`（黄 #FFD400）: 主ボタン、マーカー、いま選んでいるメニュー、ステッカー。1画面に多くても3か所。
+- `primary`（黄 #FFD400）: 主ボタン、マーカー、いま選んでいるメニュー、ステッカー。1画面に多くても3か所。
 - 状態の色は稼働状況とイベントの状態にだけ使う。`free` 空き・完成、`busy` 造形中・準備中、`wait` 一時停止・開催予定、`alert` エラー、`off` オフライン・電源オフ・開催済み。
 - 状態の色の上の文字は必ず `ink`。色だけで状態を伝えず、文字（「空き」など）を必ず添える。
 
@@ -141,7 +157,7 @@ components:
 
 ## Components
 
-- **ヘッダー**: 左にロゴ（KOBO＋黒地に黄色の「unofficial」）、右に pill 型のメニュー。今いるページは黄色。
+- **ヘッダー**: 左にロゴ（KOBO＋黒地に黄色の「unofficial」）、右に pill 型のメニュー。今いるページは黄色（`primary`）。
 - **主ボタン**: 黄色・黒枠・影。1つのまとまりに1つ。
 - **副ボタン**: 白・黒枠・影。
 - **カード**: 白・黒枠・角丸12px。上に画像、下に「種類のラベル → タイトル → 補足（日付・人・機材）」の順。説明文は2行まで。

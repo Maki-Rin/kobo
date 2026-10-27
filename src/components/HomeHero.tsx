@@ -47,7 +47,7 @@ export default function HomeHero() {
             type='button'
             aria-label={`${index + 1}枚目の写真`}
             onClick={() => setCurrent(index)}
-            className={`size-2.5 rounded-full border border-ink transition-colors ${index === current ? 'bg-accent' : 'bg-paper'}`}
+            className={`size-2.5 rounded-full border border-ink transition-colors ${index === current ? 'bg-primary' : 'bg-paper'}`}
           />
         ))}
       </div>
