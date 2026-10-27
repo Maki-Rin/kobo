@@ -128,4 +128,6 @@ export const toneStyles: Record<Tone, string> = {
   off: 'bg-off',
 };
 
+export const printerLayout = ['ad5mp-04', 'ad5mp-03', 'ad5mp-02', 'ad5mp-01', 'ad5mp-08', 'ad5mp-07', 'ad5mp-06', 'ad5mp-05'];
+
 export const tonePriority: Record<Tone, number> = { free: 0, busy: 1, wait: 2, alert: 3, off: 4 };

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PrinterApiResult, PublicPrinter, PublicPrintersResponse } from '@/lib/printer-types';
 import { parsePrinterApiResult } from '@/lib/printer-types';
-import { describePrinter, tonePriority, toneStyles } from '@/lib/printer-display';
+import { describePrinter, printerLayout, tonePriority, toneStyles } from '@/lib/printer-display';
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -138,6 +138,8 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
     [data, now]
   );
 
+  const unplaced = (data?.printers ?? []).filter((printer) => !printerLayout.includes(printer.id));
+
   const summary = {
     total: views.length,
     available: views.filter(({ view }) => view.available).length,
@@ -175,10 +177,24 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
           <p className='mt-2 text-muted'>稼働状況が登録されるまでしばらくお待ちください。</p>
         </div>
       ) : (
-        <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-          {views.map(({ printer }) => (
-            <PrinterCard key={printer.id} printer={printer} now={now} />
-          ))}
+        <div className='space-y-2'>
+          <p className='text-xs font-semibold text-muted'>現地の置き場所と同じ並びです（上の段 4〜1、下の段 8〜5）。</p>
+          <div className='grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4'>
+            {[...printerLayout, ...unplaced.map((printer) => printer.id)].map((id) => {
+              const printer = data?.printers.find((item) => item.id === id);
+              return printer ? (
+                <PrinterCard key={id} printer={printer} now={now} />
+              ) : (
+                <div
+                  key={id}
+                  className='flex min-h-40 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line-soft p-5 text-center text-sm text-muted'
+                >
+                  <span className='font-bold'>KOBO Printer {Number(id.slice(-2))}</span>
+                  <span>まだ登録していません</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
