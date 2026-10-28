@@ -43,6 +43,14 @@ Vercel / Cloudflare / GitHub の実アカウント設定は、本メモだけで
 
 ## kobo-server側に必要な対応（このWebリポジトリからは未変更）
 
+### 2026-10-28: 適用先の確認結果
+
+- Windowsの `Documents/kobo-server` はGit管理情報のない旧コピーで、公開契約は `schemaVersion: 1.0`。稼働中APIの `1.2` と一致しないため、このコピーからの再デプロイは行わない。
+- 移行記録上の現在の作業場所は、実機の `~/projects/kobo-server`。実機へのネットワーク到達と既存のホスト鍵の一致は確認できたが、SSH認証で拒否された。
+- この端末の既定RSA公開鍵はサーバーから受理されず、SSH agentも未起動。秘密鍵の内容やサーバー上のcredentialは読み取っていない。
+- 次に必要なのは、普段使うSSHのユーザー / ホスト別名 / 鍵ファイルパス、または最新ソースのGitリポジトリURL。パスワードや秘密鍵本文をチャットへ送る必要はない。
+- 接続後は既存の未コミット変更を保護して最新ソースに修正し、契約・回帰テストを通す。稼働中edge agentの再起動や実機印刷操作は、公開APIの修正に必要がなければ行わない。
+
 現地agent→認証付きテレメトリ→Cloudflareの保存済み表示データ→VercelのGETという経路。現在、Webから実機へ操作コマンドを送る実装はない。
 
 - **元APIからもファイル名を除外する。** `apps/control-plane/src/store.ts` の公開DTO生成箇所等で `currentWork.fileName` / `lastWork.fileName` をnullまたは匿名名にし、public schema / fixture / contract testを揃える。Web側だけで隠してもWorkerのURLを直接開くと取得できる。
