@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { detectImageType } from '../image-type';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -96,14 +97,6 @@ export async function loadEntry(
   return { draft: parseEntry(collection, id, file.content.toString('utf8')), sha: file.sha };
 }
 
-function detectImageType(data: Buffer): string | null {
-  if (data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return 'jpg';
-  if (data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
-  if (data.subarray(0, 4).toString('latin1') === 'RIFF' && data.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp';
-  if (data.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif';
-  return null;
-}
-
 function markdownImageUrls(markdown: string): string[] {
   const urls: string[] = [];
   visit(unified().use(remarkParse).use(remarkGfm).parse(markdown), 'image', (node) => {
@@ -132,6 +125,8 @@ async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Pr
   const store = getStore();
   const errors: string[] = [];
   const label = collectionLabels[draft.collection];
+  if (!/^[A-Za-z0-9_-]{1,80}$/.test(draft.id)) throw new EditorError(['URLの名前が正しくありません']);
+  if (draft.body.length > 100_000 || draft.record.length > 100_000) errors.push('本文は10万文字までです');
 
   if (isNew) {
     if (!NEW_ID.test(draft.id)) {
@@ -177,7 +172,8 @@ async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Pr
   }
 
   const missing = async (url: string) =>
-    url.startsWith('/') && !uploaded.has(url) && !(await store.exists(`public${url}`));
+    url.startsWith('/') && (!/^\/images\/(?!.*\.\.)[A-Za-z0-9_./-]+$/.test(url) ||
+      (!uploaded.has(url) && !(await store.exists(`public${url}`))));
 
   if (!draft.coverImage) {
     if (draft.published && draft.collection !== 'events') errors.push('カバー画像を選んでください');
@@ -242,6 +238,7 @@ export async function saveEntry(
   }
 ): Promise<string> {
   const draft = sanitizeDraft(input.collection, input.draft);
+  if (!/^[A-Za-z0-9_-]{1,80}$/.test(draft.id)) throw new EditorError(['URLの名前が正しくありません']);
   const previous = input.isNew ? null : await loadEntry(input.collection, draft.id);
   if (!input.isNew && (!input.baseSha || !previous)) {
     throw new EditorError([`編集する${collectionLabels[input.collection]}が見つかりません`]);

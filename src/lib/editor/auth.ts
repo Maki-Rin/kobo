@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { getDb } from './db';
-
-export type Role = 'editor' | 'lead' | 'developer';
+import { canManageTarget, SESSION_COOKIE, SESSION_DAYS, SHARED_SESSION_HOURS, validToken, type Role } from './policy';
+import { consumeInvite } from './tokens';
+export type { Role } from './policy';
 
 export const roleLabels: Record<Role, string> = {
   editor: '編集者',
@@ -31,9 +32,6 @@ export interface Invite {
   userId: string | null;
 }
 
-const SESSION_COOKIE = 'kobo_editor_session';
-const SESSION_DAYS = 30;
-const SHARED_SESSION_HOURS = 2;
 const REGISTER_INVITE_DAYS = 7;
 const LOGIN_LINK_MINUTES = 15;
 
@@ -104,6 +102,7 @@ export async function findInvite(
   token: string,
   kind: Invite['kind']
 ): Promise<Invite | null> {
+  if (!validToken(token)) return null;
   const db = await getDb();
   const [row] = await db.all<{
     token_hash: string;
@@ -128,10 +127,7 @@ export async function findInvite(
 
 export async function markInviteUsed(tokenHash: string) {
   const db = await getDb();
-  await db.run('UPDATE invites SET used_at = ? WHERE token_hash = ?', [
-    nowIso(),
-    tokenHash,
-  ]);
+  if (!(await consumeInvite(db, tokenHash))) throw new Error('招待リンクが無効か、使用済みです');
 }
 
 export async function findActiveUser(id: string): Promise<User | null> {
@@ -158,7 +154,7 @@ export async function startSession(userId: string, shared: boolean) {
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     ...(shared ? {} : { maxAge: ttl / 1000 }),
   });
@@ -167,7 +163,7 @@ export async function startSession(userId: string, shared: boolean) {
 
 export async function currentUser(): Promise<User | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  if (!validToken(token)) return null;
   const db = await getDb();
   const [row] = await db.all<UserRow>(
     `SELECT users.id, users.display_name, users.role, users.disabled_at
@@ -183,6 +179,13 @@ export async function requireUser(): Promise<User> {
   const user = await currentUser();
   if (!user) throw new Error('ログインが必要です');
   return user;
+}
+
+export async function requireManageTarget(actor: User, userId: string): Promise<User> {
+  const db = await getDb();
+  const [row] = await db.all<UserRow>('SELECT id, display_name, role, disabled_at FROM users WHERE id = ?', [userId]);
+  if (!row || !canManageTarget(actor, row)) throw new Error('このメンバーを管理する権限がありません');
+  return { id: row.id, displayName: row.display_name, role: row.role };
 }
 
 export async function endSession() {
@@ -225,6 +228,7 @@ export async function setUserDisabled(
   userId: string,
   disabled: boolean
 ) {
+  await requireManageTarget(actor, userId);
   const db = await getDb();
   await db.run('UPDATE users SET disabled_at = ? WHERE id = ?', [
     disabled ? nowIso() : null,
@@ -232,6 +236,7 @@ export async function setUserDisabled(
   ]);
   if (disabled) {
     await db.run('DELETE FROM sessions WHERE user_id = ?', [userId]);
+    await db.run('UPDATE invites SET expires_at = ? WHERE user_id = ? AND used_at IS NULL', [nowIso(), userId]);
   }
   await audit(actor.id, disabled ? 'user.disable' : 'user.enable', userId);
 }
@@ -300,7 +305,9 @@ export async function deletePasskey(actor: User, credentialId: string) {
   if (row.user_id !== actor.id && !canManageMembers(actor)) {
     throw new Error('まとめ役だけができる操作です');
   }
+  await requireManageTarget(actor, row.user_id);
   await db.run('DELETE FROM credentials WHERE id = ?', [credentialId]);
+  await db.run('DELETE FROM sessions WHERE user_id = ?', [row.user_id]);
   await audit(actor.id, 'passkey.delete', row.user_id, credentialId);
 }
 
@@ -350,16 +357,22 @@ export async function listPendingInvites(): Promise<PendingInvite[]> {
 
 export async function revokeInvite(actor: User, tokenHash: string) {
   const db = await getDb();
+  const [invite] = await db.all<{ role: Role | null; user_id: string | null }>('SELECT role, user_id FROM invites WHERE token_hash = ?', [tokenHash]);
+  if (invite?.role === 'developer' && actor.role !== 'developer') throw new Error('開発者の招待は開発者だけが変更できます');
+  if (invite?.user_id) await requireManageTarget(actor, invite.user_id);
   await db.run('UPDATE invites SET expires_at = ? WHERE token_hash = ? AND used_at IS NULL', [nowIso(), tokenHash]);
   await audit(actor.id, 'invite.revoke', tokenHash);
 }
 
 export async function setUserRole(actor: User, userId: string, role: Role) {
+  await requireManageTarget(actor, userId);
   if (userId === actor.id) throw new Error('自分の役割は変えられません');
   if (role === 'developer' && actor.role !== 'developer') throw new Error('開発者にできるのは開発者だけです');
   const db = await getDb();
   const [target] = await db.all<{ role: Role }>('SELECT role FROM users WHERE id = ?', [userId]);
   if (target?.role === 'developer' && actor.role !== 'developer') throw new Error('開発者の役割は変えられません');
   await db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId]);
+  await db.run('DELETE FROM sessions WHERE user_id = ?', [userId]);
+  await db.run('UPDATE invites SET expires_at = ? WHERE user_id = ? AND used_at IS NULL', [nowIso(), userId]);
   await audit(actor.id, 'user.role', userId, role);
 }

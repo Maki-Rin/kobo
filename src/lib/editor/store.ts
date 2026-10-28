@@ -257,7 +257,10 @@ class GitHubStore implements ContentStore {
           Authorization: `Bearer ${this.appJwt()}`,
           Accept: 'application/vnd.github+json',
         },
+        body: JSON.stringify({ repositories: [this.config.repo.split('/')[1]], permissions: { contents: 'write' } }),
         cache: 'no-store',
+        redirect: 'error',
+        signal: AbortSignal.timeout(10_000),
       }
     );
     if (!response.ok) {
@@ -283,6 +286,8 @@ class GitHubStore implements ContentStore {
         },
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
         cache: 'no-store',
+        redirect: 'error',
+        signal: AbortSignal.timeout(10_000),
       }
     );
     if (response.status === 409 || response.status === 422) {
@@ -446,9 +451,13 @@ export function getStore(): ContentStore {
     EDITOR_GITHUB_REPO,
   } = process.env;
   if (EDITOR_GITHUB_APP_ID) {
+    if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+      throw new Error('Preview deployments cannot use the production content store');
+    }
     if (!EDITOR_GITHUB_INSTALLATION_ID || !EDITOR_GITHUB_PRIVATE_KEY || !EDITOR_GITHUB_REPO) {
       throw new Error('GitHub App の環境変数が足りません');
     }
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(EDITOR_GITHUB_REPO)) throw new Error('EDITOR_GITHUB_REPO is invalid');
     instance = new GitHubStore({
       appId: EDITOR_GITHUB_APP_ID,
       installationId: EDITOR_GITHUB_INSTALLATION_ID,

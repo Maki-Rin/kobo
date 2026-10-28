@@ -2,6 +2,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeShiki from '@shikijs/rehype';
 import { visit, SKIP } from 'unist-util-visit';
 import { toString as mdastToString } from 'mdast-util-to-string';
@@ -151,6 +152,11 @@ const processor = unified()
   .use(remarkGfm)
   .use(remarkLinkCards)
   .use(remarkRehype)
+  .use(rehypeSanitize, {
+    ...defaultSchema,
+    tagNames: [...(defaultSchema.tagNames ?? []), 'link-card'],
+    attributes: { ...defaultSchema.attributes, 'link-card': ['url'] },
+  })
   .use(rehypeSections)
   .use(rehypeFigures)
   .use(rehypeShiki, {

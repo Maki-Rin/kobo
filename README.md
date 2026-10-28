@@ -281,3 +281,5 @@ public/
 1. `public/data/events.json` にイベントデータを追加
 2. イベント画像を `public/images/events/` に配置
 3. 日付の新しい順で自動的に並びます
+
+公開前のセキュリティ対応と設定手順は [docs/security-deployment.md](docs/security-deployment.md) を参照してください。

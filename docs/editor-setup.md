@@ -17,6 +17,7 @@ npx wrangler d1 create kobo-editor
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0001_init.sql
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0002_activity.sql
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0003_entry_collection.sql
+npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0004_security.sql
 ```
 
 `db/editor/migrations/` にファイルが増えたら、番号の順に同じコマンドで実行する（ローカルの SQLite は起動時に自動で適用される）。
@@ -63,6 +64,7 @@ Vercel → kobo プロジェクト → Settings → Environment Variables（Envi
 | 名前 | 値 |
 |---|---|
 | `EDITOR_ORIGIN` | `https://kobo-rits.vercel.app` |
+| `EDITOR_RATE_LIMIT_SECRET` | 暗号学的にランダムな32文字以上の値。Secretとして登録 |
 | `CLOUDFLARE_ACCOUNT_ID` | 手順2のアカウント ID |
 | `EDITOR_D1_DATABASE_ID` | 手順1の database_id |
 | `EDITOR_D1_API_TOKEN` | 手順2のトークン |
@@ -95,11 +97,11 @@ npm run editor:invite -- --name "名前" --role developer
 
 ## ローカルで試す
 
-`.env.local` に次を入れて `npm run dev`。
+`.env.local` に次を入れて `npm run dev -- --port 3100`。`http://localhost:3100/admin` を開く。
 
 ```
 EDITOR_SQLITE_PATH=.editor-local/editor.db
-EDITOR_ORIGIN=http://localhost:3000
+EDITOR_ORIGIN=http://localhost:3100
 ```
 
 - データベースは `.editor-local/editor.db`（SQLite）に作られる。

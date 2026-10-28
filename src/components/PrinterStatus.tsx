@@ -93,10 +93,10 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
       <dl className='mt-5 space-y-3 border-t-[1.5px] border-dashed border-line-soft pt-4 text-sm'>
         {printer.state === 'printing' || printer.state === 'paused' || printer.state === 'preparing' ? (
           <>
-            <div className='flex items-start justify-between gap-4'>
+            {view.fileName && <div className='flex items-start justify-between gap-4'>
               <dt className='shrink-0 text-muted'>造形中のファイル</dt>
               <dd className='min-w-0 break-all text-right font-medium'>{view.fileName ?? '—'}</dd>
-            </div>
+            </div>}
             <div className='flex items-start justify-between gap-4'>
               <dt className='shrink-0 text-muted'>経過・残り</dt>
               <dd className='text-right font-medium'>
@@ -112,7 +112,7 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
                 最後の印刷
                 <span className={`pop-chip ${outcomeStyles[finished.outcome]}`}>{outcomeLabels[finished.outcome]}</span>
               </dt>
-              <dd className='mt-1.5 break-all font-medium'>{finished.fileName ?? 'ファイル名なし'}</dd>
+              {finished.fileName && <dd className='mt-1.5 break-all font-medium'>{finished.fileName}</dd>}
               <dd className='mt-0.5 text-xs text-muted'>
                 {[
                   finished.endedAt && `${formatDate(finished.endedAt)} に終了`,

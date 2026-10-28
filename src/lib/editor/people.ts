@@ -1,5 +1,6 @@
 import type { Person } from '../people';
-import { audit, type User } from './auth';
+import { audit, canManageMembers, type User } from './auth';
+import { detectImageType } from '../image-type';
 import { EditorError, type StagedImage } from './entries';
 import { getStore, type FileChange } from './store';
 
@@ -33,20 +34,31 @@ export async function savePeople(
   input: { people: unknown; baseSha: string | null; images: StagedImage[] }
 ): Promise<void> {
   const people = sanitize(input.people);
+  const previous = await loadPeople();
+  if (people.length > 200 || input.images.length > 30) throw new EditorError(['人物や画像の件数が多すぎます']);
+  if (!canManageMembers(user)) {
+    const links = new Map(previous.people.filter((person) => person.memberId).map((person) => [person.id, person.memberId]));
+    if (people.some((person) => (person.memberId ?? null) !== (links.get(person.id) ?? null)) ||
+        [...links.keys()].some((id) => !people.some((person) => person.id === id))) {
+      throw new EditorError(['メンバーの関連付けはまとめ役だけが変更できます']);
+    }
+  }
   const errors: string[] = [];
   const ids = new Set<string>();
   for (const person of people) {
     if (!ID.test(person.id)) errors.push(`「${person.name || person.id}」のIDは半角の英小文字・数字・ハイフンにしてください`);
     if (ids.has(person.id)) errors.push(`ID「${person.id}」が重複しています`);
     ids.add(person.id);
-    if (!person.name) errors.push('名前が空の人がいます');
+    if (!person.name || person.name.length > 80) errors.push('名前は1〜80文字で入れてください');
     if (person.bio.length > 200) errors.push(`「${person.name}」の紹介は200文字までです`);
   }
   const store = getStore();
   const changes: FileChange[] = [];
   for (const image of input.images) {
     const [, personId, name] = image.name.match(/^([a-z0-9-]+)\/(.+)$/) ?? [];
-    if (!personId || !IMAGE_NAME.test(name ?? '') || !(await store.staged(image.sha))) {
+    const data = await store.staged(image.sha);
+    const type = data && detectImageType(data);
+    if (!personId || !ids.has(personId) || !IMAGE_NAME.test(name ?? '') || !data || data.length > 3 * 1024 * 1024 || !type || !name.endsWith(`.${type}`)) {
       errors.push('アイコン画像を読み込めませんでした。もう一度選んでください');
       continue;
     }

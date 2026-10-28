@@ -25,6 +25,8 @@ function d1Http(accountId: string, databaseId: string, token: string): Db {
       },
       body: JSON.stringify({ sql, params }),
       cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(10_000),
     });
     const body = (await response.json()) as D1QueryResponse<T>;
     if (!response.ok || !body.success) {

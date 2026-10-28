@@ -9,7 +9,7 @@ import {
   type PublicKeyCredentialRequestOptionsJSON,
   type RegistrationResponseJSON,
 } from '@simplewebauthn/server';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getDb } from './db';
 import { editorConfig } from './config';
 import {
@@ -21,6 +21,8 @@ import {
   markInviteUsed,
   startSession,
 } from './auth';
+import { CHALLENGE_COOKIE } from './policy';
+import { consumeChallenge } from './tokens';
 
 const CHALLENGE_MINUTES = 5;
 
@@ -47,20 +49,21 @@ async function saveChallenge(
       new Date(Date.now() + CHALLENGE_MINUTES * 60 * 1000).toISOString(),
     ]
   );
+  (await cookies()).set(CHALLENGE_COOKIE, id, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict', path: '/', maxAge: CHALLENGE_MINUTES * 60,
+  });
   return id;
 }
 
 async function takeChallenge(id: string, purpose: 'register' | 'login') {
+  const jar = await cookies();
+  if (typeof id !== 'string' || jar.get(CHALLENGE_COOKIE)?.value !== id) {
+    throw new Error('この端末のログインを確認できません。もう一度やり直してください');
+  }
+  jar.delete(CHALLENGE_COOKIE);
   const db = await getDb();
-  const [row] = await db.all<{
-    challenge: string;
-    invite_token_hash: string | null;
-    user_id: string | null;
-  }>(
-    'SELECT challenge, invite_token_hash, user_id FROM challenges WHERE id = ? AND purpose = ? AND expires_at > ?',
-    [id, purpose, new Date().toISOString()]
-  );
-  await db.run('DELETE FROM challenges WHERE id = ?', [id]);
+  const row = await consumeChallenge(db, id, purpose);
   if (!row) throw new Error('時間切れです。もう一度やり直してください');
   return row;
 }
@@ -101,7 +104,7 @@ export async function beginRegistration(inviteToken: string): Promise<{
     excludeCredentials,
     authenticatorSelection: {
       residentKey: 'required',
-      userVerification: 'preferred',
+      userVerification: 'required',
     },
   });
   const challengeId = await saveChallenge(
@@ -130,10 +133,15 @@ export async function finishRegistration(
     expectedChallenge: challenge.challenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
+    requireUserVerification: true,
   });
   if (!verification.verified) throw new Error('パスキーを確認できませんでした');
 
   const userId = challenge.user_id;
+  if (invite.userId && !(await findActiveUser(invite.userId))) {
+    throw new Error('このアカウントは無効になっています');
+  }
+  await markInviteUsed(invite.tokenHash);
   if (!invite.userId) {
     await createUser(userId, invite.displayName ?? '名無し', invite.role ?? 'editor');
   }
@@ -152,7 +160,6 @@ export async function finishRegistration(
       deviceLabel((await headers()).get('user-agent') ?? ''),
     ]
   );
-  await markInviteUsed(invite.tokenHash);
   await audit(userId, 'passkey.register', credential.id);
   await startSession(userId, shared);
 }
@@ -164,7 +171,7 @@ export async function beginLogin(): Promise<{
   const { rpID } = editorConfig();
   const options = await generateAuthenticationOptions({
     rpID,
-    userVerification: 'preferred',
+    userVerification: 'required',
   });
   const challengeId = await saveChallenge(options.challenge, 'login');
   return { challengeId, options };
@@ -197,6 +204,7 @@ export async function finishLogin(
     expectedChallenge: challenge.challenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
+    requireUserVerification: true,
     credential: {
       id: row.id,
       publicKey: Uint8Array.from(Buffer.from(row.public_key, 'base64url')),
