@@ -22,23 +22,16 @@ coverImage: '/images/Adventure5Mpro.jpg'
 - [TinkerCad](https://www.tinkercad.com) ダウンロード手順
   ![alt text](/images/adventure5mpro/tinkercad1.png)![alt text](/images/adventure5mpro/tinkercad2.png)
 
-## 2. スライスソフトを起動する
+## 2. Flash Studio Desktopを起動する
 
-### Windows の方
+Adventurer 5M Proの現在の基準ソフトは、Flashforge公式の[Flash Studio Desktop](https://www.flashforge.com/pages/flash-studio-desktop)です。
 
-- FlashPrint（Flashforge 製公式スライサー）を使用
+- firmware 5.0.x以降では、旧Orca-FlashForgeのWi-Fi接続を前提にしません。
+- KOBO設置PCとプリンターを同じLANへ接続し、スタッフがLAN Only接続を設定します。
+- verification code、private IP、Printer IDは公開しません。一般利用者が入力する必要はありません。
+- ソフトのversionやOSによって画面表示が異なるため、接続操作はKOBOスタッフと一緒に行ってください。
 
-  - [FlashPrint 公式ダウンロードページ](https://flashforge.jp/flashprint5/)
-
-- FlashPrint をインストールし、Adventurer 5M Pro をプリンターとして選択
-  ![alt text](/images/adventure5mpro/flashprint1.png)
-
-### Mac・Linux の方
-
-- Orca-FlashForge を使用
-  - [Orca-FlashForge ダウンロードページ](https://after-support.flashforge.jp/orca-flashforge/)
-- Orca-FlashForge をインストールし、Adventurer 5M Pro をプリンターとして選択
-  ![alt text](/images/adventure5mpro/orca1.png)
+LAN OnlyではFlashforgeのcloud/mobile appから接続できません。KOBOでは、施設内LANでのスタッフ運用を基本とします。
 
 ## 3. モデルをスライスする
 
@@ -55,19 +48,16 @@ coverImage: '/images/Adventure5Mpro.jpg'
 - スライスボタンを押して、G-code を生成
 - 保存形式：`.gx`（Adventurer シリーズ独自形式）や `.3mf` もしくは `.gcode`
 
-- FlashPrint の場合
-  ![alt text](/images/adventure5mpro/flashprint2.png)
-  ![alt text](/images/adventure5mpro/flashprint3.png)
+スライス後はpreviewで、造形時間、support、モデルがplate外へ出ていないかを確認します。設定に迷う場合は送信前にKOBOスタッフへ相談してください。
 
-- Orca-FlashForge の場合
-  ![alt text](/images/adventure5mpro/orca2-1.png)
-  ![alt text](/images/adventure5mpro/orca2.png)
-  ![alt text](/images/adventure5mpro/orca3.png)
+既存のFlashPrint/Orca-FlashForge向け画像は画面構成が異なるため、現行の接続手順には使用しません。
 
 ## 4. スライスデータをプリンターに送信
 
 - 方法 ①：USB メモリに保存 → 本体に挿入
-- 方法 ②：Wi-Fi 経由で送信（KOBO 設置の PC ならできます．KOBO スタッフに相談）
+- 方法 ②：Flash Studio DesktopからLAN経由で送信（KOBO設置PCでスタッフが操作）
+
+[稼働状況画面](/printers)は閲覧専用です。Webからファイルを送信したり、印刷を申し込んだりすることはできません。
 
 ## 5. プリント前の準備
 
@@ -82,7 +72,7 @@ coverImage: '/images/Adventure5Mpro.jpg'
 
 ## 6. プリント開始
 
-- プリンターのタッチパネルで「プリント」→ USB またはクラウドからファイル選択
+- KOBOスタッフが送信内容と本体状態を確認し、Flash Studio Desktopまたはプリンターのタッチパネルから開始します。
 
   - 手順 1
     ![alt text](/images/adventure5mpro/print4.png)
