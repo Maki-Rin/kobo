@@ -193,7 +193,7 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_.not-prose]:!font-normal [&_.not-prose]:!text-base [&_.not-prose]:!leading-normal [&_.not-prose]:!my-0 [&_.not-prose]:!p-0 [&_.not-prose]:!border-0
 [&_.not-prose_*]:!font-normal [&_.not-prose_*]:!text-base [&_.not-prose_*]:!leading-normal [&_.not-prose_*]:!my-0 [&_.not-prose_*]:!p-0 [&_.not-prose_*]:!border-0
 [&_.not-prose_a]:!no-underline [&_.not-prose_a]:!text-inherit
-[&_img]:rounded-xl [&_img]:shadow-lg [&_img]:max-h-[500px] [&_img]:mx-auto [&_img]:block [&_img]:mb-0
+[&_img]:rounded-lg [&_img]:shadow-sm [&_img]:max-h-[500px] [&_img]:mx-auto [&_img]:block [&_img]:mb-0
 [&_figure]:!my-6 [&_figure]:!flex [&_figure]:!flex-col [&_figure]:!items-center [&_figure]:!gap-2
 [&_figure>figcaption]:!mt-1 [&_figure>figcaption]:!text-xs [&_figure>figcaption]:!text-muted-foreground [&_figure>figcaption]:!text-center [&_figure>figcaption]:!not-italic [&_figure>figcaption]:!max-w-prose
 [&_strong]:text-primary [&_strong]:font-extrabold
@@ -202,7 +202,7 @@ prose-h3:!font-normal prose-h3:!text-base prose-h3:!mt-0 prose-h3:!mb-0
 [&_ul>li::marker]:text-lg [&_ol>li::marker]:text-lg
 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:bg-muted/10 [&_blockquote]:py-0.25
 [&_code]:bg-gray-200 [&_code]:p-2 [&_code]:rounded-lg [&_code]:text-base
-[&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-5 [&_pre]:rounded-xl [&_pre]:my-6 [&_pre_code]:bg-transparent'
+[&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-5 [&_pre]:rounded-lg [&_pre]:my-6 [&_pre_code]:bg-transparent'
               />
             </article>
 

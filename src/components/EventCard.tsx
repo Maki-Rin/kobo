@@ -41,7 +41,7 @@ const EventCard = ({ event }: EventCardProps) => {
     <>
       {/* Small Card */}
       <div
-        className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer'
+        className='cursor-pointer overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5'
         onClick={handleCardClick}
       >
         <div className='aspect-[3/4] bg-gray-200 relative'>
@@ -52,8 +52,8 @@ const EventCard = ({ event }: EventCardProps) => {
             className='object-cover'
           />
         </div>
-        <div className='p-4'>
-          <p className='text-gray-600 text-sm text-center'>
+        <div className='p-3'>
+          <p className='technical-type text-left text-sm text-neutral-600'>
             {formatDate(event.date)}
           </p>
         </div>

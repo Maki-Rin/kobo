@@ -15,6 +15,7 @@ export interface Article {
     avatar: string;
   };
   coverImage: string;
+  category: 'tips' | 'work' | 'event-report' | 'news';
   content?: string;
   sections?: {
     id: string;
@@ -32,6 +33,11 @@ export interface ArticleFrontMatter {
     avatar: string;
   };
   coverImage: string;
+  category?: 'tips' | 'work' | 'event-report' | 'news';
+}
+
+function articleCategory(frontMatter: ArticleFrontMatter): Article['category'] {
+  return frontMatter.category ?? 'tips';
 }
 
 const articlesDirectory = path.join(process.cwd(), 'src/content/articles');
@@ -71,6 +77,7 @@ export async function getArticles(): Promise<Article[]> {
         date: frontMatter.date,
         author: frontMatter.author,
         coverImage: frontMatter.coverImage,
+        category: articleCategory(frontMatter),
       });
     }
 
@@ -175,6 +182,7 @@ export async function getArticle(id: string): Promise<Article | undefined> {
       date: frontMatter.date,
       author: frontMatter.author,
       coverImage: frontMatter.coverImage,
+      category: articleCategory(frontMatter),
       content: contentHtml,
       sections,
     };

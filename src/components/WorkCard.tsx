@@ -37,13 +37,13 @@ const WorkCard = ({ work }: WorkCardProps) => {
   const getTagColor = (tag: string) => {
     switch (tag) {
       case '3D Printer':
-        return 'bg-blue-400';
+        return 'bg-blue-50 text-blue-700';
       case 'レーザー':
-        return 'bg-red-400';
+        return 'bg-rose-50 text-rose-700';
       case '刺繍':
-        return 'bg-yellow-500';
+        return 'bg-amber-50 text-amber-800';
       default:
-        return 'bg-gray-500';
+        return 'bg-emerald-50 text-emerald-700';
     }
   };
 
@@ -88,24 +88,24 @@ const WorkCard = ({ work }: WorkCardProps) => {
     <>
       {/* Small Card */}
       <div
-        className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer'
+        className='h-full cursor-pointer overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5'
         onClick={handleCardClick}
       >
-        <div className='aspect-video bg-gray-200 relative'>
+        <div className='relative aspect-video overflow-hidden bg-neutral-200'>
           <Image
             src={work.coverImage}
             alt={work.title}
             fill
-            className='object-cover'
+            className='object-cover transition-transform duration-300 hover:scale-[1.02]'
           />
         </div>
-        <div className='p-4'>
-          <h3 className='text-lg font-bold mb-2 text-left'>{work.title}</h3>
+        <div className='p-5'>
+          <h3 className='mb-3 text-left text-lg font-bold leading-snug'>{work.title}</h3>
           <div className='flex flex-wrap gap-2 mb-3'>
             {work.tags.map((tag) => (
               <span
                 key={tag}
-                className={`px-2 py-1 rounded-sm text-xs text-white ${getTagColor(
+                className={`rounded-md px-2 py-1 text-xs font-semibold ${getTagColor(
                   tag
                 )}`}
               >
@@ -121,7 +121,7 @@ const WorkCard = ({ work }: WorkCardProps) => {
                   alt={`${work.author.name} avatar`}
                   width={24}
                   height={24}
-                  className='rounded-full mr-2'
+                    className='mr-2 rounded-full'
                 />
                 <span className='text-sm text-gray-600'>
                   {work.author.name}
@@ -143,7 +143,7 @@ const WorkCard = ({ work }: WorkCardProps) => {
           className='fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center z-50 p-4'
           onClick={handleBackdropClick}
         >
-          <div className='bg-white rounded-lg w-[800px] h-[600px] max-w-[90vw] max-h-[90vh] overflow-y-auto relative'>
+          <div className='relative h-[600px] w-[800px] max-h-[90vh] max-w-[90vw] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-2xl'>
             <button
               onClick={handleClose}
               className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-1'
@@ -204,7 +204,7 @@ const WorkCard = ({ work }: WorkCardProps) => {
                   {work.tags.map((tag) => (
                     <span
                       key={tag}
-                      className={`px-3 py-1 rounded-sm text-sm text-white ${getTagColor(
+                      className={`rounded-md px-3 py-1 text-sm font-semibold ${getTagColor(
                         tag
                       )}`}
                     >

@@ -4,11 +4,14 @@ export interface Work {
   description: string;
   coverImage: string;
   images: string[];
-  tags: ('3Dprinter' | 'レーザー' | '刺繍')[];
+  tags: string[];
   author: {
     name: string;
     avatar: string;
   };
+  contributorType?: 'staff' | 'student' | 'community';
+  publicationStatus?: 'draft' | 'pending_review' | 'published' | 'rejected';
+  relatedArticleId?: string;
 }
 
 export async function getWorks(): Promise<Work[]> {
