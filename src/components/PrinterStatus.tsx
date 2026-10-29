@@ -23,6 +23,7 @@ export const stateLabels: Record<PublicPrinter['state'], string> = {
   preparing: '準備中',
   printing: '造形中',
   paused: '一時停止',
+  completed: '印刷完了',
   awaiting_collection: '回収待ち',
   error: 'エラー',
 };
@@ -33,6 +34,7 @@ export const stateStyles: Record<PublicPrinter['state'], string> = {
   preparing: 'bg-amber-100 text-amber-900',
   printing: 'bg-blue-100 text-blue-800',
   paused: 'bg-orange-100 text-orange-900',
+  completed: 'bg-emerald-100 text-emerald-800',
   awaiting_collection: 'bg-violet-100 text-violet-900',
   error: 'bg-red-100 text-red-800',
 };

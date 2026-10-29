@@ -10,16 +10,17 @@ const MAX_PRINTERS = 3;
 
 const statePriority: Record<PublicPrinter['state'], number> = {
   idle: 0,
-  printing: 1,
-  preparing: 2,
-  paused: 3,
-  awaiting_collection: 4,
-  error: 5,
-  unknown: 6,
+  completed: 1,
+  printing: 2,
+  preparing: 3,
+  paused: 4,
+  awaiting_collection: 5,
+  error: 6,
+  unknown: 7,
 };
 
 function isAvailable(printer: PublicPrinter): boolean {
-  return printer.availability === 'online' && printer.state === 'idle';
+  return printer.availability === 'online' && (printer.state === 'idle' || printer.state === 'completed');
 }
 
 function displayState(printer: PublicPrinter): PublicPrinter['state'] {
