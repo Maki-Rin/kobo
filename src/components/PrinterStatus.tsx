@@ -39,6 +39,20 @@ const stateStyles: Record<PublicPrinter['state'], string> = {
   error: 'bg-red-100 text-red-800',
 };
 
+const outcomeLabels: Record<NonNullable<PublicPrinter['lastWork']>['outcome'], string> = {
+  success: '完了',
+  failed: '失敗',
+  canceled: '中止',
+  unknown: '結果不明',
+};
+
+const outcomeStyles: Record<NonNullable<PublicPrinter['lastWork']>['outcome'], string> = {
+  success: 'bg-emerald-100 text-emerald-800',
+  failed: 'bg-red-100 text-red-800',
+  canceled: 'bg-slate-100 text-slate-700',
+  unknown: 'bg-slate-100 text-slate-700',
+};
+
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '時刻不明';
@@ -129,6 +143,26 @@ function PrinterCard({ printer }: { printer: PublicPrinter }) {
           <dd className='text-right font-medium'>{formatDate(printer.lastSeenAt)}</dd>
         </div>
       </dl>
+
+      {printer.lastWork && (
+        <div className='mt-4 border-t border-slate-100 pt-4 text-sm'>
+          <div className='flex items-center justify-between gap-4'>
+            <span className='text-slate-500'>直近の印刷</span>
+            <span
+              className={`whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-bold ${outcomeStyles[printer.lastWork.outcome]}`}
+            >
+              {outcomeLabels[printer.lastWork.outcome]}
+            </span>
+          </div>
+          <p className='mt-2 break-all font-medium'>
+            {printer.lastWork.fileName ?? 'ファイル名なし'}
+          </p>
+          <p className='mt-1 text-slate-500'>
+            {printer.lastWork.endedAt ? `${formatDate(printer.lastWork.endedAt)} 終了` : '終了時刻不明'}
+            {printer.lastWork.durationMinutes !== null && ` ・ ${printer.lastWork.durationMinutes}分`}
+          </p>
+        </div>
+      )}
     </article>
   );
 }
