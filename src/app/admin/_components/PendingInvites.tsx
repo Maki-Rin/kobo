@@ -8,7 +8,7 @@ import ErrorList from './ErrorList';
 import { relativeTime } from './relativeTime';
 import { badge, button } from './ui';
 
-const roleNames = { editor: '編集者', lead: 'まとめ役', developer: '開発者' };
+const roleNames = { editor: '編集者', lead: '管理者', developer: '開発者' };
 
 function remaining(iso: string, now: number): string {
   const minutes = Math.max(0, Math.round((new Date(iso).getTime() - now) / 60_000));
@@ -40,7 +40,7 @@ export default function PendingInvites({ invites, now }: { invites: PendingInvit
                   ? `${invite.targetName ?? ''} さんのログインリンク`
                   : invite.targetName
                     ? `${invite.targetName} さんの端末追加`
-                    : `${invite.displayName} さんの招待`}
+                    : invite.displayName ? `${invite.displayName} さんへの招待（表示名の候補）` : '新しいメンバーへの招待'}
                 {invite.kind === 'register' && !invite.targetName && invite.role && (
                   <span className={`${badge} bg-slate-100 text-slate-700`}>{roleNames[invite.role]}</span>
                 )}

@@ -65,26 +65,23 @@ export function entryFromPath(filePath: string): { collection: Collection; id: s
 export async function listEntries(collection: Collection): Promise<EntrySummary[]> {
   const store = getStore();
   const dir = contentDir(collection);
-  const files = (await store.list(dir)).filter((p) => p.endsWith('.md'));
-  const entries = await Promise.all(
-    files.map(async (filePath) => {
-      const file = await store.read(filePath);
-      const entry = parseEntry(collection, filePath.slice(dir.length + 1, -3), file?.content.toString('utf8') ?? '');
-      return {
-        collection,
-        id: entry.id,
-        title: entry.title,
-        date: entry.date,
-        published: entry.published,
-        coverImage: entry.coverImage,
-        authors: entry.authors,
-        legacyAuthor: entry.legacyAuthor,
-        type: entry.type,
-        status: entry.status,
-        hasRecord: entry.record.trim() !== '',
-      };
-    })
-  );
+  const files = await store.readDirectory(dir);
+  const entries = files.map((file) => {
+    const entry = parseEntry(collection, file.path.slice(dir.length + 1, -3), file.content.toString('utf8'));
+    return {
+      collection,
+      id: entry.id,
+      title: entry.title,
+      date: entry.date,
+      published: entry.published,
+      coverImage: entry.coverImage,
+      authors: entry.authors,
+      legacyAuthor: entry.legacyAuthor,
+      type: entry.type,
+      status: entry.status,
+      hasRecord: entry.record.trim() !== '',
+    };
+  });
   return entries.sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -280,7 +277,7 @@ export async function revertCommit(user: User, commitId: string): Promise<string
   const store = getStore();
   const detail = await store.detail(commitId);
   if (user.role === 'editor' && detail.editorId !== user.id) {
-    throw new EditorError(['ほかの人の変更を戻せるのはまとめ役だけです']);
+    throw new EditorError(['ほかの人の変更を戻せるのは管理者だけです']);
   }
   const changes: FileChange[] = [];
   const expected: Record<string, string | null> = {};

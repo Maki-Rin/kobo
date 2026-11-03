@@ -5,7 +5,7 @@ type: guide
 excerpt: 'FDM3Dプリンタで使用する材料に関して紹介します'
 authors:
   - yoshito-usui
-coverImage: '/images/filament.JPG'
+coverImage: '/images/filament.webp'
 machines:
   - 3d-printer
 ---

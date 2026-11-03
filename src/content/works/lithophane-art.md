@@ -6,7 +6,7 @@ authors:
 coverImage: '/images/works/lithophane.jpg'
 images:
   - '/images/works/lithophane.jpg'
-  - '/images/works/lithophane_original.png'
+  - '/images/works/lithophane_original.webp'
 status: done
 machines:
   - 3d-printer

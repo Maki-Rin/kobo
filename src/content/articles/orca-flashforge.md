@@ -5,7 +5,7 @@ type: guide
 excerpt: 'この記事では、スライサであるOrca-FlashForgeの基本的な使い方を紹介します。'
 authors:
   - yoshito-usui
-coverImage: '/images/orca-flashforge.png'
+coverImage: '/images/orca-flashforge.webp'
 machines:
   - 3d-printer
 ---
@@ -19,63 +19,63 @@ machines:
 ### 1. Orca-FlashForgeを起動。
 ### 2. 造形する3Dプリンタ・ベッドタイプ・フィラメントを選択する
 
-![alt text](/images/orca-flashforge/orca-flashforge1.png)
+![alt text](/images/orca-flashforge/orca-flashforge1.webp)
 
 ### 3. メニューまたは画面左上の「ファイルボタン」をクリックして、STLファイルなどの3Dモデルを読み込みます。
 
-![alt text](/images/orca-flashforge/orca-flashforge2.png)
+![alt text](/images/orca-flashforge/orca-flashforge2.webp)
 
 ### 4. 読み込んだモデルは、マウスドラッグで視点移動、スクロールでズームできます。
 
-![alt text](/images/orca-flashforge/orca-flashforge3.png)
+![alt text](/images/orca-flashforge/orca-flashforge3.webp)
 
 
 ## 3. モデルの配置と編集
 
 ### 移動（Move）: モデルをX/Y/Z方向に移動。
-![alt text](/images/orca-flashforge/orca-flashforge4.png)
+![alt text](/images/orca-flashforge/orca-flashforge4.webp)
 
 ### 回転（Rotate）: 角度を指定してモデルの向きを変更。
-![alt text](/images/orca-flashforge/orca-flashforge5.png)
+![alt text](/images/orca-flashforge/orca-flashforge5.webp)
 
 ### スケール（Scale）: サイズ変更。縦横比を保つ設定も可能。
-![alt text](/images/orca-flashforge/orca-flashforge6.png)
+![alt text](/images/orca-flashforge/orca-flashforge6.webp)
 
 ### 複製（Duplicate）: 同じモデルをコピーして複数配置。
-![alt text](/images/orca-flashforge/orca-flashforge7.png)
+![alt text](/images/orca-flashforge/orca-flashforge7.webp)
 
 ## 4. スライス設定
 
 ### 1. 画面左側のパラメータを参照
 
-![alt text](/images/orca-flashforge/orca-flashforge8.png)
+![alt text](/images/orca-flashforge/orca-flashforge8.webp)
 
 
 ### レイヤーの高さ
 * 造形物の精度に関わる。0.2mm程度が標準。
 
-![alt text](/images/orca-flashforge/orca-flashforge9.png)
+![alt text](/images/orca-flashforge/orca-flashforge9.webp)
 
 ### 充填率(Infill)
 * 内部の密度。15〜30%が一般的。
 
-![alt text](/images/orca-flashforge/orca-flashforge10.png)
+![alt text](/images/orca-flashforge/orca-flashforge10.webp)
 
 ### ラフト
 * 台座をつけて安定性を向上させたいときに使用する。Adoventure5MProの造形には基本的に使用した方が良い。
-![alt text](/images/orca-flashforge/orca-flashforge11.png)
+![alt text](/images/orca-flashforge/orca-flashforge11.webp)
 
 3. 設定後、「**スライス**」をクリック。
-![alt text](/images/orca-flashforge/orca-flashforge12.png)
+![alt text](/images/orca-flashforge/orca-flashforge12.webp)
 
 
 ### Tips: サポートの設定
 3Dプリントでは、**空中に浮いている部分**があると、何も支えがないためうまく印刷できません。
 そのようなときに使うのが「サポート（Support）」です。
 
-![alt text](/images/orca-flashforge/orca-flashforge13.png)
+![alt text](/images/orca-flashforge/orca-flashforge13.webp)
 
-![alt text](/images/orca-flashforge/orca-flashforge14.png)
+![alt text](/images/orca-flashforge/orca-flashforge14.webp)
 
 **サポートを使う時の注意**
 

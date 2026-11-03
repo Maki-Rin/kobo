@@ -11,7 +11,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     return (
       <AuthCard title='このリンクは使えません'>
         <p className='text-sm leading-6 text-slate-600'>
-          使用済みか、期限（7日）が切れています。まとめ役に新しいリンクを発行してもらってください。
+          使用済みか、期限（7日）が切れています。管理者に新しいリンクを発行してもらってください。
         </p>
       </AuthCard>
     );

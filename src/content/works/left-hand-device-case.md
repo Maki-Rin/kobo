@@ -3,9 +3,9 @@ title: '自作左手デバイス用ケース'
 date: '2025-07-07'
 authors:
   - yuki-yamamoto
-coverImage: '/images/works/nemophila1402.jpg'
+coverImage: '/images/works/nemophila1402.webp'
 images:
-  - '/images/works/nemophila1402.jpg'
+  - '/images/works/nemophila1402.webp'
 status: done
 machines:
   - laser-cutter

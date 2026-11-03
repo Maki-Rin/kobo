@@ -3,9 +3,9 @@ title: 'Master Sword'
 date: '2025-07-07'
 authors:
   - yoshito-usui
-coverImage: '/images/works/mastersword.jpg'
+coverImage: '/images/works/mastersword.webp'
 images:
-  - '/images/works/mastersword.jpg'
+  - '/images/works/mastersword.webp'
 status: done
 machines:
   - 3d-printer

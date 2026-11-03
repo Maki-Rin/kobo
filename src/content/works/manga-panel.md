@@ -3,9 +3,9 @@ title: 'でっかい漫画のコマ'
 date: '2025-07-07'
 authors:
   - yoshito-usui
-coverImage: '/images/works/manga.jpeg'
+coverImage: '/images/works/manga.webp'
 images:
-  - '/images/works/manga.jpeg'
+  - '/images/works/manga.webp'
 status: done
 machines:
   - laser-cutter

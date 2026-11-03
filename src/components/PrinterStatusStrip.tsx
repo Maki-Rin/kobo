@@ -6,6 +6,7 @@ import type { PublicPrinter } from '@/lib/printer-types';
 import { parsePrinterApiResult } from '@/lib/printer-types';
 import { describePrinter, tonePriority, toneStyles } from '@/lib/printer-display';
 import OpenHours from './OpenHours';
+import { pollWhileVisible } from '@/lib/visible-polling';
 
 const timeFormatter = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' });
 const dayFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' });
@@ -15,25 +16,18 @@ export default function PrinterStatusStrip() {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    let disposed = false;
-    const load = async () => {
+    return pollWhileVisible(async (signal) => {
       try {
-        const response = await fetch('/api/printers', { cache: 'no-store' });
+        const response = await fetch('/api/printers', { cache: 'no-store', signal });
         const parsed = parsePrinterApiResult(await response.json());
-        if (!disposed && parsed.data !== null) {
+        if (!signal.aborted && parsed.data !== null) {
           setPrinters(parsed.data.printers);
           setNow(new Date());
         }
       } catch {
         // 取れないときは開室時間だけ出す
       }
-    };
-    load();
-    const timer = window.setInterval(load, 30_000);
-    return () => {
-      disposed = true;
-      window.clearInterval(timer);
-    };
+    });
   }, []);
 
   const views =

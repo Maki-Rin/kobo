@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
+import imageRedirects from './src/lib/image-redirects.json';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    return Object.entries(imageRedirects).map(([source, destination]) => ({ source, destination, permanent: true }));
+  },
   headers() {
     return [
       {

@@ -1,5 +1,5 @@
 const MAX_EDGE = 1920;
-const KEEP_AS_IS_BYTES = 1024 * 1024;
+const KEEP_AS_IS_BYTES = 250 * 1024;
 const MAX_INPUT_BYTES = 30 * 1024 * 1024;
 
 const extensions: Record<string, string> = {
@@ -33,12 +33,12 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
   );
 }
 
-export async function prepareImage(file: File): Promise<{ blob: Blob; extension: string }> {
+export async function prepareImage(file: File, purpose: 'content' | 'avatar' = 'content'): Promise<{ blob: Blob; extension: string }> {
   if (file.size > MAX_INPUT_BYTES) {
     throw new ImageError(`「${file.name}」は大きすぎます（30MBまで）`);
   }
   const extension = extensions[file.type];
-  if (extension && (file.size <= KEEP_AS_IS_BYTES || file.type === 'image/gif')) {
+  if (purpose === 'content' && file.type === 'image/gif') {
     if (file.type === 'image/gif' && file.size > 3 * 1024 * 1024) {
       throw new ImageError(`GIF「${file.name}」は3MBまでです`);
     }
@@ -56,15 +56,24 @@ export async function prepareImage(file: File): Promise<{ blob: Blob; extension:
         : `「${file.name}」は画像として読み込めませんでした（JPEG・PNG・WebP・GIF・HEIC）`
     );
   }
-  const scale = Math.min(1, MAX_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+  const maxEdge = purpose === 'avatar' ? 256 : MAX_EDGE;
+  const edge = Math.max(image.naturalWidth, image.naturalHeight);
+  if (purpose === 'content' && extension && file.size <= KEEP_AS_IS_BYTES && edge <= maxEdge) {
+    return { blob: file, extension };
+  }
+  const scale = Math.min(1, maxEdge / edge);
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(image.naturalWidth * scale);
   canvas.height = Math.round(image.naturalHeight * scale);
-  canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const context = canvas.getContext('2d');
+  if (!context) throw new ImageError('画像を処理できませんでした。もう一度お試しください');
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-  if (file.type === 'image/png') {
-    const webp = await toBlob(canvas, 'image/webp', 0.9);
-    if (webp.type === 'image/webp') return { blob: webp, extension: 'webp' };
+  const webp = await toBlob(canvas, 'image/webp', purpose === 'avatar' ? 0.8 : 0.88);
+  if (webp.type === 'image/webp') return { blob: webp, extension: 'webp' };
+  // Preserve transparency if the browser does not support WebP encoding.
+  if (file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif') {
+    return { blob: await toBlob(canvas, 'image/png', 1), extension: 'png' };
   }
   return { blob: await toBlob(canvas, 'image/jpeg', 0.85), extension: 'jpg' };
 }

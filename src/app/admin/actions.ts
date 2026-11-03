@@ -42,6 +42,8 @@ import { savePeople } from '@/lib/editor/people';
 import { ConflictError } from '@/lib/editor/store';
 import { renderPreviewHtml } from '@/lib/editor/preview';
 import { limitEditorRequest, RateLimitError } from '@/lib/editor/rate-limit';
+import { getDb } from '@/lib/editor/db';
+import { DisplayNameError, normalizeDisplayName, updateDisplayName } from '@/lib/editor/profile';
 
 export type ActionResult<T = undefined> =
   | { ok: true; value: T }
@@ -57,6 +59,7 @@ async function attempt<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
     }
     return { ok: true, value: await run() };
   } catch (error) {
+    if (error instanceof DisplayNameError) return { ok: false, errors: [error.message] };
     if (error instanceof RateLimitError) return { ok: false, errors: [error.message] };
     if (error instanceof EditorError) return { ok: false, errors: error.messages };
     if (error instanceof ConflictError) return { ok: false, errors: [error.message] };
@@ -65,22 +68,22 @@ async function attempt<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
     const known = /期限切れ|時間切れ|無効|登録されていない|確認できません|ログインが必要/.test(message);
     return {
       ok: false,
-      errors: [known ? message : 'うまくいきませんでした。時間をおいてもう一度試すか、まとめ役に連絡してください'],
+      errors: [known ? message : 'うまくいきませんでした。時間をおいてもう一度試すか、管理者に連絡してください'],
     };
   }
 }
 
 async function requireManager() {
   const user = await requireUser();
-  if (!canManageMembers(user)) throw new EditorError(['まとめ役だけができる操作です']);
+  if (!canManageMembers(user)) throw new EditorError(['管理者だけができる操作です']);
   await limitEditorRequest('manage', 30, 60, user.id);
   return user;
 }
 
-export async function registrationOptionsAction(token: string) {
+export async function registrationOptionsAction(token: string, displayName?: string) {
   return attempt(async () => {
     await limitEditorRequest('register', 10);
-    return beginRegistration(token);
+    return beginRegistration(token, displayName);
   });
 }
 
@@ -88,11 +91,12 @@ export async function registrationVerifyAction(
   token: string,
   challengeId: string,
   response: RegistrationResponseJSON,
-  shared: boolean
+  shared: boolean,
+  displayName?: string
 ) {
   return attempt(async () => {
     await limitEditorRequest('register-verify', 15);
-    return finishRegistration(token, challengeId, response, shared);
+    return finishRegistration(token, challengeId, response, shared, displayName);
   });
 }
 
@@ -194,9 +198,8 @@ const inviteUrl = (kind: 'invite' | 'login', token: string) =>
 export async function createInviteAction(displayName: string, role: Role) {
   return attempt(async () => {
     const user = await requireManager();
-    const name = displayName.trim();
+    const name = typeof displayName === 'string' && !displayName.trim() ? undefined : normalizeDisplayName(displayName);
     await limitEditorRequest('invite', 10, 3600, user.id);
-    if (!name || name.length > 80) throw new EditorError(['名前は1〜80文字で入れてください']);
     if (!['editor', 'lead', 'developer'].includes(role) || (role === 'developer' && user.role !== 'developer')) {
       throw new EditorError(['この役割では招待できません']);
     }
@@ -205,11 +208,21 @@ export async function createInviteAction(displayName: string, role: Role) {
   });
 }
 
+export async function updateDisplayNameAction(displayName: string) {
+  return attempt(async () => {
+    const user = await requireUser();
+    await limitEditorRequest('profile', 10, 3600, user.id);
+    const name = await updateDisplayName(await getDb(), user.id, displayName);
+    revalidatePath('/admin', 'layout');
+    return name;
+  });
+}
+
 export async function addDeviceInviteAction(userId: string) {
   return attempt(async () => {
     const user = await requireUser();
     if (userId !== user.id && !canManageMembers(user)) {
-      throw new EditorError(['まとめ役だけができる操作です']);
+      throw new EditorError(['管理者だけができる操作です']);
     }
     await requireManageTarget(user, userId);
     await limitEditorRequest('invite', 10, 3600, user.id);

@@ -71,7 +71,7 @@ export default function PeopleManager({
     setErrors([]);
     setUploadingId(person.id);
     try {
-      const { blob, extension } = await prepareImage(file);
+      const { blob, extension } = await prepareImage(file, 'avatar');
       const fileName = avatarFileName(extension);
       const form = new FormData();
       form.set('image', new File([blob], fileName, { type: blob.type || file.type }));

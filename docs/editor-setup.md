@@ -75,7 +75,7 @@ Vercel → kobo プロジェクト → Settings → Environment Variables（Envi
 
 入れたら再デプロイする。`.pem` は Vercel に入れたら手元から消してよい（必要になれば作り直せる）。
 
-## 6. 最初のまとめ役を招待する（Mac の ~/Desktop/kobo で）
+## 6. 最初の管理者を招待する（Mac の ~/Desktop/kobo で）
 
 ```sh
 EDITOR_ORIGIN=https://kobo-rits.vercel.app \
@@ -91,7 +91,7 @@ npm run editor:invite -- --name "名前" --role developer
 
 - 投稿画面の保存は main に直接コミットされ、Vercel が1〜2分で反映する。
 - 開発作業（develop など）を main に入れる前に、main を取り込む（`git merge origin/main`）。投稿画面の変更は main にしかない。
-- パスキーはドメインに結び付く。独自ドメインに移ると、登録済みのパスキーは使えなくなり、全員の再登録（まとめ役が「端末を追加するリンク」を配る）が必要。
+- パスキーはドメインに結び付く。独自ドメインに移ると、登録済みのパスキーは使えなくなり、全員の再登録（管理者が「端末を追加するリンク」を配る）が必要。
 - Vercel のプレビューURLではパスキーが使えない（本番ドメイン専用）。
 - 投稿画面から書けるのは `src/content/{articles,works,events}/*.md`、`public/images/{articles,works,events}/`、`src/content/{hours,printers}.json` だけ。
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { PrinterApiResult, PublicPrinter, PublicPrintersResponse } from '@/lib/printer-types';
 import { parsePrinterApiResult } from '@/lib/printer-types';
 import { describePrinter, printerLayout, tonePriority, toneStyles } from '@/lib/printer-display';
+import { pollWhileVisible } from '@/lib/visible-polling';
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -140,28 +141,22 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
   const [now, setNow] = useState(() => new Date(initialResult.data?.generatedAt ?? 0));
 
   useEffect(() => {
-    let disposed = false;
-    const refresh = async () => {
+    return pollWhileVisible(async (signal) => {
       setRefreshing(true);
       try {
-        const response = await fetch('/api/printers', { cache: 'no-store' });
+        const response = await fetch('/api/printers', { cache: 'no-store', signal });
         const parsed = parsePrinterApiResult(await response.json());
-        if (!disposed) {
+        if (!signal.aborted) {
           if (parsed.data !== null) setData(parsed.data);
           setError(parsed.error);
           setNow(new Date());
         }
       } catch {
-        if (!disposed) setError('最新状態を取得できませんでした。');
+        if (!signal.aborted) setError('最新状態を取得できませんでした。');
       } finally {
-        if (!disposed) setRefreshing(false);
+        if (!signal.aborted) setRefreshing(false);
       }
-    };
-    const timer = window.setInterval(refresh, 30_000);
-    return () => {
-      disposed = true;
-      window.clearInterval(timer);
-    };
+    }, { immediate: false });
   }, []);
 
   const views = useMemo(

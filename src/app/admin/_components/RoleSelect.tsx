@@ -28,7 +28,7 @@ export default function RoleSelect({
     <div className='space-y-2'>
       <select value={role} onChange={(e) => change(e.target.value as Role)} aria-label='役割' className={`${select} h-8`}>
         <option value='editor'>編集者</option>
-        <option value='lead'>まとめ役</option>
+        <option value='lead'>管理者</option>
         {(canSetDeveloper || role === 'developer') && <option value='developer'>開発者</option>}
       </select>
       <ErrorList errors={errors} />

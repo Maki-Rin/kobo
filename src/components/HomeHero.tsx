@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 const heroImages = [
-  '/images/top1.jpg',
-  '/images/top2.jpg',
-  '/images/top3.jpg',
-  '/images/top4.jpg',
-  '/images/top5.jpg',
-  '/images/top6.jpg',
-  '/images/top7.jpg',
-  '/images/top8.jpg',
+  '/images/top1.webp',
+  '/images/top2.webp',
+  '/images/top3.webp',
+  '/images/top4.webp',
+  '/images/top5.webp',
+  '/images/top6.webp',
+  '/images/top7.webp',
+  '/images/top8.webp',
 ];
 
 export default function HomeHero() {

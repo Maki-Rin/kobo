@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     locale: 'ja_JP',
     images: [
       {
-        url: `${SITE_URL}/images/top1.jpg`,
+        url: `${SITE_URL}/images/top1.webp`,
         width: 1200,
         height: 630,
         alt: 'まなぶ | KOBO【非公式】',
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     title: 'まなぶ | KOBO【非公式】',
     description:
       '立命館大学KOBO【非公式】の記事一覧。3Dプリントやデジタルファブリケーションに関する情報を掲載。',
-    images: [`${SITE_URL}/images/top1.jpg`],
+    images: [`${SITE_URL}/images/top1.webp`],
   },
 };
 

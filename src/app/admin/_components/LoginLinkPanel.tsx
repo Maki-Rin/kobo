@@ -26,7 +26,7 @@ export default function LoginLinkPanel({ token }: { token: string }) {
   return (
     <AuthCard title='ログインリンク'>
       <p className='text-sm leading-6 text-slate-600'>
-        まとめ役が発行した、1回だけ使えるリンクです。自分のスマホがあれば、ログイン後に記事一覧の「端末を追加」からパスキーを作っておくと次から楽です。
+        管理者が発行した、1回だけ使えるリンクです。自分のスマホがあれば、ログイン後に記事一覧の「端末を追加」からパスキーを作っておくと次から楽です。
       </p>
       <SharedDeviceCheckbox checked={shared} onChange={setShared} />
       <ErrorList errors={errors} />

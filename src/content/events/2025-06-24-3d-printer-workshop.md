@@ -5,7 +5,7 @@ startTime: '12:00'
 endTime: '15:00'
 place: 'H棟1F テラスゲート前'
 excerpt: '3Dプリンターの使い方をスタッフが教えます。事前準備は不要、当日参加OK。'
-coverImage: '/images/events/0624.png'
+coverImage: '/images/events/0624.webp'
 machines:
   - 3d-printer
 ---
