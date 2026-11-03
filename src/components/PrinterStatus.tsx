@@ -174,13 +174,6 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
 
   const unplaced = (data?.printers ?? []).filter((printer) => !printerLayout.includes(printer.id));
 
-  const summary = {
-    total: views.length,
-    available: views.filter(({ view }) => view.available).length,
-    busy: views.filter(({ view }) => view.tone === 'busy').length,
-    attention: views.filter(({ view }) => view.tone === 'wait' || view.tone === 'alert').length,
-  };
-
   return (
     <div aria-live='polite'>
       {error !== null && (
@@ -188,21 +181,6 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
           {error} {data !== null && '最後に取得できた状態を表示しています。'}
         </div>
       )}
-
-      <div className='mb-6 grid grid-cols-3 gap-3 md:max-w-xl'>
-        {(
-          [
-            ['空き', summary.available],
-            ['造形中', summary.busy],
-            ['一時停止・エラー', summary.attention],
-          ] as const
-        ).map(([label, value]) => (
-          <div key={label} className='border-l-2 border-neutral-200 pl-4'>
-            <p className='text-sm text-neutral-500'>{label}</p>
-            <p className='technical-type mt-1 text-3xl font-bold'>{value}</p>
-          </div>
-        ))}
-      </div>
 
       {views.length === 0 ? (
         <div className='rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-10'>
