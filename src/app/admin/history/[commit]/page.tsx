@@ -128,6 +128,7 @@ export default async function CommitPage({ params }: { params: Promise<{ commit:
               <span className='text-xs text-emerald-700'>+{added}行</span>
               <span className='text-xs text-red-700'>−{removed}行</span>
               {!file.before && <span className='text-xs text-slate-500'>（新しい記事）</span>}
+              {file.afterSha === null && <span className='text-xs text-red-700'>（削除）</span>}
             </div>
             {fields.length > 0 && (
               <dl className='divide-y divide-slate-100 border-b border-slate-200 text-sm'>

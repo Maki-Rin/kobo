@@ -13,7 +13,11 @@ export interface StoredFile {
 
 export type FileChange =
   | { path: string; content: Buffer }
-  | { path: string; blobSha: string };
+  | { path: string; blobSha: string }
+  | { path: string; remove: true };
+
+const targetSha = (change: FileChange): string | null =>
+  'remove' in change ? null : 'content' in change ? gitBlobSha(change.content) : change.blobSha;
 
 export interface CommitRecord {
   id: string;
@@ -94,7 +98,7 @@ interface LocalEntry {
   id: string;
   at: string;
   message: string;
-  files: { path: string; before: string | null; afterSha: string }[];
+  files: { path: string; before: string | null; afterSha: string | null }[];
 }
 
 const BLOB_SHA = /^[0-9a-f]{40}$/;
@@ -174,15 +178,20 @@ class LocalStore implements ContentStore {
     const effective: FileChange[] = [];
     for (const change of request.changes) {
       const current = await this.read(change.path);
-      if (current?.sha !== ('content' in change ? gitBlobSha(change.content) : change.blobSha)) effective.push(change);
+      if ((current?.sha ?? null) !== targetSha(change)) effective.push(change);
     }
     if (!effective.length) return (await this.log()).at(-1)?.id ?? gitBlobSha(Buffer.alloc(0));
     const files: LocalEntry['files'] = [];
     for (const change of effective) {
+      const before = await this.read(change.path);
+      if ('remove' in change) {
+        await fs.rm(this.resolve(change.path), { force: true });
+        files.push({ path: change.path, before: before ? before.content.toString('base64') : null, afterSha: null });
+        continue;
+      }
       const content =
         'content' in change ? change.content : await this.staged(change.blobSha);
       if (!content) throw new Error(`画像が見つかりません: ${change.path}`);
-      const before = await this.read(change.path);
       await this.stage(content);
       await fs.mkdir(path.dirname(this.resolve(change.path)), { recursive: true });
       await fs.writeFile(this.resolve(change.path), content);
@@ -419,12 +428,11 @@ export class GitHubStore implements ContentStore {
         throw new ConflictError(`ほかの人が先に変更しています: ${filePath}`);
       }
     }
-    const effective = request.changes.filter((change) =>
-      head.entries.get(change.path) !== ('content' in change ? gitBlobSha(change.content) : change.blobSha));
+    const effective = request.changes.filter((change) => (head.entries.get(change.path) ?? null) !== targetSha(change));
     if (!effective.length) return head.commitSha;
     const tree = [];
     for (const change of effective) {
-      const sha = 'content' in change ? await this.stage(change.content) : change.blobSha;
+      const sha = 'remove' in change ? null : 'content' in change ? await this.stage(change.content) : change.blobSha;
       tree.push({ path: change.path, mode: '100644', type: 'blob', sha });
     }
     const newTree = await this.api<{ sha: string }>('/git/trees', {

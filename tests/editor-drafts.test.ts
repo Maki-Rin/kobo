@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { emptyEntry, entryPath, parseEntry, serializeEntry } from '../src/lib/content-schema';
-import { loadEntry, listEntries, saveEntry } from '../src/lib/editor/entries';
+import { deleteEntry, loadEntry, listEntries, saveEntry } from '../src/lib/editor/entries';
 import { discardDraft, readDraft, writeDraft } from '../src/lib/editor/drafts';
 import { readUpload, stageUpload, pruneUploads } from '../src/lib/editor/uploads';
 import { ConflictError, ContentStoreError, gitBlobSha, type ContentStore, type StoredFile } from '../src/lib/editor/store';
@@ -39,6 +39,7 @@ function setup() {
       if (rejectCommit) throw new ContentStoreError('GitHub unavailable');
       for (const [file, sha] of Object.entries(request.expected)) assert.equal((await read(file))?.sha ?? null, sha);
       for (const change of request.changes) {
+        if ('remove' in change) { files.delete(change.path); continue; }
         assert.ok('content' in change);
         files.set(change.path, change.content);
       }
@@ -255,4 +256,73 @@ test('a failed publish keeps its draft and referenced uploads are not pruned', a
     await pruneUploads(s.db);
     assert.equal(await readUpload(sha, s.db), null);
   } finally { s.close(); }
+});
+
+const lead = { id: 'lead', displayName: '管理 花子', role: 'lead' as const };
+
+test('unpublished drafts can change URL; once published the URL is fixed', async () => {
+  const s = setup();
+  try {
+    const draft = { ...s.entry, id: 'first-name', published: false };
+    await saveEntry(user, { collection: 'articles', draft, isNew: true, baseSha: null, images: [], operation: 'draft' }, s.services);
+    const saved = (await loadEntry('articles', 'first-name', s.services))!;
+    assert.equal(saved.hasFile, false);
+    await saveEntry(user, { collection: 'articles', draft: { ...saved.draft, id: 'better-name' }, isNew: false,
+      baseSha: saved.sha, images: [], operation: 'draft', previousId: 'first-name' }, s.services);
+    assert.equal(await readDraft('articles', 'first-name', s.db), null);
+    const renamed = (await loadEntry('articles', 'better-name', s.services))!;
+    assert.equal(renamed.draft.title, 'Article');
+    await saveEntry(user, { collection: 'articles', draft: { ...renamed.draft }, isNew: false, baseSha: renamed.sha, images: [], operation: 'publish' }, s.services);
+    const published = (await loadEntry('articles', 'better-name', s.services))!;
+    assert.equal(published.hasFile, true);
+    await assert.rejects(
+      saveEntry(user, { collection: 'articles', draft: { ...published.draft, id: 'third-name' }, isNew: false,
+        baseSha: published.sha, images: [], operation: 'draft', previousId: 'better-name' }, s.services),
+      /URLは変えられません/
+    );
+  } finally {
+    s.close();
+  }
+});
+
+test('publishing is blocked when required parts are missing', async () => {
+  const s = setup();
+  try {
+    const event = { ...emptyEntry('events', 'report-only'), title: 'Report', date: '2026-11-03', reportOnly: true, published: true };
+    await assert.rejects(
+      saveEntry(user, { collection: 'events', draft: event, isNew: true, baseSha: null, images: [], operation: 'publish' }, s.services),
+      /開催報告が空です/
+    );
+    const announce = { ...emptyEntry('events', 'empty-announce'), title: 'Empty', date: '2099-01-01', published: true };
+    await assert.rejects(
+      saveEntry(user, { collection: 'events', draft: announce, isNew: true, baseSha: null, images: [], operation: 'publish' }, s.services),
+      /告知の本文か告知画像/
+    );
+    assert.equal(s.commits(), 0);
+    await saveEntry(user, { collection: 'events', draft: { ...event, record: '当日の様子' }, isNew: true, baseSha: null, images: [], operation: 'publish' }, s.services);
+    assert.equal(s.commits(), 1);
+  } finally {
+    s.close();
+  }
+});
+
+test('only managers can delete, and only after unpublishing with the title typed', async () => {
+  const s = setup();
+  try {
+    s.sqlite.prepare('INSERT INTO users (id, display_name, role, created_at) VALUES (?, ?, ?, ?)').run(lead.id, lead.displayName, lead.role, '2026-11-03');
+    s.files.set('public/images/articles/test-entry/photo.png', png);
+    await saveEntry(user, { collection: 'articles', draft: s.entry, isNew: true, baseSha: null, images: [], operation: 'publish' }, s.services);
+    let loaded = (await loadEntry('articles', s.entry.id, s.services))!;
+    await assert.rejects(deleteEntry(lead, { collection: 'articles', id: s.entry.id, baseSha: loaded.sha, confirmTitle: 'Article' }, s.services), /公開をやめる/);
+    await saveEntry(user, { collection: 'articles', draft: { ...loaded.draft }, isNew: false, baseSha: loaded.sha, images: [], operation: 'unpublish' }, s.services);
+    loaded = (await loadEntry('articles', s.entry.id, s.services))!;
+    await assert.rejects(deleteEntry(user, { collection: 'articles', id: s.entry.id, baseSha: loaded.sha, confirmTitle: 'Article' }, s.services), /管理者だけ/);
+    await assert.rejects(deleteEntry(lead, { collection: 'articles', id: s.entry.id, baseSha: loaded.sha, confirmTitle: 'Wrong' }, s.services), /一致しません/);
+    await deleteEntry(lead, { collection: 'articles', id: s.entry.id, baseSha: loaded.sha, confirmTitle: 'Article' }, s.services);
+    assert.equal(s.files.has(entryPath('articles', s.entry.id)), false);
+    assert.equal(s.files.has('public/images/articles/test-entry/photo.png'), false);
+    assert.equal(await loadEntry('articles', s.entry.id, s.services), null);
+  } finally {
+    s.close();
+  }
 });

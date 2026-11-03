@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import machines from '@/content/machines.json';
-import { isPastEvent, type Entry } from '@/lib/content-schema';
+import { collectionLabels, isPastEvent, type Entry } from '@/lib/content-schema';
 import type { Person } from '@/lib/people';
 import { badge, button, input, select, textarea } from '../ui';
 import ImageDropZone from './ImageDropZone';
@@ -65,6 +65,9 @@ export interface EventOption {
 export default function SettingsPanel({
   draft,
   isNew,
+  idEditable,
+  everPublished,
+  onDelete,
   wasPublished,
   busy = false,
   resolveSrc,
@@ -83,6 +86,9 @@ export default function SettingsPanel({
 }: {
   draft: Entry;
   isNew: boolean;
+  idEditable: boolean;
+  everPublished: boolean;
+  onDelete?: (confirmTitle: string) => void;
   wasPublished: boolean;
   busy?: boolean;
   resolveSrc: (src: string) => string;
@@ -101,6 +107,8 @@ export default function SettingsPanel({
 }) {
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [deleteTitle, setDeleteTitle] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { collection } = draft;
   const coverLabel = collection === 'events' ? (draft.reportOnly ? '代表の写真' : '告知画像（チラシなど）') : 'カバー画像';
   const personLabel = collection === 'works' ? '作った人' : '書いた人';
@@ -395,14 +403,14 @@ export default function SettingsPanel({
           <Field
             label='URL'
             hint={
-              isNew
-                ? '自動で決まっています。英語にしておくと覚えやすくなります（半角の英小文字・数字・ハイフン）。公開後は変えられません。'
-                : '公開後は変えられません。'
+              idEditable
+                ? `${isNew ? '自動で決まっています。' : ''}初めて公開するまでは変えられます。英語にしておくと覚えやすくなります（半角の英小文字・数字・ハイフン）。`
+                : '一度公開したので変えられません。'
             }
           >
             <div className='flex items-center gap-1.5 font-mono text-sm'>
               <span className='shrink-0 text-slate-500'>/{collection}/</span>
-              {isNew ? (
+              {idEditable ? (
                 <input
                   className={`${input} font-mono`}
                   value={draft.id}
@@ -416,15 +424,23 @@ export default function SettingsPanel({
 
           {onDiscardDraft && (
             <div className='space-y-3 rounded-lg border border-slate-200 p-4'>
-              <p className='text-sm font-bold'>保存した下書きを破棄する</p>
-              <p className='text-xs leading-5 text-slate-500'>公開中の内容は変わりません。この下書きと保存していない変更は元に戻せません。</p>
+              <p className='text-sm font-bold'>{everPublished ? '保存した下書きを破棄する' : '下書きを削除する'}</p>
+              <p className='text-xs leading-5 text-slate-500'>
+                {everPublished
+                  ? '公開版（または非公開にした版）に戻ります。この下書きと保存していない変更は元に戻せません。'
+                  : 'まだ一度も公開していないので、この下書きはまるごと消えます。元に戻せません。'}
+              </p>
               {confirmDiscard ? (
                 <div className='flex gap-2'>
                   <button type='button' onClick={() => setConfirmDiscard(false)} className={button('secondary', 'sm')}>やめる</button>
-                  <button type='button' onClick={onDiscardDraft} className={button('danger', 'sm')}>下書きを破棄する</button>
+                  <button type='button' onClick={onDiscardDraft} disabled={busy} className={button('danger', 'sm')}>
+                    {everPublished ? '下書きを破棄する' : '下書きを削除する'}
+                  </button>
                 </div>
               ) : (
-                <button type='button' onClick={() => setConfirmDiscard(true)} className={button('dangerOutline', 'sm')}>下書きを破棄…</button>
+                <button type='button' onClick={() => setConfirmDiscard(true)} className={button('dangerOutline', 'sm')}>
+                  {everPublished ? '下書きを破棄…' : '下書きを削除…'}
+                </button>
               )}
             </div>
           )}
@@ -449,6 +465,40 @@ export default function SettingsPanel({
                 </button>
               )}
             </div>
+          )}
+          {onDelete && (
+            <div className='space-y-3 rounded-lg border border-red-200 p-4'>
+              <div>
+                <p className='text-sm font-bold text-red-800'>この{collectionLabels[collection]}を削除する（管理者だけ）</p>
+                <p className='mt-1 text-xs leading-5 text-slate-500'>
+                  ファイルと、この{collectionLabels[collection]}用の画像を消します。変更履歴から元に戻せます。
+                </p>
+              </div>
+              {confirmDelete ? (
+                <div className='space-y-2'>
+                  <label className='block text-xs text-slate-600'>
+                    確認のため、タイトル「{draft.title}」を入力してください
+                    <input className={`${input} mt-1`} value={deleteTitle} onChange={(e) => setDeleteTitle(e.target.value)} />
+                  </label>
+                  <div className='flex gap-2'>
+                    <button type='button' onClick={() => { setConfirmDelete(false); setDeleteTitle(''); }} className={button('secondary', 'sm')}>やめる</button>
+                    <button
+                      type='button'
+                      onClick={() => onDelete(deleteTitle)}
+                      disabled={busy || deleteTitle.trim() !== draft.title.trim()}
+                      className={button('danger', 'sm')}
+                    >
+                      削除する
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type='button' onClick={() => setConfirmDelete(true)} className={button('dangerOutline', 'sm')}>削除…</button>
+              )}
+            </div>
+          )}
+          {!onDelete && everPublished && wasPublished && (
+            <p className='text-xs leading-5 text-slate-500'>削除するには、先に非公開にしてください（削除は管理者だけができます）。</p>
           )}
         </div>
       </aside>

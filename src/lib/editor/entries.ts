@@ -18,12 +18,13 @@ import {
   type Entry,
 } from '../content-schema';
 import type { User } from './auth';
-import { audit } from './auth';
+import { audit, canManageMembers } from './auth';
 import { recordArticleEvent, type ArticleAction } from './activity';
-import { ConflictError, ContentStoreError, getStore, gitBlobSha, type FileChange, type ContentStore } from './store';
+import { ConflictError, ContentStoreError, getStore, gitBlobSha, isWritable, type FileChange, type ContentStore } from './store';
 import { draftToken, listDrafts, readDraft, removeDraft, writeDraft } from './drafts';
 import { stageUpload, stagedImage, readUpload, releasePublishedUploads } from './uploads';
 import { getDb, type Db } from './db';
+import { publishBlockers } from './publish-checks';
 
 interface EditorServices { store: ContentStore; db: Db }
 
@@ -114,14 +115,14 @@ export async function loadEntry(
   collection: Collection,
   id: string,
   services?: EditorServices
-): Promise<{ draft: Entry; sha: string; images: StagedImage[]; draftOwnerId?: string } | null> {
+): Promise<{ draft: Entry; sha: string; images: StagedImage[]; draftOwnerId?: string; hasFile: boolean } | null> {
   const [file, saved] = await Promise.all([(services?.store ?? getStore()).read(entryPath(collection, id)), readDraft(collection, id, services?.db)]);
   if (saved) return {
     draft: { ...saved.entry, published: file ? parseEntry(collection, id, file.content.toString('utf8')).published : false },
-    sha: draftToken(saved), images: saved.images, draftOwnerId: saved.updatedById,
+    sha: draftToken(saved), images: saved.images, draftOwnerId: saved.updatedById, hasFile: file !== null,
   };
   if (!file) return null;
-  return { draft: parseEntry(collection, id, file.content.toString('utf8')), sha: file.sha, images: [] };
+  return { draft: parseEntry(collection, id, file.content.toString('utf8')), sha: file.sha, images: [], hasFile: true };
 }
 
 function markdownImageUrls(markdown: string): string[] {
@@ -264,6 +265,7 @@ export async function saveEntry(
     baseSha: string | null;
     images: StagedImage[];
     operation?: 'draft' | 'publish' | 'unpublish';
+    previousId?: string | null;
   },
   services?: EditorServices
 ): Promise<{ commitId: string | null; changed: boolean }> {
@@ -274,7 +276,19 @@ export async function saveEntry(
   const db = services?.db ?? await getDb();
   const readImage = async (sha: string) => (await readUpload(sha, db)) ?? store.staged(sha);
   const filePath = entryPath(draft.collection, draft.id);
-  const [file, saved] = await Promise.all([store.read(filePath), readDraft(draft.collection, draft.id, db)]);
+  const sourceId = !input.isNew && input.previousId && input.previousId !== draft.id ? input.previousId : draft.id;
+  const renaming = sourceId !== draft.id;
+  if (renaming && !/^[A-Za-z0-9_-]{1,80}$/.test(sourceId)) throw new EditorError(['URLの名前が正しくありません']);
+  const [file, saved] = await Promise.all([store.read(filePath), readDraft(draft.collection, sourceId, db)]);
+  if (renaming) {
+    if (operation === 'unpublish' || await store.read(entryPath(draft.collection, sourceId))) {
+      throw new EditorError(['一度公開したのでURLは変えられません']);
+    }
+    if (!saved) throw new ConflictError('下書きが見つかりません。開き直して確認してください');
+    if (file || await readDraft(draft.collection, draft.id, db)) {
+      throw new EditorError([`同じURLの${collectionLabels[draft.collection]}がすでにあります`]);
+    }
+  }
   const previous = file ? parseEntry(draft.collection, draft.id, file.content.toString('utf8')) : null;
   const token = saved ? draftToken(saved) : file?.sha ?? null;
   if ((input.isNew && token !== null) || (!input.isNew && (token === null || token !== input.baseSha))) {
@@ -288,12 +302,16 @@ export async function saveEntry(
   });
   // A previous publish may have reached GitHub before its DB cleanup failed.
   // Retrying the same snapshot must not publish twice or discard a newer draft.
+  if (operation === 'publish') {
+    const blockers = publishBlockers(draft);
+    if (blockers.length) throw new EditorError(blockers);
+  }
   if (operation === 'publish' && previous?.published &&
       serializeEntry(previous) === serializeEntry({ ...draft, published: true })) {
     const imagesMatch = await Promise.all(usedImages.map(async (image) =>
       (await store.read(`public${imageDir(draft.collection, draft.id)}/${image.name}`))?.sha === image.sha));
     if (imagesMatch.every(Boolean)) {
-      if (saved) await removeDraft(draft.collection, draft.id, saved.revision, db);
+      if (saved) await removeDraft(draft.collection, sourceId, saved.revision, db);
       return { commitId: null, changed: false };
     }
   }
@@ -307,9 +325,11 @@ export async function saveEntry(
         serializeEntry(previous) === serializeEntry({ ...draft, published: previous.published })) {
       return { commitId: null, changed: false };
     }
-    const result = await writeDraft({ entry: draft, images: usedImages, baseSha, expected: saved, userId: user.id }, db);
+    const result = await writeDraft({ entry: draft, images: usedImages, baseSha, expected: renaming ? null : saved, userId: user.id }, db);
+    if (renaming && saved) await removeDraft(draft.collection, sourceId, saved.revision, db);
     if (result.changed) await db.run('INSERT INTO audit_log (at, actor_id, action, target, detail) VALUES (?, ?, ?, ?, ?)',
-      [new Date().toISOString(), user.id, 'entry.draft', `${draft.collection}/${draft.id}`, result.revision]);
+      [new Date().toISOString(), user.id, renaming ? 'entry.rename' : 'entry.draft', `${draft.collection}/${draft.id}`,
+        renaming ? `${sourceId} ${result.revision}` : result.revision]);
     return { commitId: null, changed: result.changed };
   }
   if (operation === 'unpublish') {
@@ -321,7 +341,7 @@ export async function saveEntry(
   const changes = operation === 'unpublish' ? [] : await validate(draft, !file, usedImages, store, readImage);
   const content = Buffer.from(serializeEntry(draft));
   if (previous && serializeEntry(previous) === serializeEntry(draft) && changes.length === 0) {
-    if (saved) await removeDraft(draft.collection, draft.id, saved.revision, db);
+    if (saved) await removeDraft(draft.collection, sourceId, saved.revision, db);
     return { commitId: null, changed: false };
   }
   changes.push({ path: filePath, content });
@@ -334,7 +354,7 @@ export async function saveEntry(
     editor: user,
   });
   try {
-    if (saved && operation !== 'unpublish') await removeDraft(draft.collection, draft.id, saved.revision, db);
+    if (saved && operation !== 'unpublish') await removeDraft(draft.collection, sourceId, saved.revision, db);
     if (saved && operation === 'unpublish') {
       await db.run('UPDATE editor_drafts SET base_sha = ? WHERE collection = ? AND entry_id = ? AND revision = ?',
         [gitBlobSha(content), draft.collection, draft.id, saved.revision]);
@@ -359,6 +379,40 @@ export async function saveEntry(
     catch { console.error('Published image cleanup deferred', { commitId }); }
   }
   return { commitId, changed: true };
+}
+
+export async function deleteEntry(
+  user: User,
+  input: { collection: Collection; id: string; baseSha: string; confirmTitle: string },
+  services?: EditorServices
+): Promise<string> {
+  if (!canManageMembers(user)) throw new EditorError(['削除できるのは管理者だけです']);
+  const { collection, id } = input;
+  const store = services?.store ?? getStore();
+  const db = services?.db ?? await getDb();
+  const filePath = entryPath(collection, id);
+  const [file, saved] = await Promise.all([store.read(filePath), readDraft(collection, id, db)]);
+  if (!file) throw new EditorError(['公開したことのないものは「下書きを削除」で消してください']);
+  const entry = parseEntry(collection, id, file.content.toString('utf8'));
+  if (entry.published) throw new EditorError(['公開中のものは削除できません。先に「公開をやめる」をしてください']);
+  const token = saved ? draftToken(saved) : file.sha;
+  if (token !== input.baseSha) throw new ConflictError('ほかの人が先に変更しています。開き直して確認してください');
+  if (input.confirmTitle.trim() !== entry.title.trim()) throw new EditorError(['確認のためのタイトルが一致しません']);
+  const images = (await store.list(`public${imageDir(collection, id)}`)).filter(isWritable);
+  const commitId = await store.commit({
+    changes: [{ path: filePath, remove: true }, ...images.map((path) => ({ path, remove: true as const }))],
+    expected: { [filePath]: file.sha },
+    title: `🗑️ ${collectionLabels[collection]}を削除: ${entry.title}`,
+    editor: user,
+  });
+  try {
+    if (saved) await removeDraft(collection, id, saved.revision, db);
+    await db.run('INSERT INTO audit_log (at, actor_id, action, target, detail) VALUES (?, ?, ?, ?, ?)',
+      [new Date().toISOString(), user.id, 'entry.delete', `${collection}/${id}`, commitId]);
+  } catch {
+    console.error('Deleted content but failed to finalize editor metadata', { commitId, collection, id });
+  }
+  return commitId;
 }
 
 const editable = (filePath: string) =>
