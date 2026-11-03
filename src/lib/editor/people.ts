@@ -40,7 +40,7 @@ export async function savePeople(
     const links = new Map(previous.people.filter((person) => person.memberId).map((person) => [person.id, person.memberId]));
     if (people.some((person) => (person.memberId ?? null) !== (links.get(person.id) ?? null)) ||
         [...links.keys()].some((id) => !people.some((person) => person.id === id))) {
-      throw new EditorError(['メンバーの関連付けはまとめ役だけが変更できます']);
+      throw new EditorError(['メンバーの関連付けは管理者だけが変更できます']);
     }
   }
   const errors: string[] = [];

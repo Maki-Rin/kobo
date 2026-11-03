@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { getDb } from './db';
 import { canManageTarget, SESSION_COOKIE, SESSION_DAYS, SHARED_SESSION_HOURS, validToken, type Role } from './policy';
@@ -7,7 +8,7 @@ export type { Role } from './policy';
 
 export const roleLabels: Record<Role, string> = {
   editor: '編集者',
-  lead: 'まとめ役',
+  lead: '管理者',
   developer: '開発者',
 };
 
@@ -161,7 +162,7 @@ export async function startSession(userId: string, shared: boolean) {
   await audit(userId, 'login', undefined, shared ? 'shared' : undefined);
 }
 
-export async function currentUser(): Promise<User | null> {
+export const currentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!validToken(token)) return null;
   const db = await getDb();
@@ -173,7 +174,7 @@ export async function currentUser(): Promise<User | null> {
   );
   if (!row || row.disabled_at) return null;
   return { id: row.id, displayName: row.display_name, role: row.role };
-}
+});
 
 export async function requireUser(): Promise<User> {
   const user = await currentUser();
@@ -303,7 +304,7 @@ export async function deletePasskey(actor: User, credentialId: string) {
   const [row] = await db.all<{ user_id: string }>('SELECT user_id FROM credentials WHERE id = ?', [credentialId]);
   if (!row) return;
   if (row.user_id !== actor.id && !canManageMembers(actor)) {
-    throw new Error('まとめ役だけができる操作です');
+    throw new Error('管理者だけができる操作です');
   }
   await requireManageTarget(actor, row.user_id);
   await db.run('DELETE FROM credentials WHERE id = ?', [credentialId]);

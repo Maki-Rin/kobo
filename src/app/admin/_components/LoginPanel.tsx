@@ -43,7 +43,7 @@ export default function LoginPanel() {
         {busy ? '確認中…' : 'パスキーでログイン'}
       </button>
       <p className='text-xs leading-5 text-slate-500'>
-        スマホを持っていない・なくしたときは、まとめ役に「ログインリンク」を発行してもらってください。
+        スマホを持っていない・なくしたときは、管理者に「ログインリンク」を発行してもらってください。
       </p>
     </AuthCard>
   );

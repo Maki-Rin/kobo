@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import { cache } from 'react';
 import { CONTENT_BRANCH } from './config';
 import type { User } from './auth';
 
@@ -36,6 +37,7 @@ export interface CommitRequest {
 export interface ContentStore {
   read(filePath: string): Promise<StoredFile | null>;
   list(dir: string): Promise<string[]>;
+  readDirectory(dir: string): Promise<StoredFile[]>;
   exists(filePath: string): Promise<boolean>;
   commit(request: CommitRequest): Promise<string>;
   stage(content: Buffer): Promise<string>;
@@ -147,6 +149,11 @@ class LocalStore implements ContentStore {
     return (await this.read(filePath)) !== null;
   }
 
+  async readDirectory(dir: string): Promise<StoredFile[]> {
+    const files = await Promise.all((await this.list(dir)).filter((p) => p.endsWith('.md')).map((p) => this.read(p)));
+    return files.filter((file): file is StoredFile => file !== null);
+  }
+
   private async log(): Promise<LocalEntry[]> {
     try {
       return JSON.parse(await fs.readFile(this.logFile, 'utf8'));
@@ -223,8 +230,11 @@ interface HeadTree {
   entries: Map<string, string>;
 }
 
-class GitHubStore implements ContentStore {
+export class GitHubStore implements ContentStore {
   private token: { value: string; expiresAt: number } | null = null;
+  private tokenRequest: Promise<string> | null = null;
+  // Share a snapshot only within a server render. Writes still fetch a fresh head.
+  private readHead = cache(() => this.head());
 
   constructor(private config: GitHubConfig) {}
 
@@ -249,6 +259,16 @@ class GitHubStore implements ContentStore {
     if (this.token && this.token.expiresAt > Date.now() + 60_000) {
       return this.token.value;
     }
+    if (this.tokenRequest) return this.tokenRequest;
+    this.tokenRequest = this.issueInstallationToken();
+    try {
+      return await this.tokenRequest;
+    } finally {
+      this.tokenRequest = null;
+    }
+  }
+
+  private async issueInstallationToken(): Promise<string> {
     const response = await fetch(
       `https://api.github.com/app/installations/${this.config.installationId}/access_tokens`,
       {
@@ -341,20 +361,33 @@ class GitHubStore implements ContentStore {
   }
 
   async read(filePath: string): Promise<StoredFile | null> {
-    const sha = (await this.head()).entries.get(filePath);
+    const sha = (await this.readHead()).entries.get(filePath);
     if (!sha) return null;
     return { path: filePath, content: await this.blob(sha), sha };
   }
 
   async list(dir: string): Promise<string[]> {
     const prefix = `${dir}/`;
-    return [...(await this.head()).entries.keys()].filter(
+    return [...(await this.readHead()).entries.keys()].filter(
       (p) => p.startsWith(prefix) && !p.slice(prefix.length).includes('/')
     );
   }
 
   async exists(filePath: string): Promise<boolean> {
-    return (await this.head()).entries.has(filePath);
+    return (await this.readHead()).entries.has(filePath);
+  }
+
+  async readDirectory(dir: string): Promise<StoredFile[]> {
+    const prefix = `${dir}/`;
+    const head = await this.readHead();
+    const files = [...head.entries].filter(([filePath]) =>
+      filePath.startsWith(prefix) && !filePath.slice(prefix.length).includes('/') && filePath.endsWith('.md')
+    );
+    return Promise.all(files.map(async ([filePath, sha]) => ({
+      path: filePath,
+      sha,
+      content: await this.blob(sha),
+    })));
   }
 
   async commit(request: CommitRequest): Promise<string> {

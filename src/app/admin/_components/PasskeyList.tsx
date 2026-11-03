@@ -66,7 +66,7 @@ export default function PasskeyList({ passkeys, self }: { passkeys: Passkey[]; s
       {confirming && passkeys.length === 1 && (
         <p className='text-xs text-red-700'>
           {self ? 'これを消すとログインできなくなります。' : 'これを消すと、この人はログインできなくなります。'}
-          まとめ役に新しいリンクを発行してもらう必要があります。
+          管理者に新しいリンクを発行してもらう必要があります。
         </p>
       )}
       <ErrorList errors={errors} />

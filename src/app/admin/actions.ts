@@ -65,14 +65,14 @@ async function attempt<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
     const known = /期限切れ|時間切れ|無効|登録されていない|確認できません|ログインが必要/.test(message);
     return {
       ok: false,
-      errors: [known ? message : 'うまくいきませんでした。時間をおいてもう一度試すか、まとめ役に連絡してください'],
+      errors: [known ? message : 'うまくいきませんでした。時間をおいてもう一度試すか、管理者に連絡してください'],
     };
   }
 }
 
 async function requireManager() {
   const user = await requireUser();
-  if (!canManageMembers(user)) throw new EditorError(['まとめ役だけができる操作です']);
+  if (!canManageMembers(user)) throw new EditorError(['管理者だけができる操作です']);
   await limitEditorRequest('manage', 30, 60, user.id);
   return user;
 }
@@ -209,7 +209,7 @@ export async function addDeviceInviteAction(userId: string) {
   return attempt(async () => {
     const user = await requireUser();
     if (userId !== user.id && !canManageMembers(user)) {
-      throw new EditorError(['まとめ役だけができる操作です']);
+      throw new EditorError(['管理者だけができる操作です']);
     }
     await requireManageTarget(user, userId);
     await limitEditorRequest('invite', 10, 3600, user.id);

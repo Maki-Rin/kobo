@@ -87,7 +87,7 @@ export default async function MembersPage() {
                   <div className='space-y-2'>
                     <h3 className='text-sm font-bold'>役割</h3>
                     <RoleSelect userId={member.id} role={member.role} canSetDeveloper={user.role === 'developer'} />
-                    <p className='text-xs text-slate-500'>編集者は自分の変更だけ戻せます。まとめ役はメンバーの招待・管理と、全員の変更を戻せます。</p>
+                    <p className='text-xs text-slate-500'>編集者は自分の変更だけ戻せます。管理者はメンバーの招待・管理と、全員の変更を戻せます。</p>
                   </div>
                 )}
                 <div className='space-y-2'>
