@@ -5,7 +5,7 @@ startTime: '12:00'
 endTime: '15:00'
 place: 'H棟1F TERRACE GATE'
 excerpt: '思い出の写真を、光にかざすと浮かび上がる立体（リトファン）にします。持ち物はスマホだけ、申し込み不要。'
-coverImage: '/images/events/0513.png'
+coverImage: '/images/events/0513.webp'
 machines:
   - 3d-printer
 ---

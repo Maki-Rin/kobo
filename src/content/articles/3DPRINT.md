@@ -5,7 +5,7 @@ type: guide
 excerpt: 'Adventurer 5M Pro を使った3Dプリントの手順を解説します。'
 authors:
   - yoshito-usui
-coverImage: '/images/Adventure5Mpro.jpg'
+coverImage: '/images/Adventure5Mpro.webp'
 machines:
   - 3d-printer
 ---
@@ -19,10 +19,10 @@ machines:
   - 自分で 3DCAD（例：TinkerCAD, Fusion360, Blender）で作成
 
 - [Thingiverse](https://www.thingiverse.com) ダウンロード手順
-  ![alt text](/images/adventure5mpro/thingiverse1.png)![alt text](/images/adventure5mpro/thingiverse2.png)
+  ![alt text](/images/adventure5mpro/thingiverse1.webp)![alt text](/images/adventure5mpro/thingiverse2.webp)
 
 - [TinkerCad](https://www.tinkercad.com) ダウンロード手順
-  ![alt text](/images/adventure5mpro/tinkercad1.png)![alt text](/images/adventure5mpro/tinkercad2.png)
+  ![alt text](/images/adventure5mpro/tinkercad1.webp)![alt text](/images/adventure5mpro/tinkercad2.webp)
 
 ## 2. Flash Studio Desktopを起動する
 
@@ -64,11 +64,11 @@ LAN OnlyではFlashforgeのcloud/mobile appから接続できません。KOBOで
 ## 5. プリント前の準備
 
 - フィラメント(3D プリントの材料)を背面から装着
-  ![alt text](/images/adventure5mpro/print1.png)
+  ![alt text](/images/adventure5mpro/print1.webp)
 - タッチパネルからフィラメントの押し出し命令を実行
-  ![alt text](/images/adventure5mpro/print2.png)
+  ![alt text](/images/adventure5mpro/print2.webp)
 - ノズルからフィラメントが出てくるか確認
-  ![alt text](/images/adventure5mpro/print3.png)
+  ![alt text](/images/adventure5mpro/print3.webp)
 
 - 必要であればオートレベリングを実行(基本的に必要なし)
 
@@ -77,9 +77,9 @@ LAN OnlyではFlashforgeのcloud/mobile appから接続できません。KOBOで
 - KOBOスタッフが送信内容と本体状態を確認し、Flash Studio Desktopまたはプリンターのタッチパネルから開始します。
 
   - 手順 1
-    ![alt text](/images/adventure5mpro/print4.png)
+    ![alt text](/images/adventure5mpro/print4.webp)
   - 手順 2
-    ![alt text](/images/adventure5mpro/print5.png)
+    ![alt text](/images/adventure5mpro/print5.webp)
 
 - プリントが開始されるまで数十秒〜数分待つ
 
@@ -89,7 +89,7 @@ LAN OnlyではFlashforgeのcloud/mobile appから接続できません。KOBOで
 - モデルを剥がす
   ![alt text](/images/adventure5mpro/print6.jpg)
 - ゴミを除去
-  ![alt text](/images/adventure5mpro/print7.png)
+  ![alt text](/images/adventure5mpro/print7.webp)
 
 ## 備考
 

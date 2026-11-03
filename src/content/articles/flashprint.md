@@ -5,7 +5,7 @@ type: guide
 excerpt: 'この記事では、スライサであるFlashPrintの基本的な使い方を紹介します。'
 authors:
   - yoshito-usui
-coverImage: '/images/flashprint.png'
+coverImage: '/images/flashprint.webp'
 machines:
   - 3d-printer
 ---
@@ -24,29 +24,29 @@ machines:
 ### 1. FlashPrintを起動。
 ### 2. 造形する3Dプリンタを選択する
 
-![alt text](/images/flashprint/flashprint1.png)
+![alt text](/images/flashprint/flashprint1.webp)
 
 ### 3. メニューまたは画面左上の「ファイルボタン」をクリックして、STLファイルなどの3Dモデルを読み込みます。
 
-![alt text](/images/flashprint/flashprint2.png)
+![alt text](/images/flashprint/flashprint2.webp)
 
 ### 4. 読み込んだモデルは、マウスドラッグで視点移動、スクロールでズームできます。
 
-![alt text](/images/flashprint/flashprint3.png)
+![alt text](/images/flashprint/flashprint3.webp)
 
 ## 3. モデルの配置と編集
 
 ### 移動（Move）: モデルをX/Y/Z方向に移動。
-![alt text](/images/flashprint/flashprint4.png)
+![alt text](/images/flashprint/flashprint4.webp)
 
 ### 回転（Rotate）: 角度を指定してモデルの向きを変更。
-![alt text](/images/flashprint/flashprint5.png)
+![alt text](/images/flashprint/flashprint5.webp)
 
 ### スケール（Scale）: サイズ変更。縦横比を保つ設定も可能。
-![alt text](/images/flashprint/flashprint6.png)
+![alt text](/images/flashprint/flashprint6.webp)
 
 ### 複製（Duplicate）: 同じモデルをコピーして複数配置。
-![alt text](/images/flashprint/flashprint7.png)
+![alt text](/images/flashprint/flashprint7.webp)
 
 
 > ワンポイント：配置が不安定なときは「**プラットフォームに配置**」をクリックすると自動で最適な位置に置かれます。
@@ -56,9 +56,9 @@ machines:
 3Dプリントでは、**空中に浮いている部分**があると、何も支えがないためうまく印刷できません。
 そのようなときに使うのが「サポート（Support）」です。
 
-![alt text](/images/flashprint/flashprint14.png)
+![alt text](/images/flashprint/flashprint14.webp)
 
-![alt text](/images/flashprint/flashprint15.png)
+![alt text](/images/flashprint/flashprint15.webp)
 
 ### サポートを使う時の注意
 * 取り外しがやや面倒になることがあります。
@@ -74,7 +74,7 @@ machines:
 
 ### 1. 画面上部の「スライスの実行」をクリック
 
-![alt text](/images/flashprint/flashprint10.png)
+![alt text](/images/flashprint/flashprint10.webp)
 
 ### 2. エキスパートモードで設定した方が良い箇所
 
@@ -94,25 +94,25 @@ machines:
   * ベッド温度：70～100℃程度
 
 
-![alt text](/images/flashprint/flashprint9.png)
+![alt text](/images/flashprint/flashprint9.webp)
 
 
 ### レイヤーの高さ
 * 造形物の精度に関わる。0.2mm程度が標準。
 
-![alt text](/images/flashprint/flashprint13.png)
+![alt text](/images/flashprint/flashprint13.webp)
 
 ### 充填率(Infill)
 * 内部の密度。15〜30%が一般的。
 
-![alt text](/images/flashprint/flashprint8.png)
+![alt text](/images/flashprint/flashprint8.webp)
 
 ### ラフト
 * 台座をつけて安定性を向上させたいときに使用する。Adoventure5MProの造形には基本的に使用した方が良い。
-![alt text](/images/flashprint/flashprint11.png)
+![alt text](/images/flashprint/flashprint11.webp)
 
 3. 設定後、「**スライス**」をクリック。
-![alt text](/images/flashprint/flashprint12.png)
+![alt text](/images/flashprint/flashprint12.webp)
 
 ## 5. Gcodeの保存・出力
 

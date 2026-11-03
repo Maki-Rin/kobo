@@ -3,10 +3,10 @@ title: 'Hairy Lion'
 date: '2025-07-07'
 authors:
   - yoshito-usui
-coverImage: '/images/works/hairlion.JPG'
+coverImage: '/images/works/hairlion.webp'
 images:
-  - '/images/works/hairlion.JPG'
-  - '/images/works/hairlion1.JPG'
+  - '/images/works/hairlion.webp'
+  - '/images/works/hairlion1.webp'
 status: done
 machines:
   - 3d-printer
