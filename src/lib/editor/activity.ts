@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, type Db } from './db';
 import type { Collection } from '../content-schema';
 
 export type ArticleAction = 'draft' | 'publish' | 'update' | 'unpublish' | 'revert';
@@ -55,13 +55,12 @@ export async function recordArticleEvent(event: Omit<ArticleEvent, 'userName' | 
   );
 }
 
-export async function latestEventByEntry(collection: Collection): Promise<Map<string, ArticleEvent>> {
-  const db = await getDb();
+export async function latestEventsByEntry(database?: Db): Promise<Map<string, ArticleEvent>> {
+  const db = database ?? await getDb();
   const rows = await db.all<EventRow>(
-    `${SELECT} WHERE e.id IN (SELECT MAX(id) FROM article_events WHERE collection = ? GROUP BY article_id)`,
-    [collection]
+    `${SELECT} WHERE e.id IN (SELECT MAX(id) FROM article_events GROUP BY collection, article_id)`
   );
-  return new Map(rows.map((row) => [row.article_id, toEvent(row)]));
+  return new Map(rows.map((row) => [`${row.collection}/${row.article_id}`, toEvent(row)]));
 }
 
 export async function recentEvents(options: { userId?: string; articleId?: string; collection?: Collection; limit: number }) {
