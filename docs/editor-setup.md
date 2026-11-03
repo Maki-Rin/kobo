@@ -57,6 +57,8 @@ main にはルールセット「AntiUsui」があり、管理者以外は更新�
 
 GitHub の kobo リポジトリ → Settings → Rules → Rulesets → AntiUsui → Bypass list → Add bypass → `kobo-editor-bot` を選んで Always allow → Save changes
 
+「Restrict updates」が有効なときは、投稿用GitHub AppをBypass listに追加しないと記事・作品・イベント・人物の保存が拒否される。Repository administratorsだけの例外ではBotは保存できない。投稿はmainへ直接コミットするため、Appの例外は「For pull requests only」ではなく「Always allow」にする。App名を変更して作成した場合はそのAppを選ぶ。
+
 ## 5. Vercel に環境変数を入れる
 
 Vercel → kobo プロジェクト → Settings → Environment Variables（Environment は Production）

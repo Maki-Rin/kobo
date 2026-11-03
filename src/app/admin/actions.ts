@@ -39,7 +39,7 @@ import {
 } from '@/lib/editor/entries';
 import { isCollection } from '@/lib/content-schema';
 import { savePeople } from '@/lib/editor/people';
-import { ConflictError } from '@/lib/editor/store';
+import { ConflictError, ContentStoreError } from '@/lib/editor/store';
 import { renderPreviewHtml } from '@/lib/editor/preview';
 import { limitEditorRequest, RateLimitError } from '@/lib/editor/rate-limit';
 import { getDb } from '@/lib/editor/db';
@@ -63,6 +63,7 @@ async function attempt<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
     if (error instanceof RateLimitError) return { ok: false, errors: [error.message] };
     if (error instanceof EditorError) return { ok: false, errors: error.messages };
     if (error instanceof ConflictError) return { ok: false, errors: [error.message] };
+    if (error instanceof ContentStoreError) return { ok: false, errors: [error.message] };
     console.error(error);
     const message = error instanceof Error ? error.message : '';
     const known = /期限切れ|時間切れ|無効|登録されていない|確認できません|ログインが必要/.test(message);
