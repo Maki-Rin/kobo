@@ -39,11 +39,12 @@ import {
 } from '@/lib/editor/entries';
 import { isCollection } from '@/lib/content-schema';
 import { savePeople } from '@/lib/editor/people';
-import { ConflictError } from '@/lib/editor/store';
+import { ConflictError, ContentStoreError } from '@/lib/editor/store';
 import { renderPreviewHtml } from '@/lib/editor/preview';
 import { limitEditorRequest, RateLimitError } from '@/lib/editor/rate-limit';
 import { getDb } from '@/lib/editor/db';
 import { DisplayNameError, normalizeDisplayName, updateDisplayName } from '@/lib/editor/profile';
+import { discardDraft } from '@/lib/editor/drafts';
 
 export type ActionResult<T = undefined> =
   | { ok: true; value: T }
@@ -63,6 +64,7 @@ async function attempt<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
     if (error instanceof RateLimitError) return { ok: false, errors: [error.message] };
     if (error instanceof EditorError) return { ok: false, errors: error.messages };
     if (error instanceof ConflictError) return { ok: false, errors: [error.message] };
+    if (error instanceof ContentStoreError) return { ok: false, errors: [error.message] };
     console.error(error);
     const message = error instanceof Error ? error.message : '';
     const known = /期限切れ|時間切れ|無効|登録されていない|確認できません|ログインが必要/.test(message);
@@ -162,23 +164,27 @@ export async function saveEntryAction(input: {
   isNew: boolean;
   baseSha: string | null;
   images: StagedImage[];
+  operation?: 'draft' | 'publish' | 'unpublish';
 }) {
   return attempt(async () => {
     const user = await requireUser();
-    await limitEditorRequest('save', 30, 3600, user.id);
+    const draftOnly = input.operation === 'draft' || (!input.operation && input.draft?.published === false);
+    await limitEditorRequest(draftOnly ? 'draft-save' : 'save', draftOnly ? 120 : 30, 3600, user.id);
     if (!isCollection(input.collection)) throw new EditorError(['種類が正しくありません']);
     const images = Array.isArray(input.images)
       ? input.images.map((image) => ({ name: String(image.name), sha: String(image.sha) }))
       : [];
-    const commitId = await saveEntry(user, {
+    if (input.operation && !['draft', 'publish', 'unpublish'].includes(input.operation)) throw new EditorError(['保存方法が正しくありません']);
+    const result = await saveEntry(user, {
       collection: input.collection,
       draft: input.draft,
       isNew: Boolean(input.isNew),
       baseSha: typeof input.baseSha === 'string' ? input.baseSha : null,
       images,
+      operation: input.operation,
     });
     revalidatePath('/admin');
-    return { commitId, id: String(input.draft.id) };
+    return { ...result, id: String(input.draft.id) };
   });
 }
 
@@ -189,6 +195,16 @@ export async function revertAction(commitId: string) {
     if (!/^[0-9a-f]{40}$/.test(commitId)) throw new EditorError(['変更IDが正しくありません']);
     await revertCommit(user, commitId);
     revalidatePath('/admin/history');
+  });
+}
+
+export async function discardDraftAction(collection: string, id: string, token: string) {
+  return attempt(async () => {
+    const user = await requireUser();
+    await limitEditorRequest('discard-draft', 20, 3600, user.id);
+    if (!isCollection(collection) || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new EditorError(['下書きが正しくありません']);
+    await discardDraft(user, collection, id, token);
+    revalidatePath('/admin');
   });
 }
 

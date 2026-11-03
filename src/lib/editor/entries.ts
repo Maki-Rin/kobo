@@ -20,7 +20,12 @@ import {
 import type { User } from './auth';
 import { audit } from './auth';
 import { recordArticleEvent, type ArticleAction } from './activity';
-import { ConflictError, getStore, type FileChange } from './store';
+import { ConflictError, ContentStoreError, getStore, gitBlobSha, type FileChange, type ContentStore } from './store';
+import { draftToken, listDrafts, readDraft, removeDraft, writeDraft } from './drafts';
+import { stageUpload, stagedImage, readUpload, releasePublishedUploads } from './uploads';
+import { getDb, type Db } from './db';
+
+interface EditorServices { store: ContentStore; db: Db }
 
 export class EditorError extends Error {
   constructor(public messages: string[]) {
@@ -40,6 +45,9 @@ export interface EntrySummary {
   type: Entry['type'];
   status: Entry['status'];
   hasRecord: boolean;
+  hasDraft?: boolean;
+  draftUpdatedAt?: string;
+  draftUpdatedBy?: string;
 }
 
 export interface StagedImage {
@@ -62,11 +70,11 @@ export function entryFromPath(filePath: string): { collection: Collection; id: s
   return { collection: match[1], id: match[2] };
 }
 
-export async function listEntries(collection: Collection): Promise<EntrySummary[]> {
-  const store = getStore();
+export async function listEntries(collection: Collection, services?: EditorServices): Promise<EntrySummary[]> {
+  const store = services?.store ?? getStore();
   const dir = contentDir(collection);
-  const files = await store.readDirectory(dir);
-  const entries = files.map((file) => {
+  const [files, drafts] = await Promise.all([store.readDirectory(dir), listDrafts(collection, services?.db)]);
+  const entries: EntrySummary[] = files.map((file) => {
     const entry = parseEntry(collection, file.path.slice(dir.length + 1, -3), file.content.toString('utf8'));
     return {
       collection,
@@ -82,16 +90,36 @@ export async function listEntries(collection: Collection): Promise<EntrySummary[
       hasRecord: entry.record.trim() !== '',
     };
   });
+  for (const saved of drafts) {
+    const existing = entries.findIndex((entry) => entry.id === saved.entry.id);
+    const entry = saved.entry;
+    const cover = saved.images.find((image) => entry.coverImage === `${imageDir(collection, entry.id)}/${image.name}`);
+    const summary: EntrySummary = {
+      collection, id: entry.id, title: entry.title, date: entry.date,
+      published: existing >= 0 ? entries[existing].published : false,
+      coverImage: cover ? `/admin/staged/${cover.sha}` : entry.coverImage,
+      authors: entry.authors, legacyAuthor: entry.legacyAuthor,
+      type: entry.type, status: entry.status, hasRecord: !!entry.record.trim(), hasDraft: true,
+      draftUpdatedAt: saved.updatedAt, draftUpdatedBy: saved.updatedBy,
+    };
+    if (existing >= 0) entries[existing] = summary;
+    else entries.push(summary);
+  }
   return entries.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function loadEntry(
   collection: Collection,
-  id: string
-): Promise<{ draft: Entry; sha: string } | null> {
-  const file = await getStore().read(entryPath(collection, id));
+  id: string,
+  services?: EditorServices
+): Promise<{ draft: Entry; sha: string; images: StagedImage[]; draftOwnerId?: string } | null> {
+  const [file, saved] = await Promise.all([(services?.store ?? getStore()).read(entryPath(collection, id)), readDraft(collection, id, services?.db)]);
+  if (saved) return {
+    draft: { ...saved.entry, published: file ? parseEntry(collection, id, file.content.toString('utf8')).published : false },
+    sha: draftToken(saved), images: saved.images, draftOwnerId: saved.updatedById,
+  };
   if (!file) return null;
-  return { draft: parseEntry(collection, id, file.content.toString('utf8')), sha: file.sha };
+  return { draft: parseEntry(collection, id, file.content.toString('utf8')), sha: file.sha, images: [] };
 }
 
 function markdownImageUrls(markdown: string): string[] {
@@ -112,18 +140,18 @@ function checkImage(data: Buffer): string | null {
 export async function stageImage(data: Buffer): Promise<{ sha: string; type: string }> {
   const problem = checkImage(data);
   if (problem) throw new EditorError([problem]);
-  return { sha: await getStore().stage(data), type: detectImageType(data)! };
+  return { sha: await stageUpload(data), type: detectImageType(data)! };
 }
 
 const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
 const validTime = (value: string) => value === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 
-async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Promise<FileChange[]> {
-  const store = getStore();
+async function validate(draft: Entry, isNew: boolean, images: StagedImage[], store = getStore(), readImage = stagedImage): Promise<FileChange[]> {
   const errors: string[] = [];
   const label = collectionLabels[draft.collection];
   if (!/^[A-Za-z0-9_-]{1,80}$/.test(draft.id)) throw new EditorError(['URLの名前が正しくありません']);
   if (draft.body.length > 100_000 || draft.record.length > 100_000) errors.push('本文は10万文字までです');
+  if (Buffer.byteLength(JSON.stringify(draft), 'utf8') > 1_000_000) errors.push('入力内容の合計サイズが大きすぎます');
 
   if (isNew) {
     if (!NEW_ID.test(draft.id)) {
@@ -139,7 +167,7 @@ async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Pr
   if (draft.collection !== 'events' && draft.published && draft.authors.length === 0) {
     errors.push(draft.collection === 'works' ? '作った人の名前を入れてください' : '書いた人の名前を入れてください');
   }
-  if (draft.collection === 'articles' && !draft.body.trim()) errors.push('本文が空です');
+  if (draft.published && draft.collection === 'articles' && !draft.body.trim()) errors.push('本文が空です');
   if (draft.collection === 'events') {
     if (!validTime(draft.startTime) || !validTime(draft.endTime)) errors.push('時刻は 12:40 のように入れてください');
     if (draft.applyUrl && !/^https:\/\//.test(draft.applyUrl)) errors.push('申し込みリンクは https:// で始まるURLにしてください');
@@ -151,7 +179,7 @@ async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Pr
   const uploaded = new Set<string>();
   const changes: FileChange[] = [];
   for (const image of images) {
-    const data = await store.staged(image.sha);
+    const data = await readImage(image.sha);
     const type = data ? detectImageType(data) : null;
     if (!data || !IMAGE_NAME.test(image.name) || !type || !image.name.endsWith(`.${type}`)) {
       errors.push(`画像 ${image.name} を読み込めませんでした。もう一度追加してください`);
@@ -165,7 +193,7 @@ async function validate(draft: Entry, isNew: boolean, images: StagedImage[]): Pr
     const publicPath = `${imageDir(draft.collection, draft.id)}/${image.name}`;
     if (await store.exists(`public${publicPath}`)) continue;
     uploaded.add(publicPath);
-    changes.push({ path: `public${publicPath}`, blobSha: image.sha });
+    changes.push({ path: `public${publicPath}`, content: data });
   }
 
   const missing = async (url: string) =>
@@ -232,42 +260,102 @@ export async function saveEntry(
     isNew: boolean;
     baseSha: string | null;
     images: StagedImage[];
-  }
-): Promise<string> {
+    operation?: 'draft' | 'publish' | 'unpublish';
+  },
+  services?: EditorServices
+): Promise<{ commitId: string | null; changed: boolean }> {
   const draft = sanitizeDraft(input.collection, input.draft);
   if (!/^[A-Za-z0-9_-]{1,80}$/.test(draft.id)) throw new EditorError(['URLの名前が正しくありません']);
-  const previous = input.isNew ? null : await loadEntry(input.collection, draft.id);
-  if (!input.isNew && (!input.baseSha || !previous)) {
-    throw new EditorError([`編集する${collectionLabels[input.collection]}が見つかりません`]);
-  }
-  const changes = await validate(draft, input.isNew, input.images);
+  const operation = input.operation ?? (draft.published ? 'publish' : 'draft');
+  const store = services?.store ?? getStore();
+  const db = services?.db ?? await getDb();
+  const readImage = async (sha: string) => (await readUpload(sha, db)) ?? store.staged(sha);
   const filePath = entryPath(draft.collection, draft.id);
-  changes.push({ path: filePath, content: Buffer.from(serializeEntry(draft)) });
+  const [file, saved] = await Promise.all([store.read(filePath), readDraft(draft.collection, draft.id, db)]);
+  const previous = file ? parseEntry(draft.collection, draft.id, file.content.toString('utf8')) : null;
+  const token = saved ? draftToken(saved) : file?.sha ?? null;
+  if ((input.isNew && token !== null) || (!input.isNew && (token === null || token !== input.baseSha))) {
+    throw new ConflictError('ほかの人が先に変更しています。書きかけを残して、最新の内容を確認してください');
+  }
+  const baseSha = saved ? saved.baseSha : file?.sha ?? null;
+  const combinedImages = new Map([...(saved?.images ?? []), ...input.images].map((image) => [image.name, image]));
+  const usedImages = [...combinedImages.values()].filter((image) => {
+    const publicPath = `${imageDir(draft.collection, draft.id)}/${image.name}`;
+    return [draft.body, draft.record, draft.coverImage, ...draft.images].some((value) => value.includes(publicPath));
+  });
+  // A previous publish may have reached GitHub before its DB cleanup failed.
+  // Retrying the same snapshot must not publish twice or discard a newer draft.
+  if (operation === 'publish' && previous?.published &&
+      serializeEntry(previous) === serializeEntry({ ...draft, published: true })) {
+    const imagesMatch = await Promise.all(usedImages.map(async (image) =>
+      (await store.read(`public${imageDir(draft.collection, draft.id)}/${image.name}`))?.sha === image.sha));
+    if (imagesMatch.every(Boolean)) {
+      if (saved) await removeDraft(draft.collection, draft.id, saved.revision, db);
+      return { commitId: null, changed: false };
+    }
+  }
+  if (operation !== 'draft' && (file?.sha ?? null) !== baseSha) {
+    throw new ConflictError('下書きの保存後に公開版が変更されています。最新の公開版と内容を確認してください');
+  }
+  if (operation === 'draft') {
+    draft.published = false;
+    const imageChanges = await validate(draft, !file, usedImages, store, readImage);
+    if (!saved && previous && !imageChanges.length &&
+        serializeEntry(previous) === serializeEntry({ ...draft, published: previous.published })) {
+      return { commitId: null, changed: false };
+    }
+    const result = await writeDraft({ entry: draft, images: usedImages, baseSha, expected: saved, userId: user.id }, db);
+    if (result.changed) await db.run('INSERT INTO audit_log (at, actor_id, action, target, detail) VALUES (?, ?, ?, ?, ?)',
+      [new Date().toISOString(), user.id, 'entry.draft', `${draft.collection}/${draft.id}`, result.revision]);
+    return { commitId: null, changed: result.changed };
+  }
+  if (operation === 'unpublish') {
+    if (!previous?.published) return { commitId: null, changed: false };
+    Object.assign(draft, previous, { published: false });
+  } else {
+    draft.published = true;
+  }
+  const changes = operation === 'unpublish' ? [] : await validate(draft, !file, usedImages, store, readImage);
+  const content = Buffer.from(serializeEntry(draft));
+  if (previous && serializeEntry(previous) === serializeEntry(draft) && changes.length === 0) {
+    if (saved) await removeDraft(draft.collection, draft.id, saved.revision, db);
+    return { commitId: null, changed: false };
+  }
+  changes.push({ path: filePath, content });
   const label = collectionLabels[draft.collection];
-  const verb = !draft.published ? '下書きを保存' : previous?.draft.published ? `${label}を更新` : `${label}を公開`;
-  const commitId = await getStore().commit({
+  const verb = operation === 'unpublish' ? `${label}を非公開` : previous?.published ? `${label}を更新` : `${label}を公開`;
+  const commitId = await store.commit({
     changes,
-    expected: { [filePath]: input.isNew ? null : input.baseSha },
+    expected: { [filePath]: baseSha },
     title: `📝 ${verb}: ${draft.title}`,
     editor: user,
   });
-  const action: ArticleAction = !draft.published
-    ? previous?.draft.published
-      ? 'unpublish'
-      : 'draft'
-    : previous?.draft.published
-      ? 'update'
-      : 'publish';
-  await recordArticleEvent({
-    collection: draft.collection,
-    articleId: draft.id,
-    title: draft.title,
-    action,
-    userId: user.id,
-    commitId,
-  });
-  await audit(user.id, 'entry.save', `${draft.collection}/${draft.id}`, commitId);
-  return commitId;
+  try {
+    if (saved && operation !== 'unpublish') await removeDraft(draft.collection, draft.id, saved.revision, db);
+    if (saved && operation === 'unpublish') {
+      await db.run('UPDATE editor_drafts SET base_sha = ? WHERE collection = ? AND entry_id = ? AND revision = ?',
+        [gitBlobSha(content), draft.collection, draft.id, saved.revision]);
+    }
+    const action: ArticleAction = operation === 'unpublish' ? 'unpublish' : previous?.published ? 'update' : 'publish';
+    await recordArticleEvent({
+      collection: draft.collection,
+      articleId: draft.id,
+      title: draft.title,
+      action,
+      userId: user.id,
+      commitId,
+    }, db);
+    await db.run('INSERT INTO audit_log (at, actor_id, action, target, detail) VALUES (?, ?, ?, ?, ?)',
+      [new Date().toISOString(), user.id, 'entry.save', `${draft.collection}/${draft.id}`, commitId]);
+  } catch {
+    console.error('Published content but failed to finalize editor metadata', { commitId, collection: draft.collection, id: draft.id });
+    throw new ContentStoreError('GitHubへの反映は完了しましたが、下書き・履歴の整理に失敗しました。公開状態を確認し、同じ内容の再公開は控えてください');
+  }
+  if (operation === 'publish') {
+    try { await releasePublishedUploads(usedImages.map((image) => image.sha), db); }
+    catch { console.error('Published image cleanup deferred', { commitId }); }
+  }
+  return { commitId, changed: true };
 }
 
 const editable = (filePath: string) =>

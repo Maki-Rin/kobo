@@ -3,6 +3,7 @@ import { audit, canManageMembers, type User } from './auth';
 import { detectImageType } from '../image-type';
 import { EditorError, type StagedImage } from './entries';
 import { getStore, type FileChange } from './store';
+import { stagedImage, releasePublishedUploads } from './uploads';
 
 export const PEOPLE_PATH = 'src/content/people.json';
 const ID = /^[a-z0-9][a-z0-9-]{1,39}$/;
@@ -56,13 +57,13 @@ export async function savePeople(
   const changes: FileChange[] = [];
   for (const image of input.images) {
     const [, personId, name] = image.name.match(/^([a-z0-9-]+)\/(.+)$/) ?? [];
-    const data = await store.staged(image.sha);
+    const data = await stagedImage(image.sha);
     const type = data && detectImageType(data);
     if (!personId || !ids.has(personId) || !IMAGE_NAME.test(name ?? '') || !data || data.length > 3 * 1024 * 1024 || !type || !name.endsWith(`.${type}`)) {
       errors.push('アイコン画像を読み込めませんでした。もう一度選んでください');
       continue;
     }
-    changes.push({ path: `public/images/people/${personId}/${name}`, blobSha: image.sha });
+    changes.push({ path: `public/images/people/${personId}/${name}`, content: data });
   }
   if (errors.length > 0) throw new EditorError([...new Set(errors)]);
   changes.push({ path: PEOPLE_PATH, content: Buffer.from(`${JSON.stringify(people, null, 2)}\n`) });
@@ -73,4 +74,6 @@ export async function savePeople(
     editor: user,
   });
   await audit(user.id, 'people.save');
+  try { await releasePublishedUploads(input.images.map((image) => image.sha)); }
+  catch { console.error('People image cleanup deferred'); }
 }

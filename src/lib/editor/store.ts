@@ -47,6 +47,7 @@ export interface ContentStore {
 }
 
 export class ConflictError extends Error {}
+export class ContentStoreError extends Error {}
 
 
 const WRITABLE = [
@@ -170,8 +171,14 @@ class LocalStore implements ContentStore {
         throw new ConflictError(`ほかの人が先に変更しています: ${filePath}`);
       }
     }
-    const files: LocalEntry['files'] = [];
+    const effective: FileChange[] = [];
     for (const change of request.changes) {
+      const current = await this.read(change.path);
+      if (current?.sha !== ('content' in change ? gitBlobSha(change.content) : change.blobSha)) effective.push(change);
+    }
+    if (!effective.length) return (await this.log()).at(-1)?.id ?? gitBlobSha(Buffer.alloc(0));
+    const files: LocalEntry['files'] = [];
+    for (const change of effective) {
       const content =
         'content' in change ? change.content : await this.staged(change.blobSha);
       if (!content) throw new Error(`画像が見つかりません: ${change.path}`);
@@ -310,11 +317,25 @@ export class GitHubStore implements ContentStore {
         signal: AbortSignal.timeout(10_000),
       }
     );
-    if (response.status === 409 || response.status === 422) {
-      throw new ConflictError('ほかの保存と重なりました。もう一度保存してください');
-    }
     if (!response.ok) {
-      throw new Error(`GitHub API ${route} が失敗しました (${response.status})`);
+      const detail = await response.json().catch(() => null) as { message?: unknown; errors?: { message?: unknown }[] } | null;
+      const messages = [detail?.message, ...(Array.isArray(detail?.errors) ? detail.errors.map((error) => error?.message) : [])]
+        .filter((message): message is string => typeof message === 'string').join('\n');
+      const updatingBranch = init.method === 'PATCH' && route.startsWith('/git/refs/heads/');
+      if (/protected (branch|ref)|repository rule|rule violations?|changes must be made through a pull request/i.test(messages)) {
+        throw new ContentStoreError('GitHubのブランチ保護ルールで保存が拒否されました。管理者がRulesetsのBypass listに投稿用GitHub Appを追加してください');
+      }
+      if (updatingBranch && /not a fast.?forward/i.test(messages)) {
+        throw new ConflictError('ほかの保存と重なりました。もう一度保存してください');
+      }
+      if (response.status === 429 || /rate limit|secondary limit|abuse detection/i.test(messages)) {
+        throw new ContentStoreError('GitHubの利用上限に達しました。時間をおいてから保存してください');
+      }
+      if (response.status === 401 || response.status === 403) {
+        throw new ContentStoreError('GitHubへのアクセスが拒否されました。管理者が投稿用GitHub Appの認証情報・Contentsの書き込み権限・ブランチの例外設定を確認してください');
+      }
+      console.error('GitHub content store request failed', { route, status: response.status, requestId: response.headers.get('x-github-request-id') });
+      throw new ContentStoreError(`GitHubが保存データを受け付けませんでした（HTTP ${response.status}）。管理者に連絡してください`);
     }
     return (init.raw ? Buffer.from(await response.arrayBuffer()) : await response.json()) as T;
   }
@@ -398,8 +419,11 @@ export class GitHubStore implements ContentStore {
         throw new ConflictError(`ほかの人が先に変更しています: ${filePath}`);
       }
     }
+    const effective = request.changes.filter((change) =>
+      head.entries.get(change.path) !== ('content' in change ? gitBlobSha(change.content) : change.blobSha));
+    if (!effective.length) return head.commitSha;
     const tree = [];
-    for (const change of request.changes) {
+    for (const change of effective) {
       const sha = 'content' in change ? await this.stage(change.content) : change.blobSha;
       tree.push({ path: change.path, mode: '100644', type: 'blob', sha });
     }
