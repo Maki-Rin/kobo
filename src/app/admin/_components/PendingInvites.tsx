@@ -40,7 +40,7 @@ export default function PendingInvites({ invites, now }: { invites: PendingInvit
                   ? `${invite.targetName ?? ''} さんのログインリンク`
                   : invite.targetName
                     ? `${invite.targetName} さんの端末追加`
-                    : `${invite.displayName} さんの招待`}
+                    : invite.displayName ? `${invite.displayName} さんへの招待（表示名の候補）` : '名前未指定の招待'}
                 {invite.kind === 'register' && !invite.targetName && invite.role && (
                   <span className={`${badge} bg-slate-100 text-slate-700`}>{roleNames[invite.role]}</span>
                 )}

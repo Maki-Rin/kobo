@@ -23,6 +23,7 @@ import {
 } from './auth';
 import { CHALLENGE_COOKIE } from './policy';
 import { consumeChallenge } from './tokens';
+import { normalizeDisplayName } from './profile';
 
 const CHALLENGE_MINUTES = 5;
 
@@ -68,7 +69,7 @@ async function takeChallenge(id: string, purpose: 'register' | 'login') {
   return row;
 }
 
-export async function beginRegistration(inviteToken: string): Promise<{
+export async function beginRegistration(inviteToken: string, chosenName?: string): Promise<{
   challengeId: string;
   options: PublicKeyCredentialCreationOptionsJSON;
 }> {
@@ -91,6 +92,8 @@ export async function beginRegistration(inviteToken: string): Promise<{
       id: row.id,
       transports: row.transports ? JSON.parse(row.transports) : undefined,
     }));
+  } else {
+    displayName = normalizeDisplayName(chosenName ?? invite.displayName);
   }
 
   const { rpID } = editorConfig();
@@ -120,13 +123,15 @@ export async function finishRegistration(
   inviteToken: string,
   challengeId: string,
   response: RegistrationResponseJSON,
-  shared: boolean
+  shared: boolean,
+  chosenName?: string
 ) {
   const challenge = await takeChallenge(challengeId, 'register');
   const invite = await findInvite(inviteToken, 'register');
   if (!invite || invite.tokenHash !== challenge.invite_token_hash || !challenge.user_id) {
     throw new Error('招待リンクが無効か、期限切れです');
   }
+  const displayName = invite.userId ? null : normalizeDisplayName(chosenName ?? invite.displayName);
   const { origin, rpID } = editorConfig();
   const verification = await verifyRegistrationResponse({
     response,
@@ -143,7 +148,7 @@ export async function finishRegistration(
   }
   await markInviteUsed(invite.tokenHash);
   if (!invite.userId) {
-    await createUser(userId, invite.displayName ?? '名無し', invite.role ?? 'editor');
+    await createUser(userId, displayName!, invite.role ?? 'editor');
   }
   const { credential } = verification.registrationInfo;
   const db = await getDb();

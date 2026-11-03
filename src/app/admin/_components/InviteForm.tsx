@@ -11,7 +11,7 @@ export default function InviteForm({ canInviteDeveloper }: { canInviteDeveloper:
   const [role, setRole] = useState<Role>('editor');
   return (
     <div className='space-y-3'>
-      <label htmlFor='invite-name' className='block text-sm font-medium'>アカウントの表示名</label>
+      <label htmlFor='invite-name' className='block text-sm font-medium'>表示名の候補（任意）</label>
       <div className='flex flex-col gap-2 sm:flex-row'>
         <input
           id='invite-name'
@@ -19,7 +19,7 @@ export default function InviteForm({ canInviteDeveloper }: { canInviteDeveloper:
           maxLength={80}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder='例：山田 太郎'
+          placeholder='空欄でも招待できます'
           className={input}
         />
         <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={`${select} w-full sm:w-36`}>
@@ -29,7 +29,7 @@ export default function InviteForm({ canInviteDeveloper }: { canInviteDeveloper:
         </select>
       </div>
       <p id='invite-name-help' className='text-xs leading-5 text-slate-500'>
-        メンバー一覧や変更履歴に表示する名前です。日本語・英語どちらでも使えます（1〜80文字）。
+        表示名は本人が参加時に決め、登録後も「アカウント」で変更できます。日本語・英語どちらでも使えます。
         記事の「書いた人」や作品の「作った人」は「人物」で別に設定します。
       </p>
       <LinkButton

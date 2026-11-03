@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { currentUser, listPasskeys, roleLabels } from '@/lib/editor/auth';
 import LinkButton from '../_components/LinkButton';
 import PasskeyList from '../_components/PasskeyList';
+import AccountNameForm from '../_components/AccountNameForm';
 import { addDeviceInviteAction, logoutAction } from '../actions';
 import { badge, button, card, pageTitle } from '../_components/ui';
 
@@ -26,6 +27,10 @@ export default async function AccountPage() {
         <form action={logoutAction}>
           <button className={button('secondary')}>ログアウト</button>
         </form>
+      </section>
+
+      <section className={`${card} p-5`}>
+        <AccountNameForm displayName={user.displayName} />
       </section>
 
       <section className={`${card} space-y-4 p-5`}>
