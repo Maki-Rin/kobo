@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getArticle, getArticles, formatDate } from '@/lib/articles';
@@ -136,63 +135,73 @@ export default async function ArticlePage({
   };
 
   return (
-    <div className='min-h-screen bg-paper'>
+    <div className='min-h-screen bg-white'>
       <script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Header />
 
-      <main className='mx-auto max-w-6xl px-4 py-8 md:px-8'>
-        <Link href='/articles' className='text-sm font-semibold underline-offset-4 hover:underline'>
-          ← まなぶ
-        </Link>
-        <div className='mt-5 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_240px]'>
-          <article className='min-w-0'>
-            <header className='space-y-4'>
-              <div className='flex flex-wrap items-center gap-2'>
+      <div className='px-4 py-8'>
+        <div className='mx-auto max-w-6xl'>
+          <header className='grid grid-cols-1 gap-8 md:grid-cols-[1fr_250px]'>
+            <div className='mb-4'>
+              <div className='mb-3 flex flex-wrap items-center gap-2'>
                 <TypeBadge type={article.type} />
                 <MachineTags machines={article.machines} basePath='/articles' />
               </div>
-              <h1 className='text-3xl font-extrabold leading-tight md:text-4xl'>{article.title}</h1>
-              <div className='flex items-center gap-3'>
-                {article.author.avatar && (
-                  <Image src={article.author.avatar} alt='' width={36} height={36} className='rounded-full border-2 border-ink' />
+              <h1 className='text-4xl font-bold'>{article.title}</h1>
+              <div className='my-4 flex items-center gap-4'>
+                {article.author.avatar ? (
+                  <Image src={article.author.avatar} alt='' width={40} height={40} className='rounded-full' />
+                ) : (
+                  <span className='size-10 rounded-full bg-neutral-300' />
                 )}
-                <div className='text-sm'>
-                  <p className='font-semibold'>{article.author.name}</p>
-                  <p className='text-muted'>{formatDate(article.date)}</p>
+                <div>
+                  <p className='text-sm font-medium'>{article.author.name}</p>
+                  <p className='text-sm font-bold'>{formatDate(article.date)}</p>
                 </div>
               </div>
-              <div className='relative aspect-[1200/630] overflow-hidden rounded-2xl border-2 border-ink bg-off'>
-                <Image src={article.coverImage || '/placeholder.svg'} alt='' fill priority sizes='(min-width: 1024px) 800px, 100vw' className='object-cover' />
+              <div className='relative h-[200px] w-full md:h-[400px]'>
+                <Image
+                  src={article.coverImage || '/placeholder.svg'}
+                  alt=''
+                  fill
+                  priority
+                  sizes='(min-width: 768px) 70vw, 100vw'
+                  className='rounded-lg object-cover'
+                />
               </div>
-            </header>
-            <div className='mt-8'>
-              {article.content && <MarkdownContent tree={article.content} className='article-body' />}
             </div>
-          </article>
+          </header>
 
-          {(article.sections?.length ?? 0) > 0 && (
-            <aside className='order-first lg:order-last'>
-              <nav className='rounded-xl border-2 border-ink p-4 lg:sticky lg:top-6' aria-label='目次'>
-                <p className='mb-2 text-sm font-extrabold'>目次</p>
-                <ul className='space-y-1 text-sm'>
-                  {article.sections?.map((section, index) => (
-                    <li key={section.id || `section-${index}`}>
+          <div className='grid grid-cols-1 gap-8 md:grid-cols-[1fr_250px]'>
+            <article className='min-w-0'>
+              {article.content && <MarkdownContent tree={article.content} className='article-body' />}
+            </article>
+
+            {(article.sections?.length ?? 0) > 0 && (
+              <aside className='order-first md:order-last'>
+                <div className='space-y-4 md:sticky md:top-20'>
+                  <p className='mb-4 font-semibold'>目次</p>
+                  <nav className='space-y-2' aria-label='目次'>
+                    {article.sections?.map((section, index) => (
                       <a
+                        key={section.id || `section-${index}`}
                         href={`#${section.id}`}
-                        className={`block rounded-md px-2 py-1 hover:bg-cream ${
-                          section.level === 2 ? 'font-semibold' : 'ml-3 border-l-2 border-line-soft pl-3 text-muted'
+                        className={`block transition-colors hover:text-neutral-600 ${
+                          section.level === 2
+                            ? 'py-2 text-sm font-semibold text-neutral-900'
+                            : 'ml-8 border-l-2 border-slate-300 py-1 pl-4 text-sm font-normal text-neutral-900'
                         }`}
                       >
                         {section.title}
                       </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </aside>
-          )}
+                    ))}
+                  </nav>
+                </div>
+              </aside>
+            )}
+          </div>
         </div>
-      </main>
+      </div>
 
       <Footer />
     </div>

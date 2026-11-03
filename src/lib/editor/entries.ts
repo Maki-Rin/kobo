@@ -45,6 +45,7 @@ export interface EntrySummary {
   type: Entry['type'];
   status: Entry['status'];
   hasRecord: boolean;
+  reportOnly: boolean;
   hasDraft?: boolean;
   draftUpdatedAt?: string;
   draftUpdatedBy?: string;
@@ -88,6 +89,7 @@ export async function listEntries(collection: Collection, services?: EditorServi
       type: entry.type,
       status: entry.status,
       hasRecord: entry.record.trim() !== '',
+      reportOnly: entry.reportOnly,
     };
   });
   for (const saved of drafts) {
@@ -99,7 +101,7 @@ export async function listEntries(collection: Collection, services?: EditorServi
       published: existing >= 0 ? entries[existing].published : false,
       coverImage: cover ? `/admin/staged/${cover.sha}` : entry.coverImage,
       authors: entry.authors, legacyAuthor: entry.legacyAuthor,
-      type: entry.type, status: entry.status, hasRecord: !!entry.record.trim(), hasDraft: true,
+      type: entry.type, status: entry.status, hasRecord: !!entry.record.trim(), reportOnly: entry.reportOnly, hasDraft: true,
       draftUpdatedAt: saved.updatedAt, draftUpdatedBy: saved.updatedBy,
     };
     if (existing >= 0) entries[existing] = summary;
@@ -249,6 +251,7 @@ function sanitizeDraft(collection: Collection, raw: Record<string, unknown>): En
     applyUrl: text('applyUrl').trim(),
     participants: text('participants').trim(),
     record: text('record'),
+    reportOnly: collection === 'events' && raw.reportOnly === true,
   };
 }
 

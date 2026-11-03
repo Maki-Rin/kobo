@@ -36,49 +36,51 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
     ['使った機材', <MachineTags key='machines' machines={entry.machines} basePath='/works' />],
     ['難易度', entry.difficulty],
     ['かかった時間', entry.duration],
-    ['関連イベント', event ? <Link key='event' href={`/events/${event.id}`} className='underline'>{event.title}</Link> : null],
+    ['関連イベント', event ? <Link key='event' href={`/events/${event.id}`} className='underline underline-offset-4'>{event.title}</Link> : null],
   ].filter(([, value]) => value);
 
   return (
-    <div className='min-h-screen bg-white'>
+    <div className='min-h-screen bg-white text-neutral-950'>
       <Header />
-      <main className='mx-auto max-w-6xl px-4 py-8 md:px-8'>
-        <div>
-          <Link href='/works' className='text-sm font-semibold underline-offset-4 hover:underline'>
-            ← 作品一覧
-          </Link>
-          <div className='mt-5 grid gap-8 md:grid-cols-[3fr_2fr]'>
-            <div className='space-y-3'>
-              {images.map((src, index) => (
-                <div key={src} className='relative aspect-[4/3] overflow-hidden rounded-2xl border-2 border-ink bg-off'>
-                  <Image src={src} alt={`${entry.title} ${index + 1}`} fill sizes='(min-width: 768px) 60vw, 100vw' className='object-contain' priority={index === 0} />
+      <main className='mx-auto max-w-6xl px-6 py-10 md:py-14'>
+        <Link href='/works' className='text-sm text-neutral-600 underline decoration-neutral-300 underline-offset-4 hover:decoration-black'>
+          作例一覧に戻る
+        </Link>
+        <div className='mt-6 grid gap-10 md:grid-cols-[3fr_2fr]'>
+          <div className='space-y-4'>
+            {images.map((src, index) => (
+              <div key={src} className='relative aspect-[4/3] overflow-hidden rounded-lg bg-neutral-100'>
+                <Image src={src} alt={`${entry.title} ${index + 1}`} fill sizes='(min-width: 768px) 60vw, 100vw' className='object-contain' priority={index === 0} />
+              </div>
+            ))}
+          </div>
+          <div className='space-y-6'>
+            <div className='border-b border-neutral-200 pb-5'>
+              <h1 className='text-3xl font-bold leading-tight'>{entry.title}</h1>
+              {authors.length > 0 && (
+                <ul className='mt-4 flex flex-wrap gap-4'>
+                  {authors.map((person) => (
+                    <li key={person.id} className='flex items-center gap-2'>
+                      {person.avatar ? (
+                        <Image src={person.avatar} alt='' width={28} height={28} className='rounded-full' />
+                      ) : (
+                        <span className='size-7 rounded-full bg-neutral-300' />
+                      )}
+                      <span className='text-sm text-neutral-600'>{person.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <dl className='space-y-3 text-sm'>
+              {facts.map(([label, value]) => (
+                <div key={label as string} className='flex items-start gap-4'>
+                  <dt className='w-24 shrink-0 text-neutral-500'>{label}</dt>
+                  <dd className='min-w-0 flex-1'>{value}</dd>
                 </div>
               ))}
-            </div>
-            <div className='space-y-6'>
-              <div>
-                <h1 className='text-3xl font-extrabold leading-tight'>{entry.title}</h1>
-                {authors.length > 0 && (
-                  <ul className='mt-4 flex flex-wrap gap-4'>
-                    {authors.map((person) => (
-                      <li key={person.id} className='flex items-center gap-2'>
-                        {person.avatar && <Image src={person.avatar} alt='' width={32} height={32} className='rounded-full' />}
-                        <span className='text-sm font-medium'>{person.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <dl className='divide-y divide-line-soft rounded-xl border-2 border-ink text-sm'>
-                {facts.map(([label, value]) => (
-                  <div key={label as string} className='flex items-start gap-4 px-4 py-3'>
-                    <dt className='w-24 shrink-0 font-semibold text-muted'>{label}</dt>
-                    <dd className='min-w-0 flex-1'>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <MarkdownContent tree={tree} className='article-body' />
-            </div>
+            </dl>
+            <MarkdownContent tree={tree} className='article-body border-t border-neutral-200 pt-2' />
           </div>
         </div>
       </main>

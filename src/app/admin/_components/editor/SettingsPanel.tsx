@@ -102,7 +102,7 @@ export default function SettingsPanel({
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const { collection } = draft;
-  const coverLabel = collection === 'events' ? '告知画像（チラシなど）' : 'カバー画像';
+  const coverLabel = collection === 'events' ? (draft.reportOnly ? '代表の写真' : '告知画像（チラシなど）') : 'カバー画像';
   const personLabel = collection === 'works' ? '作った人' : '書いた人';
   const toggleMachine = (slug: string) =>
     onChange(
@@ -142,6 +142,19 @@ export default function SettingsPanel({
 
           {collection === 'events' && (
             <>
+              <Field
+                label='載せ方'
+                hint={draft.reportOnly ? '告知は出さず、開催報告だけを載せます。イベントの「開催報告」とトップの「新着」に出ます。' : '開催前に告知を出し、終わったら開催報告を書き足します。'}
+              >
+                <Segmented
+                  value={draft.reportOnly ? 'report' : 'announce'}
+                  options={[
+                    ['announce', '告知する'],
+                    ['report', '開催報告だけ'],
+                  ]}
+                  onChange={(value) => onChange('reportOnly', value === 'report')}
+                />
+              </Field>
               <Field label='開催日'>
                 <input type='date' className={input} value={draft.date} onChange={(e) => onChange('date', e.target.value)} />
               </Field>
@@ -155,12 +168,16 @@ export default function SettingsPanel({
               <Field label='場所'>
                 <input className={input} value={draft.place} placeholder='例: H棟1F テラスゲート前' onChange={(e) => onChange('place', e.target.value)} />
               </Field>
-              <Field label='定員（なくてもOK）'>
-                <input className={input} value={draft.capacity} placeholder='例: 10名' onChange={(e) => onChange('capacity', e.target.value)} />
-              </Field>
-              <Field label='申し込みリンク（なくてもOK）' hint='Googleフォームなど。空なら申し込みボタンは出ません。'>
-                <input className={input} value={draft.applyUrl} placeholder='https://' onChange={(e) => onChange('applyUrl', e.target.value)} />
-              </Field>
+              {!draft.reportOnly && (
+                <>
+                  <Field label='定員（なくてもOK）'>
+                    <input className={input} value={draft.capacity} placeholder='例: 10名' onChange={(e) => onChange('capacity', e.target.value)} />
+                  </Field>
+                  <Field label='申し込みリンク（なくてもOK）' hint='Googleフォームなど。空なら申し込みボタンは出ません。'>
+                    <input className={input} value={draft.applyUrl} placeholder='https://' onChange={(e) => onChange('applyUrl', e.target.value)} />
+                  </Field>
+                </>
+              )}
               {isPastEvent(draft) && (
                 <Field label='参加人数（開催後）'>
                   <input className={input} value={draft.participants} placeholder='例: 23名' onChange={(e) => onChange('participants', e.target.value)} />
@@ -172,7 +189,7 @@ export default function SettingsPanel({
           <Field
             label={coverLabel}
             missing={highlightMissing && collection !== 'events' && !draft.coverImage}
-            hint={collection === 'events' ? 'イベント一覧と告知に出ます。縦長のチラシでも大丈夫です。' : '一覧やSNSでシェアされたときに出る画像です。横長がおすすめ。'}
+            hint={collection === 'events' ? (draft.reportOnly ? 'イベント一覧と開催報告の上に出ます。' : 'イベント一覧と告知に出ます。縦長のチラシでも大丈夫です。') : '一覧やSNSでシェアされたときに出る画像です。横長がおすすめ。'}
           >
             <ImageDropZone onFiles={onCoverFiles} label={`${coverLabel}を選ぶ`} className='overflow-hidden'>
               {draft.coverImage ? (

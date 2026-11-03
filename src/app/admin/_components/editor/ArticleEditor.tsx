@@ -147,7 +147,7 @@ export default function ArticleEditor({
   const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
   const [caretLine, setCaretLine] = useState(1);
   const [field, setField] = useState<BodyField>(
-    initial.collection === 'events' && !isNew && isPastEvent(initial) ? 'record' : 'body'
+    initial.collection === 'events' && (initial.reportOnly || (!isNew && isPastEvent(initial))) ? 'record' : 'body'
   );
   const [numbers, setNumbers] = useState(true);
   const [scrollbar, setScrollbar] = useState(0);
@@ -203,6 +203,11 @@ export default function ArticleEditor({
   const update = useCallback(<K extends keyof Entry>(field: K, value: Entry[K]) => {
     setDraft((current) => ({ ...current, [field]: value }));
   }, []);
+
+  const updateSetting = useCallback(<K extends keyof Entry>(key: K, value: Entry[K]) => {
+    update(key, value);
+    if (key === 'reportOnly' && value === true) setField('record');
+  }, [update]);
 
   const imagePath = useCallback(
     (name: string, id = draft.id) => `/images/${collection}/${id}/${name}`,
@@ -743,9 +748,9 @@ export default function ArticleEditor({
               {(
                 [
                   ['body', '告知'],
-                  ['record', '開催記録'],
+                  ['record', '開催報告'],
                 ] as const
-              ).map(([value, label]) => (
+              ).filter(([value]) => !(draft.reportOnly && value === 'body')).map(([value, label]) => (
                 <button
                   key={value}
                   type='button'
@@ -880,7 +885,7 @@ export default function ArticleEditor({
                 insertImages(files);
               }}
               placeholder={placeholders[collection === 'events' ? field : collection]}
-              aria-label={field === 'record' ? '開催記録（Markdown）' : '本文（Markdown）'}
+              aria-label={field === 'record' ? '開催報告（Markdown）' : '本文（Markdown）'}
               className={`absolute inset-0 size-full resize-none whitespace-pre-wrap break-words bg-transparent text-stone-800 placeholder:text-stone-400 focus:outline-none ${surface}`}
             />
           </div>
@@ -947,7 +952,7 @@ export default function ArticleEditor({
               )}
               <p className='mb-2 text-xs font-bold text-slate-500'>
                 {collection === 'articles' ? articleTypeLabels[draft.type] : collectionLabels[collection]}
-                {collection === 'events' && `・${field === 'record' ? '開催記録' : '告知'}`}
+                {collection === 'events' && `・${field === 'record' ? '開催報告' : '告知'}`}
               </p>
               <h1 className='text-3xl font-bold leading-tight'>
                 {draft.title || <span className='text-slate-300'>タイトル</span>}
@@ -992,7 +997,7 @@ export default function ArticleEditor({
           highlightMissing={highlightMissing}
           eventOptions={eventOptions}
           people={people}
-          onChange={update}
+          onChange={updateSetting}
           onIdChange={changeId}
           onCoverFiles={setCover}
           onGalleryFiles={addGallery}

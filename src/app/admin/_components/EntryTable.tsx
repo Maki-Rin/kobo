@@ -85,7 +85,7 @@ export default function EntryTable({ collection, articles, now }: { collection: 
       {collection === 'events' && articles.some((a) => a.isPast && !a.hasRecord && a.published) && (
         <p className='flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950'>
           <Icon name='pencil' className='text-amber-700' />
-          開催済みで記録がまだないイベントが {articles.filter((a) => a.isPast && !a.hasRecord && a.published).length} 件あります。
+          開催済みで開催報告がまだないイベントが {articles.filter((a) => a.isPast && !a.hasRecord && a.published).length} 件あります。
         </p>
       )}
       {localDrafts.has('new') && (
@@ -171,9 +171,9 @@ export default function EntryTable({ collection, articles, now }: { collection: 
                 {collection === 'events' &&
                   (article.isPast ? (
                     article.hasRecord ? (
-                      <span className={`${badge} shrink-0 bg-emerald-100 text-emerald-900`}>記録あり</span>
+                      <span className={`${badge} shrink-0 bg-emerald-100 text-emerald-900`}>報告あり</span>
                     ) : (
-                      <span className={`${badge} shrink-0 bg-red-100 text-red-800`}>記録まだ</span>
+                      <span className={`${badge} shrink-0 bg-red-100 text-red-800`}>報告まだ</span>
                     )
                   ) : (
                     <span className={`${badge} shrink-0 bg-amber-100 text-amber-900`}>開催予定</span>

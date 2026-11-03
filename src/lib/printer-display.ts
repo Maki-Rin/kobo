@@ -121,13 +121,29 @@ export function describePrinter(printer: PublicPrinter, now = new Date()): Print
 }
 
 export const toneStyles: Record<Tone, string> = {
-  free: 'bg-free',
-  busy: 'bg-busy',
-  wait: 'bg-wait',
-  alert: 'bg-alert',
-  off: 'bg-off',
+  free: 'bg-emerald-100 text-emerald-800',
+  busy: 'bg-blue-100 text-blue-800',
+  wait: 'bg-orange-100 text-orange-900',
+  alert: 'bg-red-100 text-red-800',
+  off: 'bg-slate-100 text-slate-700',
+};
+
+export const toneDots: Record<Tone, string> = {
+  free: 'bg-emerald-500',
+  busy: 'bg-blue-600',
+  wait: 'bg-amber-500',
+  alert: 'bg-red-600',
+  off: 'bg-neutral-400',
 };
 
 export const printerLayout = ['ad5mp-04', 'ad5mp-03', 'ad5mp-02', 'ad5mp-01', 'ad5mp-08', 'ad5mp-07', 'ad5mp-06', 'ad5mp-05'];
+
+export function orderForLayout(printers: PublicPrinter[]): PublicPrinter[] {
+  const rank = (id: string) => {
+    const index = printerLayout.indexOf(id);
+    return index === -1 ? printerLayout.length : index;
+  };
+  return [...printers].sort((a, b) => rank(a.id) - rank(b.id));
+}
 
 export const tonePriority: Record<Tone, number> = { free: 0, busy: 1, wait: 2, alert: 3, off: 4 };
