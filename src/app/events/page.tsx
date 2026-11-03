@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { EventCard } from '@/components/content/Cards';
+import { ArticleRow, EventCard } from '@/components/content/Cards';
 import { EmptyNote, SectionHeading } from '@/components/content/Labels';
 import { getEvents } from '@/lib/content';
 
@@ -12,6 +12,8 @@ export const metadata: Metadata = {
 
 export default async function EventsPage() {
   const { upcoming, past } = await getEvents();
+  const reports = past.filter((entry) => entry.record.trim() !== '');
+  const others = past.filter((entry) => entry.record.trim() === '');
   return (
     <div className='min-h-screen bg-white text-neutral-950'>
       <Header />
@@ -31,11 +33,22 @@ export default async function EventsPage() {
           )}
         </section>
 
-        {past.length > 0 && (
+        {reports.length > 0 && (
+          <section id='reports' className='scroll-mt-6'>
+            <SectionHeading title='開催報告' />
+            <div>
+              {reports.map((entry) => (
+                <ArticleRow key={entry.id} entry={entry} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {others.length > 0 && (
           <section>
             <SectionHeading title='これまでのイベント' />
             <div className='grid gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-              {past.map((entry) => (
+              {others.map((entry) => (
                 <EventCard key={entry.id} entry={entry} past />
               ))}
             </div>

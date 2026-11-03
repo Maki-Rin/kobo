@@ -50,6 +50,19 @@ KOBO is an unofficial information site for the fabrication workspace at Ritsumei
 - Article types: `guide` (how-to) and `tech` (findings, troubleshooting).
 - Works have a detail page at `/works/[id]`; cards use the same quiet card style as the home page.
 
+## Page roles
+
+Decided in `docs/content-plan.md` (2026-10-27). Each item has one home; lists are entrances.
+
+| Page | Holds | Event reports |
+| --- | --- | --- |
+| 記事 `/articles` | Guides and tech notes that stay useful (ガイド／テック) | Not listed |
+| イベント `/events` | Upcoming events and the record of past ones | Their only home (`/events/[id]`) |
+| Home 新着 | What was added recently, across kinds, with a kind label | Mixed in, linking to `/events/[id]` |
+
+- Keep reports easy to reach: home 新着 mixes them in with a 「記事一覧を見る」「開催報告を見る」 pair of links, `/events` lists them in their own 開催報告 section (`#reports`), and `/articles` points there.
+- Do not write an event report as a separate article. Append it to the event page. A long or multi-author write-up may be an article that links to the event.
+
 ## Events
 
 - Upcoming events appear on the home page only while they are upcoming. Past events live on `/events`.

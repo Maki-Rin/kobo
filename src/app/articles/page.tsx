@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getFeed, machines } from '@/lib/content';
+import { getEntries, getEvents, machines } from '@/lib/content';
 import type { Entry } from '@/lib/content-schema';
 import { ArticleRow } from '@/components/content/Cards';
 import { EmptyNote, FilterChips, PageHeading } from '@/components/content/Labels';
@@ -67,12 +67,9 @@ const typeOptions = [
   { value: 'all', label: 'すべて' },
   { value: 'guide', label: 'ガイド' },
   { value: 'tech', label: 'テック' },
-  { value: 'report', label: 'イベントレポート' },
 ] as const;
 
-const matchesType = (entry: Entry, type: string) =>
-  type === 'all' ||
-  (type === 'report' ? entry.collection === 'events' : entry.collection === 'articles' && entry.type === type);
+const matchesType = (entry: Entry, type: string) => type === 'all' || entry.type === type;
 
 const PAGE_SIZE = 8;
 
@@ -82,7 +79,8 @@ export default async function ArticlesPage({
   searchParams: Promise<{ type?: string; machine?: string; page?: string }>;
 }) {
   const { type = 'all', machine = 'all', page = '1' } = await searchParams;
-  const all = await getFeed();
+  const [all, events] = await Promise.all([getEntries('articles'), getEvents()]);
+  const reportCount = events.past.filter((entry) => entry.record.trim() !== '').length;
   const shown = all.filter(
     (entry) => matchesType(entry, type) && (machine === 'all' || entry.machines.includes(machine))
   );
@@ -126,10 +124,19 @@ export default async function ArticlesPage({
             )}
           </div>
         </PageHeading>
+        {reportCount > 0 && (
+          <p className='-mt-4 mb-6 text-sm text-neutral-600'>
+            イベントの開催報告は
+            <Link href='/events#reports' className='mx-1 underline decoration-neutral-300 underline-offset-4 hover:decoration-black'>
+              イベントのページ
+            </Link>
+            にまとめています（{reportCount}件）。
+          </p>
+        )}
 
         <div>
           {visible.map((entry) => (
-            <ArticleRow key={`${entry.collection}-${entry.id}`} entry={entry} />
+            <ArticleRow key={entry.id} entry={entry} />
           ))}
         </div>
         {shown.length === 0 && <EmptyNote>{type === 'all' ? 'まだ記事がありません。' : 'この種類の記事はまだありません。'}</EmptyNote>}

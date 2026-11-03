@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CompactPrinterStatus from '@/components/CompactPrinterStatus';
@@ -40,7 +41,7 @@ export default async function HomePage() {
           )}
 
           <section>
-            <SectionHeading title='最新の記事' href='/articles' linkLabel='記事一覧を見る' />
+            <SectionHeading title='新着' />
             {latestArticles.length > 0 ? (
               <div className='space-y-10'>
                 <ArticleCard entry={latestArticles[0]} featured />
@@ -53,6 +54,10 @@ export default async function HomePage() {
             ) : (
               <p className='text-sm text-neutral-500'>まだ記事がありません。</p>
             )}
+            <div className='mt-8 flex flex-wrap justify-end gap-x-6 gap-y-2 text-sm'>
+              <Link href='/articles' className='text-neutral-600 underline underline-offset-4'>記事一覧を見る</Link>
+              <Link href='/events#reports' className='text-neutral-600 underline underline-offset-4'>開催報告を見る</Link>
+            </div>
           </section>
 
           <section id='works'>

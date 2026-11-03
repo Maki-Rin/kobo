@@ -26,7 +26,7 @@ function feedHref(entry: Entry) {
 }
 
 function FeedBadge({ entry }: { entry: Entry }) {
-  return entry.collection === 'events' ? <Tag className='bg-amber-50 text-amber-800'>イベントレポート</Tag> : <TypeBadge type={entry.type} />;
+  return entry.collection === 'events' ? <Tag className='bg-amber-50 text-amber-800'>開催報告</Tag> : <TypeBadge type={entry.type} />;
 }
 
 function feedExcerpt(entry: Entry) {
