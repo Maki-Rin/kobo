@@ -23,6 +23,7 @@ const fieldLabels: [keyof Entry, string][] = [
   ['place', '場所'],
   ['capacity', '定員'],
   ['applyUrl', '申し込み'],
+  ['reportOnly', '開催報告だけ'],
   ['participants', '参加人数'],
   ['status', '状態'],
   ['images', '写真'],
@@ -31,11 +32,11 @@ const fieldLabels: [keyof Entry, string][] = [
   ['event', '関連イベント'],
 ];
 
-const show = (value: Entry[keyof Entry] | undefined) =>
+const show = (value: Entry[keyof Entry] | undefined, key?: keyof Entry) =>
   value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
     ? '（なし）'
     : typeof value === 'boolean'
-      ? value ? '公開' : '下書き'
+      ? key === 'published' ? (value ? '公開' : '下書き') : value ? 'はい' : 'いいえ'
       : Array.isArray(value)
         ? value.join('、')
         : String(value);
@@ -134,9 +135,9 @@ export default async function CommitPage({ params }: { params: Promise<{ commit:
                   <div key={String(key)} className='grid gap-1 px-4 py-2.5 sm:grid-cols-[7rem_1fr]'>
                     <dt className='text-slate-500'>{label}</dt>
                     <dd className='min-w-0 break-all'>
-                      {before && <span className='text-red-800 line-through decoration-red-300'>{show(before[key])}</span>}
+                      {before && <span className='text-red-800 line-through decoration-red-300'>{show(before[key], key)}</span>}
                       {before && <span className='mx-2 text-slate-400'>→</span>}
-                      <span className='text-emerald-800'>{show(after?.[key])}</span>
+                      <span className='text-emerald-800'>{show(after?.[key], key)}</span>
                     </dd>
                   </div>
                 ))}

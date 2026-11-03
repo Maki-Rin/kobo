@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { WorkCard } from '@/components/content/Cards';
-import { FilterChips, PageHeading } from '@/components/content/Labels';
+import { EmptyNote, FilterChips, PageHeading } from '@/components/content/Labels';
 import { getEntries, machines } from '@/lib/content';
 
 export const metadata: Metadata = {
-  title: '作品',
-  description: '立命館大学OIC KOBOでつくられた作品の紹介。3Dプリンター、レーザーカッターなどで制作したものを掲載しています。',
+  title: '作例一覧',
+  description: 'KOBOの機材を使って制作された作例を、写真と使用機材から探せます。',
 };
 
 export default async function WorksPage({ searchParams }: { searchParams: Promise<{ machine?: string }> }) {
@@ -17,37 +17,30 @@ export default async function WorksPage({ searchParams }: { searchParams: Promis
   const usedMachines = machines.filter((item) => all.some((entry) => entry.machines.includes(item.slug)));
 
   return (
-    <div className='min-h-screen bg-white'>
+    <div className='min-h-screen bg-white text-neutral-950'>
       <Header />
-      <main className='mx-auto max-w-6xl px-4 py-10 md:px-8'>
-        <div className='mb-8'>
-          <PageHeading title='作品'>
-            <p className='text-[15px] leading-7 text-muted'>KOBOでつくったものを載せたい人は、スタッフに声をかけてください。</p>
-          </PageHeading>
+      <main className='mx-auto max-w-6xl px-6 py-12 md:py-20'>
+        <PageHeading title='作例'>
           {usedMachines.length > 1 && (
-            <div className='mt-5'>
-              <FilterChips
-                options={[
-                  { value: 'all', label: 'すべて', count: all.length },
-                  ...usedMachines.map((item) => ({
-                    value: item.slug,
-                    label: item.name,
-                    count: all.filter((entry) => entry.machines.includes(item.slug)).length,
-                  })),
-                ]}
-                current={machine}
-                hrefFor={(value) => (value === 'all' ? '/works' : `/works?machine=${value}`)}
-              />
-            </div>
+            <FilterChips
+              label='機材で絞り込む'
+              options={[
+                { value: 'all', label: 'すべて' },
+                ...usedMachines.map((item) => ({ value: item.slug, label: item.name })),
+              ]}
+              current={machine}
+              hrefFor={(value) => (value === 'all' ? '/works' : `/works?machine=${value}`)}
+            />
           )}
-        </div>
-        <div className='grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4'>
-          {shown.map((entry) => (
-            <WorkCard key={entry.id} entry={entry} />
-          ))}
-        </div>
-        {shown.length === 0 && (
-          <p className='rounded-xl border-2 border-dashed border-line-soft px-6 py-10 text-center text-muted'>まだ作品がありません。</p>
+        </PageHeading>
+        {shown.length > 0 ? (
+          <div className='grid gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3'>
+            {shown.map((entry) => (
+              <WorkCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+        ) : (
+          <EmptyNote>該当する作例はまだありません。</EmptyNote>
         )}
       </main>
       <Footer />

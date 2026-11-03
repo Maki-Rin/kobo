@@ -28,20 +28,20 @@ export default function OpenHours({ compact = false }: { compact?: boolean }) {
 
   const [badge, tone, text] =
     state === 'open'
-      ? ['開室中', 'bg-free', `今日は${today.close}まで`]
+      ? ['開室中', 'bg-emerald-50 text-emerald-700', `今日は${today.close}まで`]
       : state === 'before'
-        ? ['開室前', 'bg-wait', `今日は ${today.open}〜${today.close}`]
+        ? ['開室前', 'bg-amber-50 text-amber-800', `今日は ${today.open}〜${today.close}`]
         : state === 'after'
-          ? ['今日は終了', 'bg-off', nextText]
-          : ['閉室日', 'bg-off', nextText];
+          ? ['今日は終了', 'bg-neutral-100 text-neutral-600', nextText]
+          : ['閉室日', 'bg-neutral-100 text-neutral-600', nextText];
 
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${compact ? 'text-sm' : ''}`}>
-      <span className={`pop-chip ${tone}`}>{badge}</span>
-      {text && <span className='text-sm font-semibold'>{text}</span>}
-      {today.label && <span className='text-sm text-muted'>（{today.label}）</span>}
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${compact ? 'text-xs' : 'text-sm'}`}>
+      <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${tone}`}>{badge}</span>
+      {text && <span className={compact ? 'text-xs text-neutral-600' : 'text-sm font-semibold'}>{text}</span>}
+      {today.label && <span className='text-xs text-neutral-500'>（{today.label}）</span>}
       {!compact && (
-        <span className='text-xs text-muted'>
+        <span className='text-xs text-neutral-500'>
           平日 {hoursConfig.regular.open}〜{hoursConfig.regular.close}。{hoursConfig.note}
         </span>
       )}

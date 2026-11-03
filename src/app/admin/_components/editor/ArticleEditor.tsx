@@ -147,7 +147,7 @@ export default function ArticleEditor({
   const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
   const [caretLine, setCaretLine] = useState(1);
   const [field, setField] = useState<BodyField>(
-    initial.collection === 'events' && !isNew && isPastEvent(initial) ? 'record' : 'body'
+    initial.collection === 'events' && (initial.reportOnly || (!isNew && isPastEvent(initial))) ? 'record' : 'body'
   );
   const [numbers, setNumbers] = useState(true);
   const [scrollbar, setScrollbar] = useState(0);
@@ -203,6 +203,11 @@ export default function ArticleEditor({
   const update = useCallback(<K extends keyof Entry>(field: K, value: Entry[K]) => {
     setDraft((current) => ({ ...current, [field]: value }));
   }, []);
+
+  const updateSetting = useCallback(<K extends keyof Entry>(key: K, value: Entry[K]) => {
+    update(key, value);
+    if (key === 'reportOnly' && value === true) setField('record');
+  }, [update]);
 
   const imagePath = useCallback(
     (name: string, id = draft.id) => `/images/${collection}/${id}/${name}`,
@@ -745,7 +750,7 @@ export default function ArticleEditor({
                   ['body', '告知'],
                   ['record', '開催記録'],
                 ] as const
-              ).map(([value, label]) => (
+              ).filter(([value]) => !(draft.reportOnly && value === 'body')).map(([value, label]) => (
                 <button
                   key={value}
                   type='button'
@@ -992,7 +997,7 @@ export default function ArticleEditor({
           highlightMissing={highlightMissing}
           eventOptions={eventOptions}
           people={people}
-          onChange={update}
+          onChange={updateSetting}
           onIdChange={changeId}
           onCoverFiles={setCover}
           onGalleryFiles={addGallery}

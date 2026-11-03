@@ -6,9 +6,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MarkdownContent from '@/components/MarkdownContent';
 import { WorkCard } from '@/components/content/Cards';
-import { MachineTags } from '@/components/content/Labels';
+import { MachineTags, SectionHeading, Tag } from '@/components/content/Labels';
 import { excerptOf, getEntries, getEntry } from '@/lib/content';
-import { isPastEvent } from '@/lib/content-schema';
+import { hasAnnouncement, isPastEvent } from '@/lib/content-schema';
 import { formatEventDate } from '@/lib/event-format';
 import { renderMarkdown } from '@/lib/markdown';
 
@@ -37,6 +37,7 @@ async function load(id: string) {
   return {
     entry,
     past: isPastEvent(entry),
+    announced: hasAnnouncement(entry),
     announcement: announcement.tree,
     record: record?.tree ?? null,
     works: works.filter((work) => work.event === entry.id),
@@ -46,10 +47,10 @@ async function load(id: string) {
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const loaded = await load((await params).id);
   if (!loaded) notFound();
-  const { entry, past, announcement, record, works } = loaded;
+  const { entry, past, announced, announcement, record, works } = loaded;
 
   const info = (
-    <dl className='divide-y divide-line-soft rounded-xl border-2 border-ink text-sm'>
+    <dl className='space-y-3 border-y border-neutral-200 py-4 text-sm'>
       {[
         ['日時', formatEventDate(entry)],
         ['場所', entry.place],
@@ -58,48 +59,85 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       ]
         .filter(([, value]) => value)
         .map(([label, value]) => (
-          <div key={label} className='flex gap-4 px-4 py-3'>
-            <dt className='w-20 shrink-0 font-semibold text-muted'>{label}</dt>
+          <div key={label} className='flex gap-4'>
+            <dt className='w-20 shrink-0 text-neutral-500'>{label}</dt>
             <dd>{value}</dd>
           </div>
         ))}
     </dl>
   );
 
+  const poster = entry.coverImage && (
+    <div className={`relative overflow-hidden rounded-lg bg-neutral-100 ${announced ? 'aspect-[1/1.414]' : 'aspect-video'}`}>
+      <Image
+        src={entry.coverImage}
+        alt={announced ? `${entry.title}の告知画像` : entry.title}
+        fill
+        sizes='(min-width: 768px) 40vw, 100vw'
+        className={announced ? 'object-contain' : 'object-cover'}
+      />
+    </div>
+  );
+
+  const announcementBody = (
+    <div className={`grid gap-8 ${entry.coverImage ? 'md:grid-cols-[2fr_3fr]' : ''}`}>
+      {poster}
+      <div className='space-y-6'>
+        {info}
+        {!past && entry.applyUrl && (
+          <a
+            href={entry.applyUrl}
+            target='_blank'
+            rel='noreferrer'
+            className='inline-block rounded-md bg-neutral-900 px-5 py-3 text-sm font-semibold text-white hover:bg-neutral-700'
+          >
+            申し込む
+          </a>
+        )}
+        <MarkdownContent tree={announcement} className='article-body' />
+      </div>
+    </div>
+  );
+
   return (
-    <div className='min-h-screen bg-white'>
+    <div className='min-h-screen bg-white text-neutral-950'>
       <Header />
-      <main className='mx-auto max-w-5xl px-4 py-8 md:px-8'>
-        <div className='space-y-7'>
-          <Link href='/events' className='inline-block text-sm font-semibold underline-offset-4 hover:underline'>
-            ← イベント一覧
+      <main className='mx-auto max-w-5xl px-6 py-10 md:py-14'>
+        <div className='space-y-10'>
+          <Link href='/events' className='inline-block text-sm text-neutral-600 underline decoration-neutral-300 underline-offset-4 hover:decoration-black'>
+            イベント一覧に戻る
           </Link>
-          <div className='space-y-3'>
+          <div className='space-y-3 border-b border-neutral-200 pb-6'>
             <div className='flex flex-wrap items-center gap-2'>
-              <span className={`pop-chip ${past ? 'bg-off' : 'bg-primary'}`}>{past ? '開催済み' : '開催予定'}</span>
+              <Tag className={past ? 'bg-amber-50 text-amber-800' : 'bg-blue-50 text-blue-700'}>{past ? (record ? '開催報告' : '開催済み') : '開催予定'}</Tag>
               <MachineTags machines={entry.machines} />
             </div>
-            <h1 className='text-3xl font-extrabold leading-tight md:text-4xl'>{entry.title}</h1>
-            <p className='text-lg font-semibold'>
+            <h1 className='text-3xl font-bold leading-tight md:text-4xl'>{entry.title}</h1>
+            <p className='technical-type text-neutral-600'>
               {formatEventDate(entry)}
-              {entry.place && <span className='ml-3 font-normal text-muted'>{entry.place}</span>}
+              {entry.place && <span className='ml-3'>{entry.place}</span>}
             </p>
           </div>
 
+          {!announced && (
+            <div className='space-y-6'>
+              {poster}
+              {entry.participants && <p className='text-sm text-neutral-600'>参加人数: {entry.participants}</p>}
+            </div>
+          )}
+
           {past && record && (
-            <section className='space-y-4 rounded-2xl border-2 border-ink bg-cream p-5 md:p-7'>
-              <div className='flex flex-wrap items-center gap-3'>
-                <h2 className='text-2xl font-extrabold'>開催記録</h2>
-                {entry.participants && <span className='pop-chip'>参加 {entry.participants}</span>}
-              </div>
+            <section>
+              {announced && <SectionHeading title='開催報告' />}
               <MarkdownContent tree={record} className='article-body' />
+              {announced && entry.participants && <p className='mt-6 text-sm text-neutral-600'>参加人数: {entry.participants}</p>}
             </section>
           )}
 
           {works.length > 0 && (
-            <section className='space-y-4'>
-              <h2 className='text-xl font-extrabold'>このイベントでつくられた作品</h2>
-              <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+            <section>
+              <SectionHeading title='このイベントでつくられた作例' />
+              <div className='grid gap-6 sm:grid-cols-2 lg:grid-cols-3'>
                 {works.map((work) => (
                   <WorkCard key={work.id} entry={work} />
                 ))}
@@ -107,34 +145,20 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </section>
           )}
 
-          {past && !record && (
-            <p className='rounded-xl border-2 border-dashed border-line-soft px-6 py-5 text-sm text-muted'>
-              このイベントの開催記録はまだありません。
-            </p>
-          )}
+          {past && !record && <p className='text-sm text-neutral-500'>このイベントの開催報告はまだありません。</p>}
 
-          <details open={!past || !record} className='group overflow-hidden rounded-2xl border-2 border-ink'>
-            <summary className='cursor-pointer list-none px-5 py-4 font-bold [&::-webkit-details-marker]:hidden'>
-              {past ? '開催前のお知らせ' : 'お知らせ'}
-              <span className='ml-2 text-sm font-normal text-muted group-open:hidden'>（開く）</span>
-            </summary>
-            <div className='grid gap-6 border-t-2 border-ink p-5 md:grid-cols-[2fr_3fr] md:p-6'>
-              {entry.coverImage && (
-                <div className='relative aspect-[1/1.414] overflow-hidden rounded-xl border-2 border-ink bg-off'>
-                  <Image src={entry.coverImage} alt={`${entry.title}の告知画像`} fill sizes='(min-width: 768px) 40vw, 100vw' className='object-contain' />
-                </div>
-              )}
-              <div className='space-y-6'>
-                {info}
-                {!past && entry.applyUrl && (
-                  <a href={entry.applyUrl} target='_blank' rel='noreferrer' className='pop-btn'>
-                    申し込む
-                  </a>
-                )}
-                <MarkdownContent tree={announcement} className='article-body' />
-              </div>
-            </div>
-          </details>
+          {announced &&
+            (past ? (
+              <details className='group border-t border-neutral-200 pt-6'>
+                <summary className='cursor-pointer list-none font-bold [&::-webkit-details-marker]:hidden'>
+                  開催前のお知らせ
+                  <span className='ml-2 text-sm font-normal text-neutral-500 group-open:hidden'>（開く）</span>
+                </summary>
+                <div className='mt-6'>{announcementBody}</div>
+              </details>
+            ) : (
+              announcementBody
+            ))}
         </div>
       </main>
       <Footer />

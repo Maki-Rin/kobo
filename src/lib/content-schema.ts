@@ -49,6 +49,7 @@ export interface Entry {
   applyUrl: string;
   participants: string;
   record: string;
+  reportOnly: boolean;
 }
 
 export function isCollection(value: string): value is Collection {
@@ -103,6 +104,7 @@ export function emptyEntry(collection: Collection, id: string): Entry {
     applyUrl: '',
     participants: '',
     record: '',
+    reportOnly: false,
   };
 }
 
@@ -133,6 +135,7 @@ export function parseEntry(collection: Collection, id: string, source: string): 
     applyUrl: text(data.applyUrl),
     participants: text(data.participants),
     record: text(data.record).trim(),
+    reportOnly: collection === 'events' && data.reportOnly === true,
   };
 }
 
@@ -143,6 +146,7 @@ export function serializeEntry(entry: Entry): string {
   };
   if (entry.collection === 'articles') front.type = entry.type;
   if (entry.collection === 'events') {
+    if (entry.reportOnly) front.reportOnly = true;
     put('startTime', entry.startTime);
     put('endTime', entry.endTime);
     put('place', entry.place);
@@ -173,6 +177,14 @@ export function todayInTokyo(now = new Date()): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(now);
 }
 
-export function isPastEvent(entry: Pick<Entry, 'date'>, today = todayInTokyo()): boolean {
-  return entry.date !== '' && entry.date < today;
+export function isPastEvent(
+  entry: { date: string; reportOnly: boolean; record?: string; hasRecord?: boolean },
+  today = todayInTokyo()
+): boolean {
+  const recorded = entry.hasRecord ?? (entry.record ?? '').trim() !== '';
+  return entry.reportOnly || recorded || (entry.date !== '' && entry.date < today);
+}
+
+export function hasAnnouncement(entry: Pick<Entry, 'body' | 'applyUrl' | 'reportOnly'>): boolean {
+  return !entry.reportOnly && (entry.body.trim() !== '' || entry.applyUrl.trim() !== '');
 }
