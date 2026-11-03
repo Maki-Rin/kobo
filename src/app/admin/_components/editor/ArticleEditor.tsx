@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { articleTypeLabels, collectionLabels, isPastEvent, type Entry } from '@/lib/content-schema';
-import { discardDraftAction, previewAction, saveEntryAction, uploadImageAction } from '../../actions';
+import { deleteEntryAction, discardDraftAction, previewAction, saveEntryAction, uploadImageAction } from '../../actions';
 import { badge, button, fontFamily } from '../ui';
 import { IMAGE_ACCEPT } from './ImageDropZone';
 import EditorBackdrop from './EditorBackdrop';
 import SettingsPanel, { type EventOption } from './SettingsPanel';
+import PublishDialog from './PublishDialog';
 import { peopleNames, type Person } from '@/lib/people';
 import { ImageError, imageFiles, prepareImage } from './prepareImage';
 
@@ -117,6 +118,8 @@ export default function ArticleEditor({
   people = [],
   initialImages = [],
   canDiscardDraft = false,
+  everPublished = false,
+  canDelete = false,
 }: {
   initial: Entry;
   isNew: boolean;
@@ -126,6 +129,8 @@ export default function ArticleEditor({
   people?: Person[];
   initialImages?: { name: string; sha: string }[];
   canDiscardDraft?: boolean;
+  everPublished?: boolean;
+  canDelete?: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
@@ -146,6 +151,7 @@ export default function ArticleEditor({
   const [restorable, setRestorable] = useState<Autosave | null>(null);
   const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
   const [caretLine, setCaretLine] = useState(1);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [field, setField] = useState<BodyField>(
     initial.collection === 'events' && (initial.reportOnly || (!isNew && isPastEvent(initial))) ? 'record' : 'body'
   );
@@ -524,8 +530,10 @@ export default function ArticleEditor({
       baseSha,
       images: used.map((image) => ({ name: image.name, sha: image.sha! })),
       operation: unpublish ? 'unpublish' : publish ? 'publish' : 'draft',
+      previousId: !isNew && next.id !== initial.id ? initial.id : null,
     }).catch(() => ({ ok: false as const, errors: ['通信を確認して、もう一度保存してください。'] }));
     setSaving(false);
+    setPublishOpen(false);
     if (!result.ok) {
       setErrors(result.errors);
       return;
@@ -545,7 +553,21 @@ export default function ArticleEditor({
   const discard = async () => {
     if (saving || !baseSha) return;
     setSaving(true);
-    const result = await discardDraftAction(collection, draft.id, baseSha).catch(() => ({
+    const result = await discardDraftAction(collection, initial.id, baseSha).catch(() => ({
+      ok: false as const, errors: ['処理結果を確認できませんでした。通信を確認して開き直してください。'],
+    }));
+    setSaving(false);
+    if (!result.ok) { setErrors(result.errors); return; }
+    if (autosaveTimer.current !== null) clearTimeout(autosaveTimer.current);
+    writeStorage(key, null);
+    router.replace(collection === 'articles' ? '/admin' : `/admin?c=${collection}`);
+    router.refresh();
+  };
+
+  const removeEntry = async (confirmTitle: string) => {
+    if (saving || !baseSha) return;
+    setSaving(true);
+    const result = await deleteEntryAction(collection, initial.id, baseSha, confirmTitle).catch(() => ({
       ok: false as const, errors: ['処理結果を確認できませんでした。通信を確認して開き直してください。'],
     }));
     setSaving(false);
@@ -671,7 +693,7 @@ export default function ArticleEditor({
               <span className='sm:hidden'>下書き</span>
               <span className='hidden sm:inline'>下書き保存</span>
             </button>
-            <button type='button' onClick={() => save(true)} disabled={saving} className={`${button('primary')} max-sm:px-3`}>
+            <button type='button' onClick={() => { setErrors([]); setPublishOpen(true); }} disabled={saving || uploading} className={`${button('primary')} max-sm:px-3`}>
               {saving ? '保存中…' : primaryPublish ? '更新を確定' : '公開する'}
             </button>
           </div>
@@ -988,6 +1010,9 @@ export default function ArticleEditor({
         <SettingsPanel
           draft={draft}
           isNew={isNew}
+          idEditable={isNew || !everPublished}
+          everPublished={everPublished}
+          onDelete={canDelete && everPublished && !primaryPublish ? removeEntry : undefined}
           wasPublished={primaryPublish}
           busy={saving}
           onDiscardDraft={canDiscardDraft ? discard : undefined}
@@ -1003,6 +1028,18 @@ export default function ArticleEditor({
           onGalleryFiles={addGallery}
           onUnpublish={() => save(false, true)}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {publishOpen && (
+        <PublishDialog
+          draft={draft}
+          updating={primaryPublish}
+          firstPublish={!everPublished}
+          busy={saving}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onPublish={() => save(true)}
+          onClose={() => setPublishOpen(false)}
         />
       )}
     </div>

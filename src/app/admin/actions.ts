@@ -35,8 +35,7 @@ import {
   revertCommit,
   saveEntry,
   stageImage,
-  type StagedImage,
-} from '@/lib/editor/entries';
+  type StagedImage, deleteEntry } from '@/lib/editor/entries';
 import { isCollection } from '@/lib/content-schema';
 import { savePeople } from '@/lib/editor/people';
 import { ConflictError, ContentStoreError } from '@/lib/editor/store';
@@ -165,6 +164,7 @@ export async function saveEntryAction(input: {
   baseSha: string | null;
   images: StagedImage[];
   operation?: 'draft' | 'publish' | 'unpublish';
+  previousId?: string | null;
 }) {
   return attempt(async () => {
     const user = await requireUser();
@@ -182,6 +182,7 @@ export async function saveEntryAction(input: {
       baseSha: typeof input.baseSha === 'string' ? input.baseSha : null,
       images,
       operation: input.operation,
+      previousId: typeof input.previousId === 'string' ? input.previousId : null,
     });
     revalidatePath('/admin');
     return { ...result, id: String(input.draft.id) };
@@ -204,6 +205,18 @@ export async function discardDraftAction(collection: string, id: string, token: 
     await limitEditorRequest('discard-draft', 20, 3600, user.id);
     if (!isCollection(collection) || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new EditorError(['下書きが正しくありません']);
     await discardDraft(user, collection, id, token);
+    revalidatePath('/admin');
+  });
+}
+
+export async function deleteEntryAction(collection: string, id: string, token: string, confirmTitle: string) {
+  return attempt(async () => {
+    const user = await requireUser();
+    await limitEditorRequest('delete-entry', 10, 3600, user.id);
+    if (!isCollection(collection) || !/^[A-Za-z0-9_-]{1,80}$/.test(id) || typeof token !== 'string') {
+      throw new EditorError(['削除の対象が正しくありません']);
+    }
+    await deleteEntry(user, { collection, id, baseSha: token, confirmTitle: String(confirmTitle) });
     revalidatePath('/admin');
   });
 }

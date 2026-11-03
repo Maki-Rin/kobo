@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { currentUser } from '@/lib/editor/auth';
+import { canManageMembers, currentUser } from '@/lib/editor/auth';
 import { listEntries, loadEntry } from '@/lib/editor/entries';
 import { isCollection } from '@/lib/content-schema';
 import { loadPeople } from '@/lib/editor/people';
@@ -40,6 +40,8 @@ export default async function EditEntryPage({
       baseSha={entry.sha}
       initialImages={entry.images}
       canDiscardDraft={Boolean(entry.draftOwnerId && (entry.draftOwnerId === user.id || user.role !== 'editor'))}
+      everPublished={entry.hasFile}
+      canDelete={canManageMembers(user)}
       notice={saved === 'draft' && entry.draft.published ? '下書きを保存しました。公開中の内容はそのままです。' : notices[saved ?? ''] ?? ''}
     />
   );
