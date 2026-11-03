@@ -4,10 +4,10 @@ import Footer from '@/components/Footer';
 import CompactPrinterStatus from '@/components/CompactPrinterStatus';
 import { ArticleCard, EventCard, WorkCard } from '@/components/content/Cards';
 import { SectionHeading } from '@/components/content/Labels';
-import { getEntries, getEvents } from '@/lib/content';
+import { getEntries, getEvents, getFeed } from '@/lib/content';
 
 export default async function HomePage() {
-  const [articles, works, events] = await Promise.all([getEntries('articles'), getEntries('works'), getEvents()]);
+  const [articles, works, events] = await Promise.all([getFeed(), getEntries('works'), getEvents()]);
   const latestArticles = articles.slice(0, 4);
   const upcomingEvents = events.upcoming.slice(0, 3);
 
@@ -46,7 +46,7 @@ export default async function HomePage() {
                 <ArticleCard entry={latestArticles[0]} featured />
                 <div className='grid gap-7 sm:grid-cols-2 lg:grid-cols-3'>
                   {latestArticles.slice(1).map((entry) => (
-                    <ArticleCard key={entry.id} entry={entry} />
+                    <ArticleCard key={`${entry.collection}-${entry.id}`} entry={entry} />
                   ))}
                 </div>
               </div>

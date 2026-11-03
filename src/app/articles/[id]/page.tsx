@@ -156,7 +156,7 @@ export default async function ArticlePage({
                 )}
                 <div>
                   <p className='text-sm font-medium'>{article.author.name}</p>
-                  <p className='text-sm text-neutral-500'>{formatDate(article.date)}</p>
+                  <p className='text-sm font-bold'>{formatDate(article.date)}</p>
                 </div>
               </div>
               <div className='relative h-[200px] w-full md:h-[400px]'>
@@ -180,16 +180,16 @@ export default async function ArticlePage({
             {(article.sections?.length ?? 0) > 0 && (
               <aside className='order-first md:order-last'>
                 <div className='space-y-4 md:sticky md:top-20'>
-                  <h2 className='mb-4 font-semibold'>目次</h2>
+                  <p className='mb-4 font-semibold'>目次</p>
                   <nav className='space-y-2' aria-label='目次'>
                     {article.sections?.map((section, index) => (
                       <a
                         key={section.id || `section-${index}`}
                         href={`#${section.id}`}
-                        className={`block transition-colors hover:text-neutral-950 ${
+                        className={`block transition-colors hover:text-neutral-600 ${
                           section.level === 2
                             ? 'py-2 text-sm font-semibold text-neutral-900'
-                            : 'ml-8 border-l-2 border-slate-300 py-1 pl-4 text-sm font-normal text-neutral-500'
+                            : 'ml-8 border-l-2 border-slate-300 py-1 pl-4 text-sm font-normal text-neutral-900'
                         }`}
                       >
                         {section.title}

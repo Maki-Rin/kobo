@@ -16,7 +16,7 @@ export default async function EventsPage() {
     <div className='min-h-screen bg-white text-neutral-950'>
       <Header />
       <main className='mx-auto max-w-6xl space-y-16 px-6 py-12 md:py-20'>
-        <h1 className='-mb-4 text-3xl font-bold md:text-4xl'>イベント</h1>
+        <h1 className='border-b border-neutral-200 pb-6 text-3xl font-bold md:text-4xl'>イベント</h1>
 
         <section>
           <SectionHeading title='開催予定' />

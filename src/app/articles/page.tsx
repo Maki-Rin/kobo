@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getEntries, machines } from '@/lib/content';
+import { getFeed, machines } from '@/lib/content';
+import type { Entry } from '@/lib/content-schema';
 import { ArticleRow } from '@/components/content/Cards';
 import { EmptyNote, FilterChips, PageHeading } from '@/components/content/Labels';
 
@@ -66,7 +67,12 @@ const typeOptions = [
   { value: 'all', label: 'すべて' },
   { value: 'guide', label: 'ガイド' },
   { value: 'tech', label: 'テック' },
+  { value: 'report', label: 'イベントレポート' },
 ] as const;
+
+const matchesType = (entry: Entry, type: string) =>
+  type === 'all' ||
+  (type === 'report' ? entry.collection === 'events' : entry.collection === 'articles' && entry.type === type);
 
 const PAGE_SIZE = 8;
 
@@ -76,9 +82,9 @@ export default async function ArticlesPage({
   searchParams: Promise<{ type?: string; machine?: string; page?: string }>;
 }) {
   const { type = 'all', machine = 'all', page = '1' } = await searchParams;
-  const all = await getEntries('articles');
+  const all = await getFeed();
   const shown = all.filter(
-    (entry) => (type === 'all' || entry.type === type) && (machine === 'all' || entry.machines.includes(machine))
+    (entry) => matchesType(entry, type) && (machine === 'all' || entry.machines.includes(machine))
   );
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const requested = Number.parseInt(page, 10);
@@ -105,7 +111,7 @@ export default async function ArticlesPage({
               label='種類で絞り込む'
               options={typeOptions.map((option) => ({
                 ...option,
-                count: option.value === 'all' ? all.length : all.filter((entry) => entry.type === option.value).length,
+                count: all.filter((entry) => matchesType(entry, option.value)).length,
               }))}
               current={type}
               hrefFor={(value) => href({ type: value })}
@@ -123,10 +129,10 @@ export default async function ArticlesPage({
 
         <div>
           {visible.map((entry) => (
-            <ArticleRow key={entry.id} entry={entry} />
+            <ArticleRow key={`${entry.collection}-${entry.id}`} entry={entry} />
           ))}
         </div>
-        {shown.length === 0 && <EmptyNote>{type === 'tech' ? 'テックの記事はまだありません。' : 'まだ記事がありません。'}</EmptyNote>}
+        {shown.length === 0 && <EmptyNote>{type === 'all' ? 'まだ記事がありません。' : 'この種類の記事はまだありません。'}</EmptyNote>}
 
         {pageCount > 1 && (
           <nav className='mt-10 flex items-center justify-between gap-4' aria-label='記事一覧のページ送り'>

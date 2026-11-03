@@ -15,47 +15,53 @@ function formatDate(value: string): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   }).format(date);
 }
 
 function minutes(value: number | null | undefined): string | null {
   if (value === null || value === undefined) return null;
-  return value >= 60 ? `${Math.floor(value / 60)}時間${value % 60}分` : `${value}分`;
+  return `${value}分`;
 }
+
+const availabilityLabels: Record<PublicPrinter['availability'], string> = {
+  online: 'オンライン',
+  stale: '更新遅延',
+  offline: 'オフライン',
+  disabled: '監視停止',
+  maintenance: 'メンテナンス',
+  unknown: '不明',
+};
+
+const availabilityDots: Record<PublicPrinter['availability'], string> = {
+  online: 'bg-emerald-500',
+  stale: 'bg-amber-500',
+  offline: 'bg-slate-400',
+  disabled: 'bg-slate-400',
+  maintenance: 'bg-slate-400',
+  unknown: 'bg-slate-400',
+};
 
 const outcomeLabels: Record<NonNullable<PublicPrinter['lastWork']>['outcome'], string> = {
   success: '完了',
-  canceled: '中止',
   failed: '失敗',
-  unknown: '不明',
+  canceled: '中止',
+  unknown: '結果不明',
 };
 
 const outcomeStyles: Record<NonNullable<PublicPrinter['lastWork']>['outcome'], string> = {
   success: 'bg-emerald-100 text-emerald-800',
-  canceled: 'bg-slate-100 text-slate-700',
   failed: 'bg-red-100 text-red-800',
+  canceled: 'bg-slate-100 text-slate-700',
   unknown: 'bg-slate-100 text-slate-700',
 };
 
-function lastFinished(printer: PublicPrinter): PublicPrinter['lastWork'] {
-  if (printer.lastWork) return printer.lastWork;
-  if (printer.state === 'completed' && printer.currentWork) {
-    return {
-      fileName: printer.currentWork.fileName,
-      outcome: 'success',
-      durationMinutes: printer.currentWork.elapsedMinutes,
-      endedAt: null,
-    };
-  }
-  return null;
-}
-
 function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
   const view = describePrinter(printer, now);
-  const finished = lastFinished(printer);
+  const isCurrent = printer.availability === 'online';
   const work = printer.currentWork;
   const remaining =
-    work?.estimatedTotalMinutes != null && work.elapsedMinutes != null
+    isCurrent && work?.estimatedTotalMinutes != null && work.elapsedMinutes != null
       ? Math.max(0, work.estimatedTotalMinutes - work.elapsedMinutes)
       : null;
 
@@ -67,6 +73,11 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
           <p className='mt-1 text-sm text-slate-500'>{printer.model}</p>
         </div>
         <span className={`shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-xs font-bold ${toneStyles[view.tone]}`}>{view.label}</span>
+      </div>
+
+      <div className='mt-5 flex items-center gap-2 text-sm'>
+        <span className={`h-2.5 w-2.5 rounded-full ${availabilityDots[printer.availability]}`} aria-hidden='true' />
+        <span className='font-semibold'>{availabilityLabels[printer.availability]}</span>
       </div>
 
       {view.note && <p className='mt-3 border border-[#f5c518] bg-[#fff9dc] px-3 py-2 text-sm'>{view.note}</p>}
@@ -92,44 +103,38 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
       )}
 
       <dl className='mt-5 space-y-3 border-t border-slate-100 pt-4 text-sm'>
-        {printer.state === 'printing' || printer.state === 'paused' || printer.state === 'preparing' ? (
-          <>
-            {view.fileName && <div className='flex items-start justify-between gap-4'>
-              <dt className='shrink-0 text-slate-500'>造形中のファイル</dt>
-              <dd className='min-w-0 break-all text-right font-medium'>{view.fileName ?? '—'}</dd>
-            </div>}
-            <div className='flex items-start justify-between gap-4'>
-              <dt className='shrink-0 text-slate-500'>経過・残り</dt>
-              <dd className='text-right font-medium'>
-                {minutes(work?.elapsedMinutes) ?? '—'}
-                {remaining !== null && ` ／ あと約${minutes(remaining)}`}
-              </dd>
-            </div>
-          </>
-        ) : (
-          finished && (
-            <div>
-              <dt className='flex items-center justify-between gap-2 text-slate-500'>
-                直近の印刷
-                <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-bold ${outcomeStyles[finished.outcome]}`}>{outcomeLabels[finished.outcome]}</span>
-              </dt>
-              {finished.fileName && <dd className='mt-2 break-all font-medium'>{finished.fileName}</dd>}
-              <dd className='mt-1 text-slate-500'>
-                {[
-                  finished.endedAt && `${formatDate(finished.endedAt)} に終了`,
-                  minutes(finished.durationMinutes) && `${minutes(finished.durationMinutes)}かかりました`,
-                ]
-                  .filter(Boolean)
-                  .join('・')}
-              </dd>
-            </div>
-          )
-        )}
+        <div className='flex items-start justify-between gap-4'>
+          <dt className='shrink-0 text-slate-500'>現在のモデル</dt>
+          <dd className='min-w-0 break-all text-right font-medium'>{isCurrent ? (work?.fileName ?? '表示なし') : '—'}</dd>
+        </div>
+        <div className='flex items-start justify-between gap-4'>
+          <dt className='shrink-0 text-slate-500'>造形時間</dt>
+          <dd className='text-right font-medium'>
+            {(isCurrent && minutes(work?.elapsedMinutes)) || '—'}
+            {remaining !== null && <span className='block text-xs font-normal text-slate-500'>残り約{minutes(remaining)}</span>}
+          </dd>
+        </div>
         <div className='flex items-start justify-between gap-4'>
           <dt className='shrink-0 text-slate-500'>最終確認</dt>
           <dd className='text-right font-medium'>{formatDate(printer.lastSeenAt)}</dd>
         </div>
       </dl>
+
+      {printer.lastWork && (
+        <div className='mt-4 border-t border-slate-100 pt-4 text-sm'>
+          <div className='flex items-center justify-between gap-4'>
+            <span className='text-slate-500'>直近の印刷</span>
+            <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-bold ${outcomeStyles[printer.lastWork.outcome]}`}>
+              {outcomeLabels[printer.lastWork.outcome]}
+            </span>
+          </div>
+          <p className='mt-2 break-all font-medium'>{printer.lastWork.fileName ?? 'ファイル名なし'}</p>
+          <p className='mt-1 text-slate-500'>
+            {printer.lastWork.endedAt ? `${formatDate(printer.lastWork.endedAt)} 終了` : '終了時刻不明'}
+            {printer.lastWork.durationMinutes !== null && ` ・ ${printer.lastWork.durationMinutes}分`}
+          </p>
+        </div>
+      )}
     </article>
   );
 }

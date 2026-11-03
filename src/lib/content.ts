@@ -52,7 +52,7 @@ export async function getEntries(collection: Collection): Promise<Entry[]> {
     return [];
   }
   const entries = await Promise.all(files.map((file) => readEntry(collection, file)));
-  return entries.filter((entry) => entry.published).sort((a, b) => b.date.localeCompare(a.date));
+  return entries.filter((entry) => entry.published).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 }
 
 export async function getEntry(collection: Collection, id: string): Promise<Entry | null> {
@@ -72,4 +72,11 @@ export async function getEvents() {
     upcoming: events.filter((event) => !isPastEvent(event, today)).sort((a, b) => a.date.localeCompare(b.date)),
     past: events.filter((event) => isPastEvent(event, today)),
   };
+}
+
+export async function getFeed(): Promise<Entry[]> {
+  const [articles, events] = await Promise.all([getEntries('articles'), getEvents()]);
+  return [...articles, ...events.past.filter((event) => event.record.trim() !== '')].sort(
+    (a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)
+  );
 }

@@ -4,6 +4,9 @@ import type { Entry } from '@/lib/content-schema';
 import { excerptOf } from '@/lib/content';
 import { formatEventDate } from '@/lib/event-format';
 import { peopleNames, resolvePeople } from '@/lib/people';
+import { renderMarkdown } from '@/lib/markdown';
+import MarkdownContent from '@/components/MarkdownContent';
+import WorkModalCard from '@/components/WorkModalCard';
 import { MachineTags, StatusBadge, Tag, TypeBadge } from './Labels';
 
 function Cover({ src, alt, className, sizes, position = '' }: { src: string; alt: string; className: string; sizes: string; position?: string }) {
@@ -18,9 +21,21 @@ function Cover({ src, alt, className, sizes, position = '' }: { src: string; alt
   );
 }
 
+function feedHref(entry: Entry) {
+  return entry.collection === 'events' ? `/events/${entry.id}` : `/articles/${entry.id}`;
+}
+
+function FeedBadge({ entry }: { entry: Entry }) {
+  return entry.collection === 'events' ? <Tag className='bg-amber-50 text-amber-800'>イベントレポート</Tag> : <TypeBadge type={entry.type} />;
+}
+
+function feedExcerpt(entry: Entry) {
+  return entry.collection === 'events' ? excerptOf({ ...entry, body: entry.record }) : excerptOf(entry);
+}
+
 export function ArticleCard({ entry, featured = false }: { entry: Entry; featured?: boolean }) {
   return (
-    <Link href={`/articles/${entry.id}`} className={`group block ${featured ? 'md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-8' : ''}`}>
+    <Link href={feedHref(entry)} className={`group block ${featured ? 'md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-8' : ''}`}>
       <Cover
         src={entry.coverImage}
         alt=''
@@ -29,11 +44,11 @@ export function ArticleCard({ entry, featured = false }: { entry: Entry; feature
       />
       <div className={featured ? 'pt-5 md:pt-2' : 'pt-4'}>
         <div className='flex items-center gap-3 text-xs text-neutral-500'>
-          <TypeBadge type={entry.type} />
+          <FeedBadge entry={entry} />
           <time dateTime={entry.date}>{entry.date}</time>
         </div>
-        <h3 className={`${featured ? 'mt-3 text-2xl' : 'mt-2 text-lg'} font-bold leading-snug`}>{entry.title}</h3>
-        {excerptOf(entry) && <p className='mt-3 line-clamp-3 text-sm leading-6 text-neutral-600'>{excerptOf(entry)}</p>}
+        <h3 className={`${featured ? 'mt-3 text-2xl lg:whitespace-nowrap' : 'mt-2 text-lg'} font-bold leading-snug`}>{entry.title}</h3>
+        {feedExcerpt(entry) && <p className='mt-3 line-clamp-3 text-sm leading-6 text-neutral-600'>{feedExcerpt(entry)}</p>}
       </div>
     </Link>
   );
@@ -43,17 +58,17 @@ export function ArticleRow({ entry }: { entry: Entry }) {
   const author = resolvePeople(entry.authors)[0];
   const authorName = peopleNames(entry.authors, entry.legacyAuthor);
   return (
-    <Link href={`/articles/${entry.id}`} className='group block border-b border-neutral-200 py-7'>
+    <Link href={feedHref(entry)} className='group block border-b border-neutral-200 py-7'>
       <article className='grid gap-5 sm:grid-cols-[13rem_1fr]'>
         <Cover src={entry.coverImage} alt={entry.title} className='aspect-[4/3] rounded-lg sm:aspect-auto sm:min-h-40' sizes='(min-width: 640px) 13rem, 100vw' />
         <div className='flex min-w-0 flex-col justify-between py-1'>
           <div>
             <div className='mb-2 flex flex-wrap items-center gap-3 text-xs text-neutral-500'>
-              <TypeBadge type={entry.type} />
+              <FeedBadge entry={entry} />
               <span>{entry.date}</span>
             </div>
             <h3 className='text-xl font-bold leading-7 group-hover:underline group-hover:underline-offset-4 md:text-2xl'>{entry.title}</h3>
-            <p className='mt-3 max-w-2xl text-sm leading-6 text-neutral-600'>{excerptOf(entry)}</p>
+            <p className='mt-3 max-w-2xl text-sm leading-6 text-neutral-600'>{feedExcerpt(entry)}</p>
           </div>
           {authorName && (
             <div className='mt-5 flex items-center text-xs text-neutral-500'>
@@ -71,33 +86,34 @@ export function ArticleRow({ entry }: { entry: Entry }) {
   );
 }
 
-export function WorkCard({ entry }: { entry: Entry }) {
+export async function WorkCard({ entry }: { entry: Entry }) {
   const author = resolvePeople(entry.authors)[0];
-  const authorName = peopleNames(entry.authors, entry.legacyAuthor) || 'KOBO Team';
+  const { tree } = await renderMarkdown(entry.body);
+  const tags = (
+    <>
+      {entry.status === 'wip' && <StatusBadge status='wip' />}
+      <MachineTags machines={entry.machines} />
+    </>
+  );
   return (
-    <Link
-      href={`/works/${entry.id}`}
-      className='group block h-full overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5'
-    >
-      <Cover src={entry.coverImage} alt={entry.title} className='aspect-video' sizes='(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw' />
-      <div className='p-5'>
-        <h3 className='mb-3 text-lg font-bold leading-snug'>{entry.title}</h3>
-        {(entry.machines.length > 0 || entry.status === 'wip') && (
-          <div className='mb-3 flex flex-wrap gap-2'>
-            {entry.status === 'wip' && <StatusBadge status='wip' />}
-            <MachineTags machines={entry.machines} />
-          </div>
-        )}
-        <div className='flex items-center'>
-          {author?.avatar ? (
-            <Image src={author.avatar} alt='' width={24} height={24} className='mr-2 rounded-full' />
-          ) : (
-            <span className='mr-2 size-6 rounded-full bg-neutral-300' />
-          )}
-          <span className='text-sm text-neutral-600'>{authorName}</span>
-        </div>
-      </div>
-    </Link>
+    <WorkModalCard
+      work={{
+        id: entry.id,
+        title: entry.title,
+        coverImage: entry.coverImage,
+        images: entry.images,
+        authorName: peopleNames(entry.authors, entry.legacyAuthor) || 'KOBO Team',
+        authorAvatar: author?.avatar ?? '',
+      }}
+      tags={tags}
+      largeTags={tags}
+      description={
+        <MarkdownContent
+          tree={tree}
+          className='space-y-3 [&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800 [&_img]:mx-auto [&_img]:max-h-80 [&_img]:rounded-lg [&_p]:whitespace-pre-line [&_ul]:list-disc [&_ul]:pl-6'
+        />
+      }
+    />
   );
 }
 
