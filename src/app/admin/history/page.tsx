@@ -63,6 +63,7 @@ export default async function HistoryPage({
         <h1 className={pageTitle}>変更履歴</h1>
         <p className='mt-1 text-sm leading-6 text-slate-500'>
           投稿画面からの変更の記録です。「戻す」と、その変更の前の状態に戻す変更が新しく記録されます。
+          下書き保存は公開版を変えないため、この履歴には追加しません。
           {user.role === 'editor' && '自分の変更だけ戻せます。'}
         </p>
       </div>

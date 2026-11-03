@@ -8,6 +8,8 @@ import ArticleEditor from '../../_components/editor/ArticleEditor';
 const notices: Record<string, string> = {
   published: '公開しました。1〜2分でサイトに反映されます。',
   draft: '下書きを保存しました。サイトにはまだ出ません。',
+  unchanged: '変更がないため、公開版の更新は行いませんでした。',
+  unpublished: '非公開にしました。1〜2分でサイトに反映されます。',
 };
 
 export default async function EditEntryPage({
@@ -17,7 +19,8 @@ export default async function EditEntryPage({
   params: Promise<{ collection: string; id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
-  if (!(await currentUser())) redirect('/admin');
+  const user = await currentUser();
+  if (!user) redirect('/admin');
   const { collection, id } = await params;
   if (!isCollection(collection)) notFound();
   const entry = await loadEntry(collection, id);
@@ -35,7 +38,9 @@ export default async function EditEntryPage({
       isNew={false}
       initial={entry.draft}
       baseSha={entry.sha}
-      notice={notices[saved ?? ''] ?? ''}
+      initialImages={entry.images}
+      canDiscardDraft={Boolean(entry.draftOwnerId && (entry.draftOwnerId === user.id || user.role !== 'editor'))}
+      notice={saved === 'draft' && entry.draft.published ? '下書きを保存しました。公開中の内容はそのままです。' : notices[saved ?? ''] ?? ''}
     />
   );
 }

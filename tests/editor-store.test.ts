@@ -49,6 +49,13 @@ test('directory reads share one head and concurrent authentication; saves check 
   assert.equal(calls.filter((url) => url.includes('/git/ref/heads/')).length, 2);
   assert.equal(calls.filter((url) => url.includes('/git/blobs/')).length, 2);
 
+  const unchanged = await store.commit({
+    changes: [{ path: 'src/content/articles/one.md', blobSha: 'first' }],
+    expected: { 'src/content/articles/one.md': 'first' }, title: 'No changes',
+    editor: { id: 'editor', displayName: '山田 太郎', role: 'editor' },
+  });
+  assert.equal(unchanged, 'first');
+
   revision = 'updated-by-another-editor';
   await assert.rejects(store.commit({
     changes: [], expected: { 'src/content/articles/one.md': 'first' },

@@ -24,8 +24,8 @@ async function loadRows(): Promise<{ rows: Record<Collection, EntryRow[]>; now: 
         ...entry,
         authorName: peopleNames(entry.authors, entry.legacyAuthor, people),
         isPast: isPastEvent(entry, today),
-        updatedAt: event?.at ?? null,
-        updatedBy: event?.userName ?? null,
+        updatedAt: entry.draftUpdatedAt ?? event?.at ?? null,
+        updatedBy: entry.draftUpdatedBy ?? event?.userName ?? null,
       });
     }
   }

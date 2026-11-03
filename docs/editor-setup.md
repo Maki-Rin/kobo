@@ -6,7 +6,7 @@
 
 | 部品 | 役割 | 設定先 |
 |---|---|---|
-| Cloudflare D1 `kobo-editor` | メンバー・パスキー公開鍵・ログイン状態・操作記録 | Cloudflare |
+| Cloudflare D1 `kobo-editor` | メンバー・パスキー公開鍵・ログイン状態・操作記録・下書き・公開前の画像 | Cloudflare |
 | GitHub App `kobo-editor-bot` | 記事と画像を main にコミット | GitHub |
 | Vercel 環境変数 | 上の2つの接続情報 | Vercel |
 
@@ -18,9 +18,12 @@ npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0001_in
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0002_activity.sql
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0003_entry_collection.sql
 npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0004_security.sql
+npx wrangler d1 execute kobo-editor --remote --file=db/editor/migrations/0005_drafts.sql
 ```
 
 `db/editor/migrations/` にファイルが増えたら、番号の順に同じコマンドで実行する（ローカルの SQLite は起動時に自動で適用される）。
+
+既存の本番DBで0001〜0004を適用済みなら、今回の下書き分離版をデプロイする前に0005だけ適用する。0005はテーブル追加のみで、既存のメンバーや記事は変更しない。新しい環境変数は不要。
 
 1行目の出力にある `database_id` を控える。
 
@@ -91,7 +94,11 @@ npm run editor:invite -- --name "名前" --role developer
 
 ## 運用上の注意
 
-- 投稿画面の保存は main に直接コミットされ、Vercel が1〜2分で反映する。
+- 下書き保存はD1に保存し、mainへのコミットやVercelの本番デプロイを起こさない。入力中の自動保存は引き続きブラウザ内。
+- 「公開する」「更新を確定」と非公開への切り替えはmainへ直接コミットし、Vercelが反映する。人物情報の保存も公開用JSONの更新としてコミットする。内容が同じなら新しいコミットを作らない。
+- 公開済み記事の下書き保存では、サイトに出ている版を維持する。下書きは最新1版をD1で共有し、競合時には保存を止める。公開版が変わった場合は比較・退避してから、設定の「下書きを破棄」で古い下書きを片付けて最新の版から編集し直せる。
+- 公開前の画像はD1に512KiB単位で分割して一時保存する。1枚3MiB、元データ合計200MiBを上限にし、Base64・DB管理情報の分だけ実際のDB使用量は増える。下書きから参照されない画像は30日経過後、次回アップロード時に整理する。下書きに使っている画像は自動削除しない。D1容量はダッシュボードでも監視する。
+- 公開時に本文と必要な画像をまとめてGitへ反映する。以前GitHubへ一時アップロードした画像も読み込める。GitHubへの反映後にDB整理が失敗した場合はその旨を表示し、再試行しても同じ公開コミットを重複作成しない。
 - 開発作業（develop など）を main に入れる前に、main を取り込む（`git merge origin/main`）。投稿画面の変更は main にしかない。
 - パスキーはドメインに結び付く。独自ドメインに移ると、登録済みのパスキーは使えなくなり、全員の再登録（管理者が「端末を追加するリンク」を配る）が必要。
 - Vercel のプレビューURLではパスキーが使えない（本番ドメイン専用）。
@@ -109,3 +116,5 @@ EDITOR_ORIGIN=http://localhost:3100
 - データベースは `.editor-local/editor.db`（SQLite）に作られる。
 - 保存は GitHub ではなく作業ツリーのファイルに直接書かれ、履歴は `.editor-local/history.json` に残る。
 - 招待: `npm run editor:invite -- --name "テスト"`
+
+下書きのHTTP確認は `node --import tsx tests/editor-drafts-http.mjs`。専用の一時SQLiteと3117ポートの開発サーバーを作り、本番D1 / GitHub設定を無効にして、下書き表示・公開版との分離・一時画像の認証を確認する。実行後にテスト用サーバーとDBを片付ける。

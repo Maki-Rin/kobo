@@ -47,8 +47,8 @@ const toEvent = (row: EventRow): ArticleEvent => ({
 const SELECT = `SELECT e.collection, e.article_id, e.title, e.action, e.user_id, u.display_name AS user_name, e.commit_id, e.at
   FROM article_events e LEFT JOIN users u ON u.id = e.user_id`;
 
-export async function recordArticleEvent(event: Omit<ArticleEvent, 'userName' | 'at'>) {
-  const db = await getDb();
+export async function recordArticleEvent(event: Omit<ArticleEvent, 'userName' | 'at'>, database?: Db) {
+  const db = database ?? await getDb();
   await db.run(
     'INSERT INTO article_events (collection, article_id, title, action, user_id, commit_id, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     [event.collection, event.articleId, event.title, event.action, event.userId, event.commitId, new Date().toISOString()]

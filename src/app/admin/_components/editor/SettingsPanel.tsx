@@ -66,6 +66,7 @@ export default function SettingsPanel({
   draft,
   isNew,
   wasPublished,
+  busy = false,
   resolveSrc,
   coverChoices,
   uploading,
@@ -77,11 +78,13 @@ export default function SettingsPanel({
   onCoverFiles,
   onGalleryFiles,
   onUnpublish,
+  onDiscardDraft,
   onClose,
 }: {
   draft: Entry;
   isNew: boolean;
   wasPublished: boolean;
+  busy?: boolean;
   resolveSrc: (src: string) => string;
   coverChoices: { path: string; src: string }[];
   uploading: boolean;
@@ -93,9 +96,11 @@ export default function SettingsPanel({
   onCoverFiles: (files: File[]) => void;
   onGalleryFiles: (files: File[]) => void;
   onUnpublish: () => void;
+  onDiscardDraft?: () => void;
   onClose: () => void;
 }) {
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const { collection } = draft;
   const coverLabel = collection === 'events' ? '告知画像（チラシなど）' : 'カバー画像';
   const personLabel = collection === 'works' ? '作った人' : '書いた人';
@@ -112,7 +117,7 @@ export default function SettingsPanel({
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex justify-end' role='dialog' aria-modal='true' aria-label='設定'>
+    <div className='fixed inset-0 z-50 flex justify-end' role='dialog' aria-modal='true' aria-label='設定' aria-busy={busy} inert={busy}>
       <button type='button' aria-label='閉じる' className='absolute inset-0 bg-slate-900/30' onClick={onClose} />
       <aside className='relative flex h-full w-full max-w-md flex-col bg-white shadow-xl'>
         <div className='flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-5'>
@@ -392,11 +397,25 @@ export default function SettingsPanel({
             </div>
           </Field>
 
+          {onDiscardDraft && (
+            <div className='space-y-3 rounded-lg border border-slate-200 p-4'>
+              <p className='text-sm font-bold'>保存した下書きを破棄する</p>
+              <p className='text-xs leading-5 text-slate-500'>公開中の内容は変わりません。この下書きと保存していない変更は元に戻せません。</p>
+              {confirmDiscard ? (
+                <div className='flex gap-2'>
+                  <button type='button' onClick={() => setConfirmDiscard(false)} className={button('secondary', 'sm')}>やめる</button>
+                  <button type='button' onClick={onDiscardDraft} className={button('danger', 'sm')}>下書きを破棄する</button>
+                </div>
+              ) : (
+                <button type='button' onClick={() => setConfirmDiscard(true)} className={button('dangerOutline', 'sm')}>下書きを破棄…</button>
+              )}
+            </div>
+          )}
           {wasPublished && (
             <div className='space-y-3 rounded-lg border border-slate-200 p-4'>
               <div>
                 <p className='text-sm font-bold'>公開をやめる</p>
-                <p className='mt-1 text-xs leading-5 text-slate-500'>サイトから見えなくなり、下書きに戻ります。消えはしません。</p>
+                <p className='mt-1 text-xs leading-5 text-slate-500'>公開版をサイトから見えなくします。保存済みの下書きは残ります。</p>
               </div>
               {confirmUnpublish ? (
                 <div className='flex gap-2'>
@@ -404,12 +423,12 @@ export default function SettingsPanel({
                     やめる
                   </button>
                   <button type='button' onClick={onUnpublish} className={button('danger', 'sm')}>
-                    下書きに戻す
+                    非公開にする
                   </button>
                 </div>
               ) : (
                 <button type='button' onClick={() => setConfirmUnpublish(true)} className={button('dangerOutline', 'sm')}>
-                  下書きに戻す…
+                  非公開にする…
                 </button>
               )}
             </div>

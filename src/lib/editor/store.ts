@@ -171,8 +171,14 @@ class LocalStore implements ContentStore {
         throw new ConflictError(`ほかの人が先に変更しています: ${filePath}`);
       }
     }
-    const files: LocalEntry['files'] = [];
+    const effective: FileChange[] = [];
     for (const change of request.changes) {
+      const current = await this.read(change.path);
+      if (current?.sha !== ('content' in change ? gitBlobSha(change.content) : change.blobSha)) effective.push(change);
+    }
+    if (!effective.length) return (await this.log()).at(-1)?.id ?? gitBlobSha(Buffer.alloc(0));
+    const files: LocalEntry['files'] = [];
+    for (const change of effective) {
       const content =
         'content' in change ? change.content : await this.staged(change.blobSha);
       if (!content) throw new Error(`画像が見つかりません: ${change.path}`);
@@ -413,8 +419,11 @@ export class GitHubStore implements ContentStore {
         throw new ConflictError(`ほかの人が先に変更しています: ${filePath}`);
       }
     }
+    const effective = request.changes.filter((change) =>
+      head.entries.get(change.path) !== ('content' in change ? gitBlobSha(change.content) : change.blobSha));
+    if (!effective.length) return head.commitSha;
     const tree = [];
-    for (const change of request.changes) {
+    for (const change of effective) {
       const sha = 'content' in change ? await this.stage(change.content) : change.blobSha;
       tree.push({ path: change.path, mode: '100644', type: 'blob', sha });
     }

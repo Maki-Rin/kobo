@@ -21,6 +21,7 @@ export interface EntryRow {
   isPast: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
+  hasDraft?: boolean;
 }
 
 type Filter = 'all' | 'published' | 'draft';
@@ -62,7 +63,7 @@ export default function EntryTable({ collection, articles, now }: { collection: 
     () => ({
       all: articles.length,
       published: articles.filter((a) => a.published).length,
-      draft: articles.filter((a) => !a.published).length,
+      draft: articles.filter((a) => !a.published || a.hasDraft).length,
     }),
     [articles]
   );
@@ -70,7 +71,7 @@ export default function EntryTable({ collection, articles, now }: { collection: 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return articles
-      .filter((a) => filter === 'all' || (filter === 'published') === a.published)
+      .filter((a) => filter === 'all' || (filter === 'published' ? a.published : !a.published || a.hasDraft))
       .filter((a) => !q || a.title.toLowerCase().includes(q) || a.id.includes(q) || a.authorName.toLowerCase().includes(q))
       .sort((a, b) =>
         sort === 'date'
@@ -178,6 +179,7 @@ export default function EntryTable({ collection, articles, now }: { collection: 
                     <span className={`${badge} shrink-0 bg-amber-100 text-amber-900`}>開催予定</span>
                   ))}
                 {!article.published && <span className={`${badge} shrink-0 bg-slate-200 text-slate-700`}>下書き</span>}
+                {article.published && article.hasDraft && <span className={`${badge} shrink-0 bg-amber-100 text-amber-900`}>未公開の変更あり</span>}
                 {localDrafts.has(article.id) && (
                   <span className={`${badge} shrink-0 bg-blue-50 text-blue-800`}>書きかけあり</span>
                 )}

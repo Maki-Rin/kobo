@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { articleTypeLabels, collectionLabels, isPastEvent, type Entry } from '@/lib/content-schema';
-import { previewAction, saveEntryAction, uploadImageAction } from '../../actions';
+import { discardDraftAction, previewAction, saveEntryAction, uploadImageAction } from '../../actions';
 import { badge, button, fontFamily } from '../ui';
 import { IMAGE_ACCEPT } from './ImageDropZone';
 import EditorBackdrop from './EditorBackdrop';
@@ -115,6 +115,8 @@ export default function ArticleEditor({
   notice: initialNotice,
   eventOptions = [],
   people = [],
+  initialImages = [],
+  canDiscardDraft = false,
 }: {
   initial: Entry;
   isNew: boolean;
@@ -122,10 +124,14 @@ export default function ArticleEditor({
   notice: string;
   eventOptions?: EventOption[];
   people?: Person[];
+  initialImages?: { name: string; sha: string }[];
+  canDiscardDraft?: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
-  const [images, setImages] = useState<EditorImage[]>([]);
+  const [images, setImages] = useState<EditorImage[]>(() => initialImages.map((image) => ({
+    ...image, url: `/admin/staged/${image.sha}`, status: 'ready',
+  })));
   const [view, setView] = useState<View>('split');
   const [split, setSplit] = useState(50);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -154,6 +160,7 @@ export default function ArticleEditor({
   const selection = useRef<{ start: number; end: number } | null>(null);
   const dragDepth = useRef(0);
   const latestDraft = useRef(draft);
+  const autosaveTimer = useRef<number | null>(null);
   const key = autosaveKey(initial, isNew);
   const collection = initial.collection;
 
@@ -164,6 +171,27 @@ export default function ArticleEditor({
   useEffect(() => {
     latestDraft.current = draft;
   }, [draft]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const urls: string[] = [];
+    for (const image of initialImages) {
+      void (async () => {
+        try {
+          const response = await fetch(`/admin/staged/${image.sha}`, { signal: controller.signal });
+          if (!response.ok) return;
+          const blob = await response.blob();
+          if (controller.signal.aborted) return;
+          const url = URL.createObjectURL(blob);
+          urls.push(url);
+          setImages((current) => current.map((item) => item.name === image.name && item.sha === image.sha ? { ...item, url } : item));
+        } catch {
+          // Keep the authenticated image URL as a fallback if preloading fails.
+        }
+      })();
+    }
+    return () => { controller.abort(); urls.forEach((url) => URL.revokeObjectURL(url)); };
+  }, [initialImages]);
 
   useEffect(() => {
     const saved = readStorage<number>(SPLIT_KEY);
@@ -206,6 +234,7 @@ export default function ArticleEditor({
       } satisfies Autosave);
       setAutosavedAt(savedAt);
     }, AUTOSAVE_DELAY);
+    autosaveTimer.current = timer;
     return () => window.clearTimeout(timer);
   }, [draft, images, dirty, key, baseSha]);
 
@@ -241,7 +270,7 @@ export default function ArticleEditor({
   }, [draft, field]);
 
   const renderedPreview = useMemo(
-    () => previewHtml.replace(/src="(\/images\/articles\/[^"]+)"/g, (_m, src: string) => `src="${resolveSrc(src)}"`),
+    () => previewHtml.replace(/src="(\/images\/(?:articles|works|events)\/[^"]+)"/g, (_m, src: string) => `src="${resolveSrc(src)}"`),
     [previewHtml, resolveSrc]
   );
 
@@ -443,13 +472,14 @@ export default function ArticleEditor({
     });
 
   const restore = () => {
-    if (!restorable) return;
+    if (!restorable || saving) return;
     setDraft(restorable.draft);
     setImages(restorable.images.map((image) => ({ ...image, url: `/admin/staged/${image.sha}`, status: 'ready' })));
     setRestorable(null);
   };
 
-  const save = async (publish: boolean) => {
+  const save = async (publish: boolean, unpublish = false) => {
+    if (saving) return;
     if (uploading) {
       setErrors(['画像のアップロードが終わるまで待ってください']);
       return;
@@ -463,11 +493,12 @@ export default function ArticleEditor({
             ...(next.authors.length === 0 ? [collection === 'works' ? '作った人' : '書いた人'] : []),
           ]
       : [];
-    if (!next.title.trim() || (publish && !next.body.trim()) || missingSettings.length > 0) {
+    const missingBody = publish && collection === 'articles' && !next.body.trim();
+    if (!next.title.trim() || missingBody || missingSettings.length > 0) {
       setHighlightMissing(true);
       setErrors([
         ...(!next.title.trim() ? ['タイトルを入れてください'] : []),
-        ...(publish && !next.body.trim() ? ['本文が空です'] : []),
+        ...(missingBody ? ['本文が空です'] : []),
         ...(missingSettings.length > 0 ? [`公開するには「設定」で${missingSettings.join('と')}を入れてください`] : []),
       ]);
       if (missingSettings.length > 0) setSettingsOpen(true);
@@ -487,15 +518,36 @@ export default function ArticleEditor({
       isNew,
       baseSha,
       images: used.map((image) => ({ name: image.name, sha: image.sha! })),
-    });
+      operation: unpublish ? 'unpublish' : publish ? 'publish' : 'draft',
+    }).catch(() => ({ ok: false as const, errors: ['通信を確認して、もう一度保存してください。'] }));
     setSaving(false);
     if (!result.ok) {
       setErrors(result.errors);
       return;
     }
+    if (autosaveTimer.current !== null) clearTimeout(autosaveTimer.current);
     writeStorage(key, null);
     setSettingsOpen(false);
-    router.replace(`/admin/${collection}/${result.value.id}?saved=${publish ? 'published' : 'draft'}`);
+    if (!result.value.changed) {
+      setNotice('変更はありませんでした。');
+      router.refresh();
+      return;
+    }
+    router.replace(`/admin/${collection}/${result.value.id}?saved=${unpublish ? 'unpublished' : !result.value.changed && publish ? 'unchanged' : publish ? 'published' : 'draft'}`);
+    router.refresh();
+  };
+
+  const discard = async () => {
+    if (saving || !baseSha) return;
+    setSaving(true);
+    const result = await discardDraftAction(collection, draft.id, baseSha).catch(() => ({
+      ok: false as const, errors: ['処理結果を確認できませんでした。通信を確認して開き直してください。'],
+    }));
+    setSaving(false);
+    if (!result.ok) { setErrors(result.errors); return; }
+    if (autosaveTimer.current !== null) clearTimeout(autosaveTimer.current);
+    writeStorage(key, null);
+    router.replace(collection === 'articles' ? '/admin' : `/admin?c=${collection}`);
     router.refresh();
   };
 
@@ -503,7 +555,7 @@ export default function ArticleEditor({
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 's') {
         event.preventDefault();
-        save(primaryPublish);
+        save(false);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -571,6 +623,7 @@ export default function ArticleEditor({
           ← <span className='hidden sm:inline'>一覧</span>
         </Link>
         <input
+          disabled={saving}
           value={draft.title}
           onChange={(event) => update('title', event.target.value)}
           placeholder={collection === 'events' ? 'イベント名を入力' : collection === 'works' ? '作品名を入力' : 'タイトルを入力'}
@@ -609,14 +662,12 @@ export default function ArticleEditor({
               </svg>
               <span className='hidden sm:inline'>設定</span>
             </button>
-            {!primaryPublish && (
-              <button type='button' onClick={() => save(false)} disabled={saving} className={`${button('secondary')} max-sm:px-3`}>
-                <span className='sm:hidden'>下書き</span>
-                <span className='hidden sm:inline'>下書き保存</span>
-              </button>
-            )}
+            <button type='button' onClick={() => save(false)} disabled={saving} className={`${button('secondary')} max-sm:px-3`}>
+              <span className='sm:hidden'>下書き</span>
+              <span className='hidden sm:inline'>下書き保存</span>
+            </button>
             <button type='button' onClick={() => save(true)} disabled={saving} className={`${button('primary')} max-sm:px-3`}>
-              {saving ? '保存中…' : primaryPublish ? '更新する' : '公開する'}
+              {saving ? '保存中…' : primaryPublish ? '更新を確定' : '公開する'}
             </button>
           </div>
         </div>
@@ -682,6 +733,7 @@ export default function ArticleEditor({
       >
         <section
           aria-label='本文'
+          inert={saving}
           className={`relative min-w-0 flex-col overflow-hidden bg-white ${view === 'preview' ? 'hidden' : 'flex'} ${
             view === 'split' ? 'w-full md:w-[var(--split)] md:shrink-0' : 'w-full'
           }`}
@@ -932,6 +984,8 @@ export default function ArticleEditor({
           draft={draft}
           isNew={isNew}
           wasPublished={primaryPublish}
+          busy={saving}
+          onDiscardDraft={canDiscardDraft ? discard : undefined}
           resolveSrc={resolveSrc}
           coverChoices={bodyImages.map((name) => ({ path: imagePath(name), src: resolveSrc(imagePath(name)) }))}
           uploading={coverUploading}
@@ -942,7 +996,7 @@ export default function ArticleEditor({
           onIdChange={changeId}
           onCoverFiles={setCover}
           onGalleryFiles={addGallery}
-          onUnpublish={() => save(false)}
+          onUnpublish={() => save(false, true)}
           onClose={() => setSettingsOpen(false)}
         />
       )}
