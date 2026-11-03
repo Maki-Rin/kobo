@@ -748,7 +748,7 @@ export default function ArticleEditor({
               {(
                 [
                   ['body', '告知'],
-                  ['record', '開催記録'],
+                  ['record', '開催報告'],
                 ] as const
               ).filter(([value]) => !(draft.reportOnly && value === 'body')).map(([value, label]) => (
                 <button
@@ -885,7 +885,7 @@ export default function ArticleEditor({
                 insertImages(files);
               }}
               placeholder={placeholders[collection === 'events' ? field : collection]}
-              aria-label={field === 'record' ? '開催記録（Markdown）' : '本文（Markdown）'}
+              aria-label={field === 'record' ? '開催報告（Markdown）' : '本文（Markdown）'}
               className={`absolute inset-0 size-full resize-none whitespace-pre-wrap break-words bg-transparent text-stone-800 placeholder:text-stone-400 focus:outline-none ${surface}`}
             />
           </div>
@@ -952,7 +952,7 @@ export default function ArticleEditor({
               )}
               <p className='mb-2 text-xs font-bold text-slate-500'>
                 {collection === 'articles' ? articleTypeLabels[draft.type] : collectionLabels[collection]}
-                {collection === 'events' && `・${field === 'record' ? '開催記録' : '告知'}`}
+                {collection === 'events' && `・${field === 'record' ? '開催報告' : '告知'}`}
               </p>
               <h1 className='text-3xl font-bold leading-tight'>
                 {draft.title || <span className='text-slate-300'>タイトル</span>}

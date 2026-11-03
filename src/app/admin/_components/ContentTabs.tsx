@@ -8,7 +8,7 @@ import { pageTitle } from './ui';
 const leads: Record<Collection, string> = {
   articles: 'ガイドとテック。クリックすると編集できます。',
   works: 'KOBOでつくられたもの。',
-  events: '開催前は告知、終わったら同じページに開催記録を書きます。',
+  events: '開催前は告知、終わったら同じページに開催報告を書きます。',
 };
 
 export default function ContentTabs({ rows, now }: { rows: Record<Collection, EntryRow[]>; now: number }) {

@@ -144,7 +144,7 @@ export default function SettingsPanel({
             <>
               <Field
                 label='載せ方'
-                hint={draft.reportOnly ? '告知は出さず、開催記録だけを「これまで」に載せます。' : '開催前に告知を出し、終わったら開催記録を書き足します。'}
+                hint={draft.reportOnly ? '告知は出さず、開催報告だけを載せます。イベントの「開催報告」とトップの「新着」に出ます。' : '開催前に告知を出し、終わったら開催報告を書き足します。'}
               >
                 <Segmented
                   value={draft.reportOnly ? 'report' : 'announce'}
@@ -189,7 +189,7 @@ export default function SettingsPanel({
           <Field
             label={coverLabel}
             missing={highlightMissing && collection !== 'events' && !draft.coverImage}
-            hint={collection === 'events' ? (draft.reportOnly ? 'イベント一覧と開催記録の上に出ます。' : 'イベント一覧と告知に出ます。縦長のチラシでも大丈夫です。') : '一覧やSNSでシェアされたときに出る画像です。横長がおすすめ。'}
+            hint={collection === 'events' ? (draft.reportOnly ? 'イベント一覧と開催報告の上に出ます。' : 'イベント一覧と告知に出ます。縦長のチラシでも大丈夫です。') : '一覧やSNSでシェアされたときに出る画像です。横長がおすすめ。'}
           >
             <ImageDropZone onFiles={onCoverFiles} label={`${coverLabel}を選ぶ`} className='overflow-hidden'>
               {draft.coverImage ? (
