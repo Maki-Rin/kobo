@@ -7,7 +7,7 @@
 ローカルでは `.env.local` に次を設定します。
 
 ```text
-KOBO_PRINTER_PUBLIC_API_BASE_URL=https://your-worker.example
+KOBO_PRINTER_PUBLIC_API_BASE_URL=https://kobo-printer-control-plane.maki-rin.workers.dev
 ```
 
 ```bash
