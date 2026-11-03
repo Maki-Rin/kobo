@@ -1,0 +1,16 @@
+[
+  {
+    "id": "yoshito-usui",
+    "name": "Yoshito Usui",
+    "avatar": "/images/usui.jpg",
+    "bio": "",
+    "memberId": null
+  },
+  {
+    "id": "yuki-yamamoto",
+    "name": "Yuki Yamamoto",
+    "avatar": "/images/yamamoto.jpg",
+    "bio": "",
+    "memberId": null
+  }
+]

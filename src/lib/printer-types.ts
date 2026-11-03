@@ -16,6 +16,10 @@ export type PrinterState =
   | 'awaiting_collection'
   | 'error';
 
+export type ConnectionState = 'ok' | 'unreachable' | 'auth_rejected' | 'firmware_unverified' | 'bad_response';
+
+const connectionValues = new Set<ConnectionState>(['ok', 'unreachable', 'auth_rejected', 'firmware_unverified', 'bad_response']);
+
 export type WorkOutcome = 'success' | 'failed' | 'canceled' | 'unknown';
 
 export interface PublicPrinter {
@@ -24,6 +28,9 @@ export interface PublicPrinter {
   model: string;
   availability: PrinterAvailability;
   state: PrinterState;
+  connection: ConnectionState;
+  stateIsCurrent: boolean;
+  stateObservedAt: string | null;
   progressPercent: number | null;
   currentWork: {
     fileName: string | null;
@@ -49,25 +56,6 @@ export interface PublicPrintersResponse {
 export interface PrinterApiResult {
   data: PublicPrintersResponse | null;
   error: string | null;
-}
-
-const physicalPrinterOrder = new Map([
-  ['ad5mp-04', 0],
-  ['ad5mp-03', 1],
-  ['ad5mp-02', 2],
-  ['ad5mp-01', 3],
-  ['ad5mp-08', 4],
-  ['ad5mp-07', 5],
-  ['ad5mp-06', 6],
-  ['ad5mp-05', 7],
-]);
-
-export function orderPrintersForLayout(printers: PublicPrinter[]): PublicPrinter[] {
-  return [...printers].sort((left, right) => {
-    const leftOrder = physicalPrinterOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER;
-    const rightOrder = physicalPrinterOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER;
-    return leftOrder - rightOrder;
-  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -148,6 +136,16 @@ function parsePrinter(value: unknown): PublicPrinter | null {
     state: stateValues.has(value.state as string)
       ? (value.state as PrinterState)
       : 'unknown',
+    connection: connectionValues.has(value.connection as ConnectionState)
+      ? (value.connection as ConnectionState)
+      : value.availability === 'offline'
+        ? 'unreachable'
+        : 'ok',
+    stateIsCurrent:
+      typeof value.stateIsCurrent === 'boolean'
+        ? value.stateIsCurrent
+        : value.availability === 'online',
+    stateObservedAt: timestamp(value.stateObservedAt) ?? (value.availability === 'online' ? lastSeenAt : null),
     progressPercent:
       typeof progress === 'number' && Number.isFinite(progress)
         ? Math.min(100, Math.max(0, progress))
@@ -179,10 +177,7 @@ function parsePrinter(value: unknown): PublicPrinter | null {
 }
 
 export function parsePublicPrinters(value: unknown): PublicPrintersResponse | null {
-  if (
-    !isRecord(value) ||
-    !['1.0', '1.1', '1.2'].includes(value.schemaVersion as string)
-  ) return null;
+  if (!isRecord(value) || !['1.0', '1.1', '1.2'].includes(value.schemaVersion as string)) return null;
   const generatedAt = timestamp(value.generatedAt);
   if (generatedAt === null || !Array.isArray(value.printers)) return null;
   const printers = value.printers.map(parsePrinter);

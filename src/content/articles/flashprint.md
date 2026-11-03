@@ -1,11 +1,13 @@
 ---
 title: 'FlashPrintの基本的な使い方ガイド'
 date: '2025-07-15'
+type: guide
 excerpt: 'この記事では、スライサであるFlashPrintの基本的な使い方を紹介します。'
-author:
-  name: 'Yoshito Usui'
-  avatar: '/images/usui.jpg'
+authors:
+  - yoshito-usui
 coverImage: '/images/flashprint.png'
+machines:
+  - 3d-printer
 ---
 
 > この記事はFlashPrintのスライス操作を参照するために残しています。Adventurer 5M Proの現在のLAN接続と送信にはFlash Studio Desktopを使用し、KOBOスタッフの案内を優先してください。

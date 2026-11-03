@@ -1,4 +1,6 @@
 import 'server-only';
+import { readLimitedBody } from '@/lib/http-body';
+import { publicPrinterData } from '@/lib/printer-privacy';
 import {
   parsePublicPrinters,
   type PrinterApiResult,
@@ -17,13 +19,15 @@ export async function getPublicPrinters(): Promise<PrinterApiResult> {
 
   try {
     const endpoint = new URL('/api/public/v1/printers', configuredBaseUrl);
-    if (endpoint.protocol !== 'https:' && endpoint.hostname !== 'localhost') {
+    const localDev = process.env.NODE_ENV !== 'production' && endpoint.hostname === 'localhost' && endpoint.protocol === 'http:';
+    if ((endpoint.protocol !== 'https:' && !localDev) || endpoint.username || endpoint.password) {
       return { data: null, error: 'プリンター状態APIの設定が不正です。' };
     }
     const response = await fetch(endpoint, {
       headers: { Accept: 'application/json' },
       next: { revalidate: 15 },
       signal: AbortSignal.timeout(8_000),
+      redirect: 'error',
     });
     if (!response.ok) {
       return {
@@ -31,10 +35,7 @@ export async function getPublicPrinters(): Promise<PrinterApiResult> {
         error: 'プリンター状態を取得できませんでした。',
       };
     }
-    const body = await response.text();
-    if (new TextEncoder().encode(body).byteLength > MAX_RESPONSE_BYTES) {
-      return { data: null, error: 'プリンター状態の応答が大きすぎます。' };
-    }
+    const body = new TextDecoder().decode(await readLimitedBody(response, MAX_RESPONSE_BYTES));
     const data = parsePublicPrinters(JSON.parse(body) as unknown);
     if (data === null) {
       return {
@@ -42,7 +43,7 @@ export async function getPublicPrinters(): Promise<PrinterApiResult> {
         error: 'プリンター状態の形式を確認できませんでした。',
       };
     }
-    return { data, error: null };
+    return { data: publicPrinterData(data, process.env.KOBO_PRINTER_PUBLIC_FILE_NAMES === 'true'), error: null };
   } catch {
     return {
       data: null,

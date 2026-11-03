@@ -1,133 +1,76 @@
-'use client';
-
-import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import CompactPrinterStatus from '@/components/CompactPrinterStatus';
-import WorkCard from '@/components/WorkCard';
-import EventCard from '@/components/EventCard';
-import { type Article } from '@/lib/articles';
-import { type Work, getWorks } from '@/lib/works';
-import { type Event, getEvents } from '@/lib/events';
+import HomeHero from '@/components/HomeHero';
+import PrinterStatusStrip from '@/components/PrinterStatusStrip';
+import { ArticleCard, EventCard, WorkCard } from '@/components/content/Cards';
+import { getEntries, getEvents } from '@/lib/content';
+import { formatEventDate } from '@/lib/event-format';
 
-const categoryLabels: Record<Article['category'], string> = {
-  tips: 'Tips',
-  work: '制作記録',
-  'event-report': 'イベントレポート',
-  news: 'お知らせ',
-};
-
-const categoryStyles: Record<Article['category'], string> = {
-  tips: 'bg-blue-50 text-blue-700',
-  work: 'bg-emerald-50 text-emerald-700',
-  'event-report': 'bg-amber-50 text-amber-800',
-  news: 'bg-violet-50 text-violet-700',
-};
-
-function ArticleCard({ article, featured = false }: { article: Article; featured?: boolean }) {
+function Section({ title, href, linkLabel, children }: { title: string; href: string; linkLabel: string; children: React.ReactNode }) {
   return (
-    <Link href={`/articles/${article.id}`} className={`group block ${featured ? 'md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-8' : ''}`}>
-      <div className={`relative overflow-hidden rounded-lg bg-neutral-100 ${featured ? 'aspect-[16/10]' : 'aspect-video'}`}>
-        <Image src={article.coverImage} alt='' fill className='object-cover transition-transform duration-300 group-hover:scale-[1.015]' />
+    <section className='mx-auto max-w-6xl px-4 md:px-8'>
+      <div className='mb-5 flex items-end justify-between gap-4'>
+        <h2 className='text-[28px] font-extrabold leading-tight'>
+          <span className='marker'>{title}</span>
+        </h2>
+        <Link href={href} className='shrink-0 text-sm font-bold underline-offset-4 hover:underline'>
+          {linkLabel} →
+        </Link>
       </div>
-      <div className={featured ? 'pt-5 md:pt-2' : 'pt-4'}>
-        <div className='flex items-center gap-3 text-xs text-neutral-500'>
-          <span className={`rounded-md px-2 py-1 font-semibold ${categoryStyles[article.category]}`}>{categoryLabels[article.category]}</span>
-          <time>{article.date}</time>
-        </div>
-        <h3 className={`${featured ? 'mt-3 text-2xl lg:whitespace-nowrap' : 'mt-2 text-lg'} font-bold leading-snug`}>{article.title}</h3>
-        {article.excerpt && <p className='mt-3 line-clamp-3 text-sm leading-6 text-neutral-600'>{article.excerpt}</p>}
-      </div>
-    </Link>
+      {children}
+    </section>
   );
 }
 
-export default function HomePage() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [works, setWorks] = useState<Work[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    Promise.all([fetch('/api/articles').then((response) => response.json()), getWorks(), getEvents()])
-      .then(([articleData, workData, eventData]) => {
-        if (!active) return;
-        setArticles(articleData.articles ?? []);
-        setWorks(workData);
-        setEvents(eventData);
-      })
-      .catch((error) => console.error('Failed to load home content:', error));
-    return () => { active = false; };
-  }, []);
-
-  const latestArticles = useMemo(() => articles.slice(0, 4), [articles]);
-  const featuredWorks = useMemo(
-    () => works.filter((work) => work.publicationStatus !== 'draft' && work.publicationStatus !== 'rejected').slice(0, 6),
-    [works],
-  );
-  const upcomingEvents = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return events.filter((event) => new Date(event.date) >= today).slice(0, 3);
-  }, [events]);
+export default async function HomePage() {
+  const [articles, works, events] = await Promise.all([getEntries('articles'), getEntries('works'), getEvents()]);
+  const next = events.upcoming[0];
+  const shownEvents = (events.upcoming.length > 0 ? events.upcoming : events.past).slice(0, 3);
 
   return (
-    <div className='min-h-screen bg-white text-neutral-950'>
+    <div className='min-h-screen bg-paper'>
       <Header />
-      <main>
-        <section className='relative h-[22rem] overflow-hidden bg-neutral-200 md:h-[30rem]'>
-          <Image src='/images/top1.jpg' alt='KOBOの工房' fill priority className='object-cover' />
-          <div className='absolute inset-x-0 bottom-0 bg-black/55 px-6 py-5 text-white md:px-10'>
-            <div className='mx-auto max-w-6xl'>
-              <h1 className='text-2xl font-bold md:text-3xl'>KOBO</h1>
-              <p className='mt-1 text-sm text-white/85'>立命館大学OICのものづくりスペースを紹介する非公式サイトです。</p>
-            </div>
-          </div>
-        </section>
+      <HomeHero />
+      <PrinterStatusStrip />
 
-        <CompactPrinterStatus />
-
-        <div className='mx-auto max-w-6xl space-y-20 px-6 py-14 md:py-20'>
-          {upcomingEvents.length > 0 && (
-            <section>
-              <div className='mb-6 flex items-end justify-between border-b border-neutral-200 pb-3'>
-                <h2 className='text-2xl font-bold'>開催予定</h2>
-                <Link href='#events' className='text-sm text-neutral-600 underline underline-offset-4'>一覧を見る</Link>
-              </div>
-              <div className='grid gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-                {upcomingEvents.map((event, index) => <EventCard key={`${event.date}-${index}`} event={event} />)}
-              </div>
-            </section>
-          )}
-
-          <section>
-            <div className='mb-7 flex items-end justify-between border-b border-neutral-200 pb-3'>
-              <h2 className='text-2xl font-bold'>最新の記事</h2>
-              <Link href='/articles' className='text-sm text-neutral-600 underline underline-offset-4'>記事一覧を見る</Link>
-            </div>
-            {latestArticles.length > 0 ? (
-              <div className='space-y-10'>
-                <ArticleCard article={latestArticles[0]} featured />
-                <div className='grid gap-7 sm:grid-cols-2 lg:grid-cols-3'>
-                  {latestArticles.slice(1).map((article) => <ArticleCard key={article.id} article={article} />)}
-                </div>
-              </div>
-            ) : <p className='text-sm text-neutral-500'>記事を読み込んでいます。</p>}
-          </section>
-
-          <section id='works'>
-            <div className='mb-7 flex items-end justify-between border-b border-neutral-200 pb-3'>
-              <h2 className='text-2xl font-bold'>作例</h2>
-              <Link href='/works' className='shrink-0 text-sm text-neutral-600 underline underline-offset-4'>作例一覧を見る</Link>
-            </div>
-            <div className='grid gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-              {featuredWorks.map((work) => <WorkCard key={work.id} work={work} />)}
-            </div>
-          </section>
+      {next && (
+        <div className='mx-auto mt-6 max-w-6xl px-4 md:px-8'>
+          <Link href={`/events/${next.id}`} className='pop-card flex flex-wrap items-center gap-x-4 gap-y-1 bg-cream px-5 py-4'>
+            <span className='pop-chip bg-primary'>次のイベント</span>
+            <span className='text-lg font-bold'>{next.title}</span>
+            <span className='font-semibold'>{formatEventDate(next)}</span>
+            {next.place && <span className='text-sm text-muted'>{next.place}</span>}
+          </Link>
         </div>
+      )}
+
+      <main className='space-y-14 py-12'>
+        <Section title='まなぶ' href='/articles' linkLabel='記事をすべて見る'>
+          <div className='grid gap-5 md:grid-cols-3'>
+            {articles.slice(0, 3).map((entry) => (
+              <ArticleCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+        </Section>
+
+        <Section title='作品' href='/works' linkLabel='作品をすべて見る'>
+          <div className='grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5'>
+            {works.slice(0, 4).map((entry) => (
+              <WorkCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+        </Section>
+
+        <Section title='イベント' href='/events' linkLabel='イベントをすべて見る'>
+          <div className='grid gap-5 md:grid-cols-3'>
+            {shownEvents.map((entry) => (
+              <EventCard key={entry.id} entry={entry} past={events.upcoming.length === 0} />
+            ))}
+          </div>
+        </Section>
       </main>
+
       <Footer />
     </div>
   );

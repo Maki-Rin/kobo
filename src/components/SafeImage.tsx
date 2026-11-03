@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 interface SafeImageProps {
   src: string;
@@ -22,36 +22,20 @@ export default function SafeImage({
 
   // プロキシ経由でURLを変換
   const getProxiedImageUrl = useCallback((originalUrl: string) => {
-    // HTMLエンティティをデコード
-    const cleanUrl = originalUrl
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/&#x2F;/g, '/');
-
     // Qiitaの画像は直接読み込みを試行（imgixのhotlink protectionのため）
-    if (cleanUrl.includes('qiita-user-contents.imgix.net')) {
-      return cleanUrl; // プロキシを使わずに直接読み込み
+    if (originalUrl.includes('qiita-user-contents.imgix.net')) {
+      return originalUrl; // プロキシを使わずに直接読み込み
     }
 
     // その他の外部ドメインの画像はプロキシ経由で取得
     if (
-      cleanUrl.includes('opengraph.githubassets.com') ||
-      cleanUrl.includes('play-lh.googleusercontent.com')
+      originalUrl.includes('opengraph.githubassets.com') ||
+      originalUrl.includes('play-lh.googleusercontent.com')
     ) {
-      return `/api/image-proxy?url=${encodeURIComponent(cleanUrl)}`;
+      return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
     }
-    return cleanUrl;
+    return originalUrl;
   }, []);
-
-  useEffect(() => {
-    console.log('SafeImage component mounted with src:', src);
-    const proxiedUrl = getProxiedImageUrl(src);
-    console.log('Proxied URL:', proxiedUrl);
-    console.log('Should use proxy:', src !== proxiedUrl);
-  }, [src, getProxiedImageUrl]);
 
   const proxiedSrc = getProxiedImageUrl(src);
 
@@ -96,7 +80,6 @@ export default function SafeImage({
           setImageError(true);
         }}
         onLoad={() => {
-          console.log('Image loaded successfully:', proxiedSrc);
           setImageLoaded(true);
         }}
         loading='lazy'

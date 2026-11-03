@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_cache } from 'next/cache';
+import { allowedExternalUrl, fetchExternal } from '@/lib/external-fetch';
+
+const loadHtml = unstable_cache(async (url: string) => {
+  const response = await fetchExternal(url, 'metadata');
+  return response.body.toString('utf8');
+}, ['link-metadata-v2'], { revalidate: 3600 });
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,21 +16,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // URLの妥当性をチェック
-    new URL(url);
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const html = await response.text();
+    const safeUrl = allowedExternalUrl(url, 'metadata').href;
+    const html = await loadHtml(safeUrl);
 
     // 基本的な正規表現でメタデータを抽出
     const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
@@ -105,15 +99,14 @@ export async function GET(request: NextRequest) {
       siteName: siteName?.trim() || undefined,
       url,
     });
-  } catch (error) {
-    console.error('Error fetching metadata:', error);
+  } catch {
     return NextResponse.json(
       {
         title: url,
         url,
         error: 'Failed to fetch metadata',
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
