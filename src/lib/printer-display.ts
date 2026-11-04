@@ -73,6 +73,11 @@ function stateWithProgress(printer: PublicPrinter): string {
     : label;
 }
 
+function errorDetail(code: string | null): string {
+  const prefix = code === null ? 'プリンターがエラーを報告しています。' : `プリンターがエラーコード ${code} を報告しています。`;
+  return `${prefix}内容は本体の画面で確認できます。エラーが解消されると、この表示も自動で戻ります。`;
+}
+
 export function noteFor(printerId: string): PrinterNote {
   return notes[printerId] ?? {};
 }
@@ -89,14 +94,18 @@ export function describePrinter(printer: PublicPrinter, now = new Date()): Print
 
   if (printer.availability === 'online' || printer.availability === 'stale') {
     const delayed = printer.availability === 'stale';
+    const details = [
+      printer.state === 'error' ? errorDetail(printer.errorCode) : null,
+      delayed && printer.stateObservedAt
+        ? `更新が遅れています（${timeFormatter.format(new Date(printer.stateObservedAt))} 時点）`
+        : null,
+    ].filter((detail) => detail !== null);
     return {
       ...base,
       label: stateWithProgress(printer),
       tone: stateTone[printer.state],
       available: !delayed && stateTone[printer.state] === 'free',
-      detail: delayed && printer.stateObservedAt
-        ? `更新が遅れています（${timeFormatter.format(new Date(printer.stateObservedAt))} 時点）`
-        : null,
+      detail: details.length > 0 ? details.join(' ') : null,
     };
   }
 
