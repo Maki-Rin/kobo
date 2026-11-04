@@ -9,8 +9,6 @@ import { consumeInvite, consumeChallenge } from '../src/lib/editor/tokens';
 import { consumeLimit } from '../src/lib/editor/rate-limit';
 import type { Db, SqlValue } from '../src/lib/editor/db';
 import { renderPreviewHtml } from '../src/lib/editor/preview';
-import { publicPrinterData } from '../src/lib/printer-privacy';
-import { parsePublicPrinters } from '../src/lib/printer-types';
 import { detectImageType } from '../src/lib/image-type';
 import { saveEntry } from '../src/lib/editor/entries';
 
@@ -106,20 +104,6 @@ test('Markdown preview strips script, event handlers and javascript links while 
   assert.match(html, /<strong>safe<\/strong>/);
   assert.match(html, /github.com\/Maki-Rin\/kobo/);
   assert.match(html, /<pre/);
-});
-
-test('printer API redacts current and previous file names without changing status or progress', () => {
-  const data = parsePublicPrinters({ schemaVersion: '1.2', generatedAt: new Date().toISOString(), printers: [{
-    id: 'ad5mp-01', displayName: 'Printer', model: '5M', availability: 'online', state: 'printing',
-    progressPercent: 64.5, lastSeenAt: new Date().toISOString(),
-    currentWork: { fileName: 'private-project.gcode', elapsedMinutes: 5, estimatedTotalMinutes: 10 },
-    lastWork: { fileName: 'private-person.gcode', outcome: 'success', durationMinutes: 4, endedAt: null },
-  }] });
-  assert.ok(data);
-  const publicData = publicPrinterData(data);
-  assert.doesNotMatch(JSON.stringify(publicData), /private-/);
-  assert.equal(publicData.printers[0].progressPercent, 64.5);
-  assert.equal(data.printers[0].currentWork?.fileName, 'private-project.gcode');
 });
 
 test('uploads reject SVG/HTML and entry IDs cannot traverse the content directory', async () => {

@@ -53,8 +53,7 @@ Vercel / Cloudflare / GitHub の実アカウント設定は、本メモだけで
 
 現地agent→認証付きテレメトリ→Cloudflareの保存済み表示データ→VercelのGETという経路。現在、Webから実機へ操作コマンドを送る実装はない。
 
-- **元APIからもファイル名を除外する。** `apps/control-plane/src/store.ts` の公開DTO生成箇所等で `currentWork.fileName` / `lastWork.fileName` をnullまたは匿名名にし、public schema / fixture / contract testを揃える。Web側だけで隠してもWorkerのURLを直接開くと取得できる。
-- ファイル名には氏名・研究名・未公開作品名が入り得る。現在はすでに認証なしで公開されているので、過去の公開キャッシュやログも確認する。Web側の `KOBO_PRINTER_PUBLIC_FILE_NAMES=true` は公開方針を明示的に決めた場合だけ使用する。
+- ファイル名は公開する方針（kobo-server `2311acc`）。公開可否はkobo-server側（WorkerのpublicFileNames設定とAdminのプリンター別切り替え）で決め、Web側では除去しない。
 - public GETとedge telemetryにCloudflareのレート制限を追加。公開GETのキャッシュ、edgeのcredential別 + 全体枠を利用し、認証失敗の大量アクセスは可能ならWAFで処理する。
 - テレメトリの64KB上限を `arrayBuffer()` 後だけでなく受信ストリーム中にも適用。Content-Lengthを信用しない。サイズを偽った本文もテストする。
 - `EDGE_API_TOKEN` はWorker Secret、プリンターのチェックコード等は現地credential storeに限定。Vercelへ渡さず、失効・ローテーション手順を確認する。

@@ -1,6 +1,5 @@
 import 'server-only';
 import { readLimitedBody } from '@/lib/http-body';
-import { publicPrinterData } from '@/lib/printer-privacy';
 import {
   parsePublicPrinters,
   type PrinterApiResult,
@@ -43,7 +42,7 @@ export async function getPublicPrinters(): Promise<PrinterApiResult> {
         error: 'プリンター状態の形式を確認できませんでした。',
       };
     }
-    return { data: publicPrinterData(data, process.env.KOBO_PRINTER_PUBLIC_FILE_NAMES === 'true'), error: null };
+    return { data, error: null };
   } catch {
     return {
       data: null,
