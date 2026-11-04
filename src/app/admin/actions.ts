@@ -47,7 +47,9 @@ import { DisplayNameError, normalizeDisplayName, updateDisplayName } from '@/lib
 import { discardDraft } from '@/lib/editor/drafts';
 import {
   acknowledgePrinterError,
+  createPrintUpload,
   getAdminPrinters,
+  startPrint,
   PrinterAdminError,
   printerActions,
   sendPrinterCommand,
@@ -330,7 +332,7 @@ export async function loadPrintersAction(cameraPrinterId: string | null) {
 export async function printerCommandAction(printerId: string, action: PrinterAction) {
   return attempt(async () => {
     const user = await requireUser();
-    if (!printerIdPattern.test(printerId) || !printerActions.includes(action)) throw new EditorError(['操作の内容が正しくありません']);
+    if (!printerIdPattern.test(printerId) || !printerActions.includes(action) || action === 'start_print') throw new EditorError(['操作の内容が正しくありません']);
     await limitEditorRequest('printer-command', 20, 60, user.id);
     await sendPrinterCommand(printerId, action, user.displayName);
   });
@@ -342,5 +344,26 @@ export async function acknowledgePrinterErrorAction(printerId: string, errorCode
     if (!printerIdPattern.test(printerId) || !/^[A-Za-z0-9_.-]{1,32}$/.test(errorCode)) throw new EditorError(['操作の内容が正しくありません']);
     await limitEditorRequest('printer-command', 20, 60, user.id);
     await acknowledgePrinterError(printerId, errorCode, user.displayName);
+  });
+}
+
+export async function createPrintUploadAction(printerId: string, fileName: string, size: number) {
+  return attempt(async () => {
+    const user = await requireUser();
+    if (!printerIdPattern.test(printerId) || typeof fileName !== 'string' || !Number.isInteger(size)) throw new EditorError(['ファイルの内容が正しくありません']);
+    await limitEditorRequest('printer-upload', 10, 60, user.id);
+    return createPrintUpload(printerId, fileName, size, user.displayName);
+  });
+}
+
+export async function startPrintAction(printerId: string, uploadId: string, levelBeforePrint: boolean, snapshotCapturedAt: string, bedClearConfirmed: boolean) {
+  return attempt(async () => {
+    const user = await requireUser();
+    if (!bedClearConfirmed) throw new EditorError(['カメラの画像で台の上に何もないことを確かめてください']);
+    if (!printerIdPattern.test(printerId) || !/^[A-Za-z0-9_-]{1,64}$/.test(uploadId) || !Number.isFinite(Date.parse(snapshotCapturedAt))) {
+      throw new EditorError(['操作の内容が正しくありません']);
+    }
+    await limitEditorRequest('printer-command', 20, 60, user.id);
+    await startPrint(printerId, uploadId, levelBeforePrint === true, snapshotCapturedAt, user.displayName);
   });
 }

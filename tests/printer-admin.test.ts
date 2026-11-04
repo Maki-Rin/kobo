@@ -14,8 +14,8 @@ test('admin printers keep the reported error and drop malformed commands', () =>
     generatedAt: '2026-11-04T09:00:00.000Z',
     printers: [printer],
     commands: [
-      { id: 'a', printerId: 'ad5mp-03', action: 'pause', requestedBy: 'staff', requestedAt: '2026-11-04T09:00:00.000Z', status: 'succeeded', finishedAt: null, detail: null },
-      { id: 'b', printerId: 'ad5mp-03', action: 'start_print', requestedBy: 'staff', requestedAt: '2026-11-04T09:00:00.000Z', status: 'pending' },
+      { id: 'a', printerId: 'ad5mp-03', action: 'start_print', requestedBy: 'staff', requestedAt: '2026-11-04T09:00:00.000Z', status: 'succeeded', finishedAt: null, detail: null, fileName: 'gear.gx' },
+      { id: 'b', printerId: 'ad5mp-03', action: 'format_disk', requestedBy: 'staff', requestedAt: '2026-11-04T09:00:00.000Z', status: 'pending' },
     ],
   });
   assert.ok(data);
@@ -24,5 +24,6 @@ test('admin printers keep the reported error and drop malformed commands', () =>
   assert.equal(data.printers[0].acknowledgedErrorCode, 'E0113');
   assert.deepEqual(data.printers[0].camera, { status: 'off', checkedAt: '2026-11-04T09:00:00.000Z', capturedAt: null });
   assert.deepEqual(data.commands.map((command) => command.id), ['a']);
+  assert.equal(data.commands[0].fileName, 'gear.gx');
   assert.equal(parseAdminPrinters({ printers: [printer] }), null);
 });

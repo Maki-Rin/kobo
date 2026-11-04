@@ -1,6 +1,9 @@
 import { parsePublicPrinters, type PrinterState, type PublicPrinter } from './printer-types';
 
-export const printerActions = ['pause', 'resume', 'cancel', 'light_on', 'light_off'] as const;
+export const printerActions = ['pause', 'resume', 'cancel', 'light_on', 'light_off', 'start_print'] as const;
+export const printFileExtensions = ['.gcode', '.gx', '.3mf', '.g'] as const;
+export const MAX_PRINT_FILE_BYTES = 100 * 1024 * 1024;
+export const CAMERA_CONFIRMATION_MS = 60_000;
 export type PrinterAction = (typeof printerActions)[number];
 export type CommandStatus = 'pending' | 'sent' | 'succeeded' | 'failed' | 'expired';
 
@@ -29,6 +32,7 @@ export interface PrinterCommand {
   status: CommandStatus;
   finishedAt: string | null;
   detail: string | null;
+  fileName: string | null;
 }
 
 export interface AdminPrinters {
@@ -86,6 +90,7 @@ export function parseAdminPrinters(value: unknown): AdminPrinters | null {
         status: command.status as CommandStatus,
         finishedAt: typeof command.finishedAt === 'string' ? command.finishedAt : null,
         detail: text(command.detail, 200),
+        fileName: text(command.fileName, 255),
       }];
     }),
   };

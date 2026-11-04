@@ -5,7 +5,10 @@ import { describePrinter, toneDots, toneStyles } from '@/lib/printer-display';
 import { errorCodeMeaning } from '@/lib/printer-error-codes';
 import { pollWhileVisible } from '@/lib/visible-polling';
 import {
+  CAMERA_CONFIRMATION_MS,
   comparePrinters,
+  MAX_PRINT_FILE_BYTES,
+  printFileExtensions,
   type AdminPrinter,
   type AdminPrinters,
   type CameraStatus,
@@ -13,7 +16,13 @@ import {
   type PrinterAction,
   type PrinterCommand,
 } from '@/lib/printer-admin-types';
-import { acknowledgePrinterErrorAction, loadPrintersAction, printerCommandAction } from '../actions';
+import {
+  acknowledgePrinterErrorAction,
+  createPrintUploadAction,
+  loadPrintersAction,
+  printerCommandAction,
+  startPrintAction,
+} from '../actions';
 import ErrorList from './ErrorList';
 import Icon, { type IconName } from './Icon';
 import { relativeTime } from './relativeTime';
@@ -25,6 +34,7 @@ const actionLabels: Record<PrinterAction, string> = {
   cancel: '中止',
   light_on: 'ライトをつける',
   light_off: 'ライトを消す',
+  start_print: '造形を開始',
 };
 
 const statusLabels: Record<CommandStatus, string> = {
@@ -218,6 +228,9 @@ function PrinterDetail({
             light={<LightSwitch printer={printer} latest={latest} disabled={disabled} onToggle={send} />}
           />
           <ProgressPanel printer={printer} now={now} disabled={disabled} onSend={send} />
+          {online && !['printing', 'preparing', 'paused'].includes(printer.state) && (
+            <StartPrintPanel printer={printer} now={now} disabled={disabled} onStarted={onChange} />
+          )}
         </div>
         <div className='space-y-4'>
           <ErrorPanel printer={printer} busy={busy} onAcknowledge={(code) => run(() => acknowledgePrinterErrorAction(printer.id, code))} />
@@ -443,6 +456,149 @@ function ProgressPanel({
   );
 }
 
+function formatBytes(bytes: number): string {
+  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`;
+}
+
+function sendFile(url: string, token: string, file: File, onProgress: (ratio: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('PUT', url);
+    request.setRequestHeader('Authorization', `Bearer ${token}`);
+    request.setRequestHeader('Content-Type', 'application/octet-stream');
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    request.onload = () => (request.status === 204 ? resolve() : reject(new Error(`HTTP ${request.status}`)));
+    request.onerror = () => reject(new Error('network'));
+    request.send(file);
+  });
+}
+
+type UploadState =
+  | { kind: 'idle' }
+  | { kind: 'uploading'; file: File; ratio: number }
+  | { kind: 'ready'; file: File; uploadId: string }
+  | { kind: 'starting'; file: File; uploadId: string };
+
+function StartPrintPanel({ printer, now, disabled, onStarted }: { printer: AdminPrinter; now: Date; disabled: boolean; onStarted: () => Promise<void> }) {
+  const [upload, setUpload] = useState<UploadState>({ kind: 'idle' });
+  const [level, setLevel] = useState(true);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const camera = printer.camera;
+  const capturedAt = camera?.status === 'ok' ? camera.capturedAt : null;
+  const fresh = capturedAt !== null && now.getTime() - new Date(capturedAt).getTime() <= CAMERA_CONFIRMATION_MS / 2;
+  const confirmedFresh = confirmedAt !== null && now.getTime() - new Date(confirmedAt).getTime() <= CAMERA_CONFIRMATION_MS - 10_000;
+
+  const choose = async (file: File | undefined) => {
+    setErrors([]);
+    setConfirmedAt(null);
+    if (!file) return setUpload({ kind: 'idle' });
+    const lower = file.name.toLowerCase();
+    if (!printFileExtensions.some((extension) => lower.endsWith(extension))) {
+      setUpload({ kind: 'idle' });
+      return setErrors([`${printFileExtensions.join(' / ')} のファイルを選んでください`]);
+    }
+    if (file.size > MAX_PRINT_FILE_BYTES) {
+      setUpload({ kind: 'idle' });
+      return setErrors(['100MB までのファイルにしてください']);
+    }
+    setUpload({ kind: 'uploading', file, ratio: 0 });
+    const ticket = await createPrintUploadAction(printer.id, file.name, file.size);
+    if (!ticket.ok) {
+      setUpload({ kind: 'idle' });
+      return setErrors(ticket.errors);
+    }
+    try {
+      await sendFile(ticket.value.uploadUrl, ticket.value.uploadToken, file, (ratio) => setUpload({ kind: 'uploading', file, ratio }));
+      setUpload({ kind: 'ready', file, uploadId: ticket.value.id });
+    } catch {
+      setUpload({ kind: 'idle' });
+      setErrors(['ファイルを送れませんでした。通信を確かめて、もう一度選んでください']);
+    }
+  };
+
+  const start = async () => {
+    if (upload.kind !== 'ready' || confirmedAt === null) return;
+    setUpload({ ...upload, kind: 'starting' });
+    setErrors([]);
+    const result = await startPrintAction(printer.id, upload.uploadId, level, confirmedAt, true);
+    if (!result.ok) {
+      setErrors(result.errors);
+      setConfirmedAt(null);
+      setUpload({ kind: 'ready', file: upload.file, uploadId: upload.uploadId });
+      return;
+    }
+    setUpload({ kind: 'idle' });
+    setConfirmedAt(null);
+    await onStarted();
+  };
+
+  const file = upload.kind === 'idle' ? null : upload.file;
+  return (
+    <div className={`${card} space-y-4 p-4`}>
+      <h3 className='text-sm font-bold'>造形を開始</h3>
+      <ol className='space-y-4 text-sm'>
+        <li className='space-y-2'>
+          <p className='font-medium'>1. ファイルを選ぶ</p>
+          <input
+            type='file'
+            accept={printFileExtensions.join(',')}
+            disabled={upload.kind === 'uploading' || upload.kind === 'starting'}
+            onChange={(event) => void choose(event.target.files?.[0])}
+            className='block w-full text-sm file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium'
+          />
+          {file && (
+            <p className='text-slate-600'>
+              {file.name}（{formatBytes(file.size)}）
+              {upload.kind === 'uploading' && `・送信中 ${Math.round(upload.ratio * 100)}%`}
+              {(upload.kind === 'ready' || upload.kind === 'starting') && '・送信済み'}
+            </p>
+          )}
+          {upload.kind === 'uploading' && (
+            <div className='h-1.5 overflow-hidden rounded-full bg-slate-100'>
+              <div className='h-full bg-[#165d8c]' style={{ width: `${upload.ratio * 100}%` }} />
+            </div>
+          )}
+          <label className='flex items-center gap-2 text-slate-700'>
+            <input type='checkbox' checked={level} onChange={(event) => setLevel(event.target.checked)} />
+            造形前に自動レベリングする
+          </label>
+        </li>
+        <li className='space-y-2'>
+          <p className='font-medium'>2. カメラで台の上を確かめる</p>
+          {fresh ? (
+            <label className='flex items-start gap-2'>
+              <input
+                type='checkbox'
+                className='mt-1'
+                checked={confirmedAt !== null && confirmedFresh}
+                onChange={(event) => setConfirmedAt(event.target.checked ? capturedAt : null)}
+              />
+              <span>
+                上のカメラ画像（{clock.format(new Date(capturedAt))}）で、台の上に前の造形物や工具が何もないことを確かめた
+              </span>
+            </label>
+          ) : (
+            <p className='text-amber-800'>カメラの新しい画像がないため、まだ開始できません。カメラが映るまで待ってください。</p>
+          )}
+          {confirmedAt !== null && !confirmedFresh && <p className='text-amber-800'>確認してから時間がたちました。最新の画像でもう一度確かめてください。</p>}
+        </li>
+      </ol>
+      <button
+        disabled={disabled || upload.kind !== 'ready' || confirmedAt === null || !confirmedFresh}
+        onClick={() => void start()}
+        className={button('primary')}
+      >
+        <Icon name='play' />
+        {upload.kind === 'starting' ? '開始を送っています…' : `${printer.displayName} で造形を開始`}
+      </button>
+      <ErrorList errors={errors} />
+    </div>
+  );
+}
+
 function IconButton({
   icon,
   label,
@@ -518,7 +674,10 @@ function HistoryPanel({ commands, now }: { commands: PrinterCommand[]; now: Date
           {commands.slice(0, 8).map((command) => (
             <li key={command.id} className='py-2'>
               <div className='flex items-center justify-between gap-2'>
-                <span className='font-medium'>{actionLabels[command.action]}</span>
+                <span className='min-w-0 truncate font-medium'>
+                  {actionLabels[command.action]}
+                  {command.fileName && <span className='ml-1 font-normal text-slate-500'>{command.fileName}</span>}
+                </span>
                 <span className={`${badge} ${statusStyles[command.status]}`}>{statusLabels[command.status]}</span>
               </div>
               <p className='mt-0.5 text-xs text-slate-500'>

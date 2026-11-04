@@ -58,6 +58,8 @@ const refusals: Record<string, string> = {
   busy: 'このプリンターには前の操作がまだ届いていません。少し待ってください',
   not_found: 'プリンターが見つかりません',
   code_changed: 'エラーコードが変わりました。表示を更新して確認してください',
+  upload_missing: '送ったファイルが見つかりません。もう一度ファイルを選んでください',
+  camera_unconfirmed: 'カメラの画像が古くなりました。最新の画像で台の上を確かめ直してください',
 };
 
 function refusal(status: number, json: unknown): never {
@@ -87,4 +89,41 @@ export async function getPrinterSnapshot(printerId: string): Promise<ArrayBuffer
   if (response.status !== 200 || response.headers.get('content-type') !== 'image/jpeg') return null;
   const bytes = await readLimitedBody(response, 1024 * 1024);
   return bytes.slice().buffer as ArrayBuffer;
+}
+
+export interface PrintUploadTicket {
+  id: string;
+  uploadUrl: string;
+  uploadToken: string;
+}
+
+export async function createPrintUpload(printerId: string, fileName: string, size: number, requestedBy: string): Promise<PrintUploadTicket> {
+  const { status, json } = await call('/api/admin/v1/uploads', { printerId, fileName, size, requestedBy });
+  if (status === 400) throw new PrinterAdminError('このファイルは送れません（.gcode / .gx / .3mf、100MBまで）');
+  if (status !== 201 || !isRecord(json) || !isRecord(json.upload)) refusal(status, json);
+  const { url } = endpoint('/');
+  const uploadUrl = typeof json.uploadUrl === 'string' ? new URL(json.uploadUrl) : null;
+  if (uploadUrl === null || uploadUrl.origin !== url.origin || typeof json.uploadToken !== 'string' || typeof json.upload.id !== 'string') {
+    throw new PrinterAdminError('ファイルの送り先を確認できませんでした');
+  }
+  return { id: json.upload.id, uploadUrl: uploadUrl.toString(), uploadToken: json.uploadToken };
+}
+
+export async function startPrint(
+  printerId: string,
+  uploadId: string,
+  levelBeforePrint: boolean,
+  snapshotCapturedAt: string,
+  requestedBy: string
+): Promise<void> {
+  const { status, json } = await call('/api/admin/v1/commands', {
+    printerId,
+    action: 'start_print',
+    requestedBy,
+    uploadId,
+    levelBeforePrint,
+    bedClearConfirmed: true,
+    snapshotCapturedAt,
+  });
+  if (status !== 202) refusal(status, json);
 }
