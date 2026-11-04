@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { describePrinter, orderForLayout, toneStyles } from '@/lib/printer-display';
+import { useEffect, useRef, useState } from 'react';
+import { describePrinter, toneDots, toneStyles } from '@/lib/printer-display';
 import { errorCodeMeaning } from '@/lib/printer-error-codes';
 import { pollWhileVisible } from '@/lib/visible-polling';
-import type { AdminPrinter, AdminPrinters, CameraStatus, CommandStatus, PrinterAction, PrinterCommand } from '@/lib/printer-admin-types';
+import {
+  comparePrinters,
+  type AdminPrinter,
+  type AdminPrinters,
+  type CameraStatus,
+  type CommandStatus,
+  type PrinterAction,
+  type PrinterCommand,
+} from '@/lib/printer-admin-types';
 import { acknowledgePrinterErrorAction, loadPrintersAction, printerCommandAction } from '../actions';
 import ErrorList from './ErrorList';
+import Icon, { type IconName } from './Icon';
 import { relativeTime } from './relativeTime';
 import { badge, button, card } from './ui';
 
@@ -34,14 +43,37 @@ const statusStyles: Record<CommandStatus, string> = {
   expired: 'bg-slate-100 text-slate-700',
 };
 
-const time = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const clock = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const dateTime = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-export default function PrinterControlPanel({ initial, initialError }: { initial: AdminPrinters | null; initialError: string | null }) {
+const CAMERA_STALE_MS = 20_000;
+
+function duration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  return hours > 0 ? `${hours}時間${minutes % 60}分` : `${minutes}分`;
+}
+
+type Result = { ok: true } | { ok: false; errors: string[] };
+
+export default function PrinterControlPanel({
+  initial,
+  initialError,
+  initialSelected,
+}: {
+  initial: AdminPrinters | null;
+  initialError: string | null;
+  initialSelected: string | null;
+}) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState(initialError);
+  const printers = [...(data?.printers ?? [])].sort(comparePrinters);
+  const [selected, setSelected] = useState(
+    () => printers.find((printer) => printer.id === initialSelected)?.id ?? printers[0]?.id ?? null
+  );
+  const selectedRef = useRef(selected);
 
   const refresh = async () => {
-    const result = await loadPrintersAction();
+    const result = await loadPrintersAction(selectedRef.current);
     if (result.ok) {
       setData(result.value);
       setError(null);
@@ -50,182 +82,453 @@ export default function PrinterControlPanel({ initial, initialError }: { initial
     }
   };
 
-  useEffect(() => pollWhileVisible(refresh, { immediate: false, interval: 5_000 }), []);
+  useEffect(() => pollWhileVisible(refresh, { interval: 5_000 }), []);
+
+  const select = (id: string) => {
+    setSelected(id);
+    selectedRef.current = id;
+    window.history.replaceState(null, '', `?printer=${encodeURIComponent(id)}`);
+    void refresh();
+  };
 
   if (data === null) return <ErrorList errors={[error ?? 'プリンターの状態を取得できませんでした']} />;
   const now = new Date(data.generatedAt);
+  const current = printers.find((printer) => printer.id === selected) ?? null;
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4'>
       {error && <ErrorList errors={[`${error}（最後に取得できた状態を表示しています）`]} />}
-      <div className='grid gap-4 lg:grid-cols-2'>
-        {orderForLayout(data.printers).map((printer) => (
-          <PrinterCard
-            key={printer.id}
-            printer={printer as AdminPrinter}
-            latest={data.commands.find((command) => command.printerId === printer.id) ?? null}
+      <div className='grid items-start gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]'>
+        <PrinterList printers={printers} selected={selected} now={now} onSelect={select} />
+        {current && (
+          <PrinterDetail
+            key={current.id}
+            printer={current}
+            commands={data.commands.filter((command) => command.printerId === current.id)}
             now={now}
             onChange={refresh}
           />
-        ))}
+        )}
       </div>
-      <History commands={data.commands} printers={data.printers} now={now} />
     </div>
   );
 }
 
-function PrinterCard({ printer, latest, now, onChange }: { printer: AdminPrinter; latest: PrinterCommand | null; now: Date; onChange: () => Promise<void> }) {
+function PrinterList({
+  printers,
+  selected,
+  now,
+  onSelect,
+}: {
+  printers: AdminPrinter[];
+  selected: string | null;
+  now: Date;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <nav aria-label='プリンター' className={`${card} overflow-hidden lg:sticky lg:top-4`}>
+      <ul className='divide-y divide-slate-100'>
+        {printers.map((printer) => {
+          const view = describePrinter(printer, now);
+          const active = printer.id === selected;
+          const work = printer.currentWork;
+          const remaining =
+            work?.estimatedTotalMinutes != null && work.elapsedMinutes != null
+              ? Math.max(0, work.estimatedTotalMinutes - work.elapsedMinutes)
+              : null;
+          return (
+            <li key={printer.id}>
+              <button
+                onClick={() => onSelect(printer.id)}
+                aria-current={active ? 'true' : undefined}
+                className={`block w-full px-4 py-3 text-left transition-colors ${active ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
+              >
+                <span className='flex items-center justify-between gap-2'>
+                  <span className='flex min-w-0 items-center gap-2'>
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${toneDots[view.tone]}`} aria-hidden='true' />
+                    <span className='truncate text-sm font-medium'>{printer.displayName}</span>
+                  </span>
+                  <span className='shrink-0 text-xs text-slate-500'>{view.label}</span>
+                </span>
+                {view.progress !== null && (
+                  <span className='mt-2 flex items-center gap-2 pl-4'>
+                    <span className='h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200'>
+                      <span className='block h-full bg-[#165d8c]' style={{ width: `${view.progress}%` }} />
+                    </span>
+                    <span className='shrink-0 text-xs tabular-nums text-slate-500'>
+                      {remaining !== null ? `残り${duration(remaining)}` : `${Math.round(view.progress)}%`}
+                    </span>
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+function PrinterDetail({
+  printer,
+  commands,
+  now,
+  onChange,
+}: {
+  printer: AdminPrinter;
+  commands: PrinterCommand[];
+  now: Date;
+  onChange: () => Promise<void>;
+}) {
   const [errors, setErrors] = useState<string[]>([]);
-  const [confirmCancel, setConfirmCancel] = useState(false);
   const [busy, setBusy] = useState(false);
   const view = describePrinter(printer, now);
   const online = printer.availability === 'online';
-  const state = printer.state;
+  const latest = commands[0] ?? null;
   const waiting = latest !== null && (latest.status === 'pending' || latest.status === 'sent');
   const disabled = !online || busy || waiting;
 
-  const run = async (task: () => Promise<{ ok: true } | { ok: false; errors: string[] }>) => {
+  const run = async (task: () => Promise<Result>) => {
     setBusy(true);
     setErrors([]);
     const result = await task();
     setBusy(false);
-    setConfirmCancel(false);
     if (!result.ok) setErrors(result.errors);
     await onChange();
   };
   const send = (action: PrinterAction) => run(() => printerCommandAction(printer.id, action));
 
-  const errorCode = printer.reportedState === 'error' ? printer.reportedErrorCode : null;
-  const acknowledged = errorCode !== null && printer.acknowledgedErrorCode === errorCode;
-  const meaning = errorCode === null ? null : errorCodeMeaning(errorCode);
-
   return (
-    <section className={`${card} space-y-4 p-5`}>
-      <div className='flex items-start justify-between gap-3'>
+    <section className='space-y-4'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <h2 className='font-bold'>{printer.displayName}</h2>
-          <p className='mt-0.5 text-sm text-slate-500'>{printer.currentWork?.fileName ?? printer.model}</p>
+          <h2 className='text-lg font-bold'>{printer.displayName}</h2>
+          <p className='text-sm text-slate-500'>
+            {printer.model}・最終確認 {dateTime.format(new Date(printer.lastSeenAt))}
+          </p>
         </div>
         <span className={`${badge} ${toneStyles[view.tone]}`}>{view.label}</span>
       </div>
 
-      {online && <CameraView printer={printer} now={now} />}
-
-      {errorCode !== null && (
-        <div className={`rounded-md border px-3.5 py-3 text-sm ${acknowledged ? 'border-slate-200 bg-slate-50' : 'border-red-200 bg-red-50'}`}>
-          <p className='font-medium'>
-            エラーコード {errorCode}
-            {meaning && `：${meaning.text}`}
-            {meaning && !meaning.official && '（公式の一覧には載っていません）'}
-          </p>
-          {acknowledged ? (
-            <p className='mt-1 text-slate-600'>確認済みとして、公開ページでは「空き」と表示しています。別のエラーが出たら、またエラー表示に戻ります。</p>
-          ) : (
-            <div className='mt-2 space-y-2'>
-              <p className='text-slate-700'>本体が印刷できる状態なのにコードだけ残っている場合は、確認済みにすると公開ページの表示を「空き」に戻せます。本体には何も送りません。</p>
-              <button disabled={busy || !online} onClick={() => run(() => acknowledgePrinterErrorAction(printer.id, errorCode))} className={button('secondary', 'sm')}>
-                確認して「空き」にする
-              </button>
-            </div>
-          )}
+      <div className='grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]'>
+        <div className='space-y-4'>
+          <CameraPanel
+            printer={printer}
+            now={now}
+            light={<LightSwitch printer={printer} latest={latest} disabled={disabled} onToggle={send} />}
+          />
+          <ProgressPanel printer={printer} now={now} disabled={disabled} onSend={send} />
         </div>
-      )}
-
-      {confirmCancel ? (
-        <div className='space-y-3 rounded-md border border-red-200 bg-red-50 px-3.5 py-3 text-sm'>
-          <p className='font-medium text-red-900'>
-            {printer.displayName} の造形「{printer.currentWork?.fileName ?? 'ファイル名不明'}」を中止します。中止した造形は再開できません。
-          </p>
-          <div className='flex gap-2'>
-            <button onClick={() => setConfirmCancel(false)} className={button('secondary', 'sm')}>やめる</button>
-            <button disabled={disabled} onClick={() => send('cancel')} className={button('danger', 'sm')}>中止する</button>
-          </div>
+        <div className='space-y-4'>
+          <ErrorPanel printer={printer} busy={busy} onAcknowledge={(code) => run(() => acknowledgePrinterErrorAction(printer.id, code))} />
+          <ErrorList errors={errors} />
+          <HistoryPanel commands={commands} now={now} />
         </div>
-      ) : (
-        <div className='flex flex-wrap gap-2'>
-          {(state === 'printing' || state === 'preparing') && (
-            <button disabled={disabled} onClick={() => send('pause')} className={button('secondary', 'sm')}>{actionLabels.pause}</button>
-          )}
-          {state === 'paused' && (
-            <button disabled={disabled} onClick={() => send('resume')} className={button('primary', 'sm')}>{actionLabels.resume}</button>
-          )}
-          {(state === 'printing' || state === 'preparing' || state === 'paused') && (
-            <button disabled={disabled} onClick={() => setConfirmCancel(true)} className={button('dangerOutline', 'sm')}>{actionLabels.cancel}</button>
-          )}
-          <button disabled={disabled} onClick={() => send('light_on')} className={button('ghost', 'sm')}>{actionLabels.light_on}</button>
-          <button disabled={disabled} onClick={() => send('light_off')} className={button('ghost', 'sm')}>{actionLabels.light_off}</button>
-        </div>
-      )}
-
-      {!online && <p className='text-sm text-slate-500'>プリンターと通信できていないため、操作できません。</p>}
-      {latest && (
-        <p className='text-xs text-slate-500'>
-          最後の操作：{actionLabels[latest.action]}（{latest.requestedBy}、{relativeTime(latest.requestedAt, now.getTime())}）
-          <span className={`${badge} ml-1.5 ${statusStyles[latest.status]}`}>{statusLabels[latest.status]}</span>
-          {latest.status === 'failed' && latest.detail && <span className='ml-1'>{latest.detail}</span>}
-        </p>
-      )}
-      <ErrorList errors={errors} />
+      </div>
     </section>
   );
 }
 
-const cameraProblems: Record<Exclude<CameraStatus, 'ok'>, string> = {
-  off: 'カメラの配信が止まっています。オンにする命令を送りました。1分ほどたっても映らなければ、本体の設定でカメラをオンにしてください。',
-  unreachable: 'カメラに接続できません。',
-  error: 'カメラの画像を読み取れませんでした。',
+function LightSwitch({
+  printer,
+  latest,
+  disabled,
+  onToggle,
+}: {
+  printer: AdminPrinter;
+  latest: PrinterCommand | null;
+  disabled: boolean;
+  onToggle: (action: PrinterAction) => void;
+}) {
+  const switching =
+    latest !== null && (latest.status === 'pending' || latest.status === 'sent') && (latest.action === 'light_on' || latest.action === 'light_off');
+  const on = switching ? latest.action === 'light_on' : printer.lightOn;
+  return (
+    <button
+      role='switch'
+      aria-checked={on === true}
+      disabled={disabled}
+      onClick={() => onToggle(on ? 'light_off' : 'light_on')}
+      className={`inline-flex h-8 items-center gap-2 rounded-full border pl-2.5 pr-1 text-sm font-medium transition-colors disabled:opacity-60 ${
+        on ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-slate-300 bg-white text-slate-700'
+      }`}
+    >
+      <Icon name='lamp' className={on ? 'text-amber-500' : 'text-slate-400'} />
+      ライト
+      <span className='text-xs font-normal text-slate-500'>
+        {switching ? '切り替え中…' : on === null ? '状態不明' : on ? 'オン' : 'オフ'}
+      </span>
+      <span className={`relative h-6 w-10 rounded-full transition-colors ${on ? 'bg-amber-400' : 'bg-slate-300'}`} aria-hidden='true'>
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${on ? 'left-[18px]' : 'left-0.5'}`} />
+      </span>
+    </button>
+  );
+}
+
+const cameraProblems: Record<Exclude<CameraStatus, 'ok'>, { icon: IconName; title: string; detail: string }> = {
+  off: {
+    icon: 'cameraOff',
+    title: 'カメラの配信が止まっています',
+    detail: 'オンにする命令を送りました。1分ほどたっても映らなければ、本体の設定でカメラをオンにしてください。',
+  },
+  unreachable: {
+    icon: 'cameraOff',
+    title: 'カメラと通信できません',
+    detail: 'プリンター本体とは通信できていますが、カメラが応答しません。しばらく待っても直らなければ、本体を再起動してください。',
+  },
+  error: {
+    icon: 'cameraOff',
+    title: 'カメラの画像を読み取れませんでした',
+    detail: '次の撮影で自動的にやり直します。',
+  },
 };
 
-function CameraView({ printer, now }: { printer: AdminPrinter; now: Date }) {
+function CameraPanel({ printer, now, light }: { printer: AdminPrinter; now: Date; light: React.ReactNode }) {
+  const online = printer.availability === 'online';
   const camera = printer.camera;
   const capturedAt = camera?.capturedAt ?? null;
-  const problem = camera !== null && camera.status !== 'ok' ? cameraProblems[camera.status] : null;
+  const age = capturedAt === null ? null : now.getTime() - new Date(capturedAt).getTime();
+  const problem = !online
+    ? { icon: 'cameraOff' as const, title: 'プリンターと通信できません', detail: '電源が切れているか、ネットワークから外れています。カメラも見られません。' }
+    : camera !== null && camera.status !== 'ok'
+      ? cameraProblems[camera.status]
+      : null;
+  const stale = online && problem === null && age !== null && age > CAMERA_STALE_MS;
+  const live = online && problem === null && capturedAt !== null && !stale;
+
   return (
-    <div className='space-y-1.5'>
-      <div className='relative aspect-[4/3] overflow-hidden rounded-md bg-slate-100'>
-        {capturedAt ? (
+    <div className={`${card} overflow-hidden`}>
+      <div className='flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2.5'>
+        <h3 className='flex items-center gap-2 text-sm font-bold'>
+          <Icon name='camera' className='text-slate-400' />
+          カメラ
+        </h3>
+        {light}
+      </div>
+      <div className='relative aspect-[4/3] bg-slate-900'>
+        {capturedAt && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`/admin/printers/${printer.id}/snapshot?t=${encodeURIComponent(capturedAt)}`}
             alt={`${printer.displayName}の庫内`}
-            className={`h-full w-full object-cover ${problem ? 'opacity-40 grayscale' : ''}`}
+            className={`absolute inset-0 h-full w-full object-cover ${problem || stale ? 'opacity-30 grayscale' : ''}`}
           />
-        ) : (
-          <div className='flex h-full items-center justify-center px-6 text-center text-sm text-slate-500'>
-            {problem ?? 'カメラの画像を取得しています…'}
+        )}
+        {live && (
+          <span className='absolute left-3 top-3 inline-flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs font-medium text-white'>
+            <span className='h-1.5 w-1.5 rounded-full bg-red-500' aria-hidden='true' />
+            5秒ごとに更新・{clock.format(new Date(capturedAt))}
+          </span>
+        )}
+        {(problem || stale || capturedAt === null) && (
+          <div className='absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center text-white'>
+            {problem ? (
+              <>
+                <Icon name={problem.icon} size={32} className='text-white/70' />
+                <p className='font-bold'>{problem.title}</p>
+                <p className='max-w-sm text-sm text-white/80'>{problem.detail}</p>
+              </>
+            ) : stale ? (
+              <>
+                <Icon name='cameraOff' size={32} className='text-white/70' />
+                <p className='font-bold'>カメラの更新が止まっています</p>
+                <p className='max-w-sm text-sm text-white/80'>現地のサーバーから新しい画像が届いていません。</p>
+              </>
+            ) : (
+              <>
+                <span className='h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white' aria-hidden='true' />
+                <p className='text-sm text-white/80'>カメラに接続しています…</p>
+              </>
+            )}
+            {capturedAt && (problem || stale) && (
+              <p className='text-xs text-white/60'>背景は最後に映った画像（{dateTime.format(new Date(capturedAt))}）</p>
+            )}
+            {camera && problem && online && <p className='text-xs text-white/60'>最後の確認 {clock.format(new Date(camera.checkedAt))}</p>}
           </div>
         )}
       </div>
-      {problem && capturedAt && <p className='text-sm text-amber-800'>{problem}</p>}
-      {capturedAt && (
-        <p className='text-xs text-slate-500'>
-          {problem ? '最後に映った画像' : '撮影'}：{relativeTime(capturedAt, now.getTime())}（{time.format(new Date(capturedAt))}）
-        </p>
+    </div>
+  );
+}
+
+function ProgressPanel({
+  printer,
+  now,
+  disabled,
+  onSend,
+}: {
+  printer: AdminPrinter;
+  now: Date;
+  disabled: boolean;
+  onSend: (action: PrinterAction) => void;
+}) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const state = printer.state;
+  const active = state === 'printing' || state === 'preparing' || state === 'paused';
+  const work = printer.currentWork;
+  const progress = printer.progressPercent;
+  const remaining =
+    work?.estimatedTotalMinutes != null && work.elapsedMinutes != null ? Math.max(0, work.estimatedTotalMinutes - work.elapsedMinutes) : null;
+  const finish = remaining === null ? null : new Date(now.getTime() + remaining * 60_000);
+
+  return (
+    <div className={`${card} p-4`}>
+      <h3 className='text-sm font-bold'>造形の進捗</h3>
+      {active ? (
+        <div className='mt-3 space-y-3'>
+          <div className='flex items-center gap-4'>
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-medium' title={work?.fileName ?? undefined}>
+                {work?.fileName ?? 'ファイル名なし'}
+              </p>
+              <div className='mt-2 flex items-baseline gap-2'>
+                <span className='text-2xl font-bold tabular-nums text-[#165d8c]'>{progress === null ? '—' : Math.round(progress)}</span>
+                <span className='text-sm text-[#165d8c]'>%</span>
+                {state === 'paused' && <span className={`${badge} bg-orange-100 text-orange-900`}>一時停止中</span>}
+                {state === 'preparing' && <span className={`${badge} bg-blue-50 text-blue-800`}>準備中</span>}
+              </div>
+            </div>
+            <div className='flex shrink-0 gap-2'>
+              {state === 'paused' ? (
+                <IconButton icon='play' label='再開' disabled={disabled} onClick={() => onSend('resume')} />
+              ) : (
+                <IconButton icon='pause' label='一時停止' disabled={disabled} onClick={() => onSend('pause')} />
+              )}
+              <IconButton icon='stop' label='中止' danger disabled={disabled} onClick={() => setConfirmCancel(true)} />
+            </div>
+          </div>
+          <div className='h-2 overflow-hidden rounded-full bg-slate-100' role='progressbar' aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress ?? undefined}>
+            <div className='h-full bg-[#165d8c] transition-[width]' style={{ width: `${progress ?? 0}%` }} />
+          </div>
+          <dl className='grid grid-cols-3 gap-2 text-sm'>
+            <Stat label='経過' value={work?.elapsedMinutes != null ? duration(work.elapsedMinutes) : '—'} />
+            <Stat label='残り' value={remaining !== null ? duration(remaining) : '—'} />
+            <Stat label='終了予定' value={finish ? dateTime.format(finish) : '—'} />
+          </dl>
+          {confirmCancel && (
+            <div className='space-y-3 rounded-md border border-red-200 bg-red-50 px-3.5 py-3 text-sm'>
+              <p className='font-medium text-red-900'>
+                {printer.displayName} の造形「{work?.fileName ?? 'ファイル名不明'}」を中止します。中止した造形は再開できません。
+              </p>
+              <div className='flex gap-2'>
+                <button onClick={() => setConfirmCancel(false)} className={button('secondary', 'sm')}>
+                  やめる
+                </button>
+                <button
+                  disabled={disabled}
+                  onClick={() => {
+                    setConfirmCancel(false);
+                    onSend('cancel');
+                  }}
+                  className={button('danger', 'sm')}
+                >
+                  中止する
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className='mt-2 text-sm text-slate-500'>
+          <p>造形していません。</p>
+          {printer.lastWork && (
+            <p className='mt-1'>
+              直近：{printer.lastWork.fileName ?? 'ファイル名なし'}
+              {printer.lastWork.endedAt && `（${dateTime.format(new Date(printer.lastWork.endedAt))} 終了）`}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function History({ commands, printers, now }: { commands: PrinterCommand[]; printers: AdminPrinter[]; now: Date }) {
-  if (commands.length === 0) return null;
-  const names = new Map(printers.map((printer) => [printer.id, printer.displayName]));
+function IconButton({
+  icon,
+  label,
+  danger = false,
+  disabled,
+  onClick,
+}: {
+  icon: IconName;
+  label: string;
+  danger?: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
   return (
-    <section className={`${card} p-5`}>
-      <h2 className='font-bold'>操作の履歴</h2>
-      <ul className='mt-3 divide-y divide-slate-100 text-sm'>
-        {commands.map((command) => (
-          <li key={command.id} className='flex flex-wrap items-center justify-between gap-2 py-2'>
-            <span>
-              {names.get(command.printerId) ?? command.printerId}：{actionLabels[command.action]}
-              <span className='ml-2 text-slate-500'>{command.requestedBy}</span>
-            </span>
-            <span className='flex items-center gap-2 text-slate-500'>
-              <span title={time.format(new Date(command.requestedAt))}>{relativeTime(command.requestedAt, now.getTime())}</span>
-              <span className={`${badge} ${statusStyles[command.status]}`}>{statusLabels[command.status]}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex w-16 flex-col items-center gap-1 rounded-md border py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+        danger ? 'border-red-200 text-red-700 hover:bg-red-50' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+      }`}
+    >
+      <Icon name={icon} size={18} />
+      {label}
+    </button>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className='rounded-md bg-slate-50 px-3 py-2'>
+      <dt className='text-xs text-slate-500'>{label}</dt>
+      <dd className='mt-0.5 font-medium tabular-nums'>{value}</dd>
+    </div>
+  );
+}
+
+function ErrorPanel({ printer, busy, onAcknowledge }: { printer: AdminPrinter; busy: boolean; onAcknowledge: (code: string) => void }) {
+  const code = printer.reportedState === 'error' ? printer.reportedErrorCode : null;
+  if (code === null) return null;
+  const acknowledged = printer.acknowledgedErrorCode === code;
+  const meaning = errorCodeMeaning(code);
+  return (
+    <div className={`${card} space-y-2 p-4 text-sm ${acknowledged ? '' : 'border-red-200 bg-red-50'}`}>
+      <h3 className='font-bold'>エラーコード {code}</h3>
+      {meaning && (
+        <p>
+          {meaning.text}
+          {!meaning.official && <span className='text-slate-500'>（公式の一覧には載っていません）</span>}
+        </p>
+      )}
+      {acknowledged ? (
+        <p className='text-slate-600'>確認済みです。公開ページでは「空き」と表示しています。別のエラーが出たら、またエラー表示に戻ります。</p>
+      ) : (
+        <>
+          <p className='text-slate-700'>本体は印刷できるのにコードだけ残っているなら、確認済みにすると公開ページの表示を「空き」に戻せます。本体には何も送りません。</p>
+          <button disabled={busy || printer.availability !== 'online'} onClick={() => onAcknowledge(code)} className={button('secondary', 'sm')}>
+            確認して「空き」にする
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HistoryPanel({ commands, now }: { commands: PrinterCommand[]; now: Date }) {
+  return (
+    <div className={`${card} p-4`}>
+      <h3 className='text-sm font-bold'>操作の履歴</h3>
+      {commands.length === 0 ? (
+        <p className='mt-2 text-sm text-slate-500'>まだ操作はありません。</p>
+      ) : (
+        <ul className='mt-2 divide-y divide-slate-100 text-sm'>
+          {commands.slice(0, 8).map((command) => (
+            <li key={command.id} className='py-2'>
+              <div className='flex items-center justify-between gap-2'>
+                <span className='font-medium'>{actionLabels[command.action]}</span>
+                <span className={`${badge} ${statusStyles[command.status]}`}>{statusLabels[command.status]}</span>
+              </div>
+              <p className='mt-0.5 text-xs text-slate-500'>
+                {command.requestedBy}・<span title={dateTime.format(new Date(command.requestedAt))}>{relativeTime(command.requestedAt, now.getTime())}</span>
+                {command.status === 'failed' && command.detail && `・${command.detail}`}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

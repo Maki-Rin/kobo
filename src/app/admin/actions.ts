@@ -319,11 +319,11 @@ export async function savePeopleAction(input: { people: unknown; baseSha: string
 
 const printerIdPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
-export async function loadPrintersAction() {
+export async function loadPrintersAction(cameraPrinterId: string | null) {
   return attempt(async () => {
     const user = await requireUser();
     await limitEditorRequest('printer-read', 30, 60, user.id);
-    return getAdminPrinters();
+    return getAdminPrinters(cameraPrinterId !== null && printerIdPattern.test(cameraPrinterId) ? cameraPrinterId : undefined);
   });
 }
 

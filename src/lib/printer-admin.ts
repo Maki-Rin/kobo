@@ -44,8 +44,9 @@ async function call(path: string, body?: unknown): Promise<{ status: number; jso
   return { status: response.status, json };
 }
 
-export async function getAdminPrinters(): Promise<AdminPrinters> {
-  const { status, json } = await call('/api/admin/v1/printers?camera=1');
+export async function getAdminPrinters(cameraPrinterId?: string): Promise<AdminPrinters> {
+  const query = cameraPrinterId ? `?camera=${encodeURIComponent(cameraPrinterId)}` : '';
+  const { status, json } = await call(`/api/admin/v1/printers${query}`);
   const data = status === 200 ? parseAdminPrinters(json) : null;
   if (data === null) throw new PrinterAdminError('プリンターの状態を取得できませんでした');
   return data;

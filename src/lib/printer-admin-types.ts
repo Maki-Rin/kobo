@@ -16,6 +16,7 @@ export interface AdminPrinter extends PublicPrinter {
   reportedState: PrinterState;
   reportedErrorCode: string | null;
   acknowledgedErrorCode: string | null;
+  lightOn: boolean | null;
   camera: AdminCamera | null;
 }
 
@@ -68,6 +69,7 @@ export function parseAdminPrinters(value: unknown): AdminPrinters | null {
         reportedState: states.has(extra.reportedState as string) ? (extra.reportedState as PrinterState) : printer.state,
         reportedErrorCode: code(extra.reportedErrorCode),
         acknowledgedErrorCode: code(extra.acknowledgedErrorCode),
+        lightOn: typeof extra.lightOn === 'boolean' ? extra.lightOn : null,
         camera: camera(extra.camera),
       };
     }),
@@ -89,3 +91,7 @@ export function parseAdminPrinters(value: unknown): AdminPrinters | null {
   };
 }
 
+
+export function comparePrinters(left: { id: string; displayName: string }, right: { id: string; displayName: string }): number {
+  return left.displayName.localeCompare(right.displayName, 'ja', { numeric: true }) || left.id.localeCompare(right.id, 'en', { numeric: true });
+}
