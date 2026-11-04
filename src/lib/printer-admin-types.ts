@@ -4,10 +4,19 @@ export const printerActions = ['pause', 'resume', 'cancel', 'light_on', 'light_o
 export type PrinterAction = (typeof printerActions)[number];
 export type CommandStatus = 'pending' | 'sent' | 'succeeded' | 'failed' | 'expired';
 
+export type CameraStatus = 'ok' | 'off' | 'unreachable' | 'error';
+
+export interface AdminCamera {
+  status: CameraStatus;
+  checkedAt: string;
+  capturedAt: string | null;
+}
+
 export interface AdminPrinter extends PublicPrinter {
   reportedState: PrinterState;
   reportedErrorCode: string | null;
   acknowledgedErrorCode: string | null;
+  camera: AdminCamera | null;
 }
 
 export interface PrinterCommand {
@@ -29,6 +38,15 @@ export interface AdminPrinters {
 
 const states = new Set(['unknown', 'idle', 'preparing', 'printing', 'paused', 'completed', 'awaiting_collection', 'error']);
 const statuses = new Set(['pending', 'sent', 'succeeded', 'failed', 'expired']);
+const cameraStatuses = new Set(['ok', 'off', 'unreachable', 'error']);
+const timestamp = (value: unknown) => (typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null);
+
+function camera(value: unknown): AdminCamera | null {
+  if (!isRecord(value) || !cameraStatuses.has(value.status as string)) return null;
+  const checkedAt = timestamp(value.checkedAt);
+  if (checkedAt === null) return null;
+  return { status: value.status as CameraStatus, checkedAt, capturedAt: timestamp(value.capturedAt) };
+}
 const code = (value: unknown) => (typeof value === 'string' && /^[A-Za-z0-9_.-]{1,32}$/.test(value) ? value : null);
 const text = (value: unknown, max: number) => (typeof value === 'string' ? Array.from(value).slice(0, max).join('') : null);
 
@@ -50,6 +68,7 @@ export function parseAdminPrinters(value: unknown): AdminPrinters | null {
         reportedState: states.has(extra.reportedState as string) ? (extra.reportedState as PrinterState) : printer.state,
         reportedErrorCode: code(extra.reportedErrorCode),
         acknowledgedErrorCode: code(extra.acknowledgedErrorCode),
+        camera: camera(extra.camera),
       };
     }),
     commands: value.commands.filter(isRecord).flatMap((command) => {

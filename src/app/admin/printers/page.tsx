@@ -21,7 +21,7 @@ export default async function PrintersAdminPage() {
       <div>
         <h1 className={pageTitle}>プリンター</h1>
         <p className='mt-1 text-sm text-slate-500'>
-          一時停止・再開・中止とライトの操作ができます。操作は数秒〜十数秒でプリンターに届きます。
+          庫内のカメラ画像（10秒ごとに更新）を見ながら、一時停止・再開・中止とライトの操作ができます。操作は数秒〜十数秒でプリンターに届きます。
         </p>
       </div>
       <PrinterControlPanel initial={initial} initialError={error} />

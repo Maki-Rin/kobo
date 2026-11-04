@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { describePrinter, orderForLayout, toneStyles } from '@/lib/printer-display';
 import { errorCodeMeaning } from '@/lib/printer-error-codes';
 import { pollWhileVisible } from '@/lib/visible-polling';
-import type { AdminPrinter, AdminPrinters, CommandStatus, PrinterAction, PrinterCommand } from '@/lib/printer-admin-types';
+import type { AdminPrinter, AdminPrinters, CameraStatus, CommandStatus, PrinterAction, PrinterCommand } from '@/lib/printer-admin-types';
 import { acknowledgePrinterErrorAction, loadPrintersAction, printerCommandAction } from '../actions';
 import ErrorList from './ErrorList';
 import { relativeTime } from './relativeTime';
@@ -109,6 +109,8 @@ function PrinterCard({ printer, latest, now, onChange }: { printer: AdminPrinter
         <span className={`${badge} ${toneStyles[view.tone]}`}>{view.label}</span>
       </div>
 
+      {online && <CameraView printer={printer} now={now} />}
+
       {errorCode !== null && (
         <div className={`rounded-md border px-3.5 py-3 text-sm ${acknowledged ? 'border-slate-200 bg-slate-50' : 'border-red-200 bg-red-50'}`}>
           <p className='font-medium'>
@@ -165,6 +167,42 @@ function PrinterCard({ printer, latest, now, onChange }: { printer: AdminPrinter
       )}
       <ErrorList errors={errors} />
     </section>
+  );
+}
+
+const cameraProblems: Record<Exclude<CameraStatus, 'ok'>, string> = {
+  off: 'カメラの配信が止まっています。オンにする命令を送りました。1分ほどたっても映らなければ、本体の設定でカメラをオンにしてください。',
+  unreachable: 'カメラに接続できません。',
+  error: 'カメラの画像を読み取れませんでした。',
+};
+
+function CameraView({ printer, now }: { printer: AdminPrinter; now: Date }) {
+  const camera = printer.camera;
+  const capturedAt = camera?.capturedAt ?? null;
+  const problem = camera !== null && camera.status !== 'ok' ? cameraProblems[camera.status] : null;
+  return (
+    <div className='space-y-1.5'>
+      <div className='relative aspect-[4/3] overflow-hidden rounded-md bg-slate-100'>
+        {capturedAt ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/admin/printers/${printer.id}/snapshot?t=${encodeURIComponent(capturedAt)}`}
+            alt={`${printer.displayName}の庫内`}
+            className={`h-full w-full object-cover ${problem ? 'opacity-40 grayscale' : ''}`}
+          />
+        ) : (
+          <div className='flex h-full items-center justify-center px-6 text-center text-sm text-slate-500'>
+            {problem ?? 'カメラの画像を取得しています…'}
+          </div>
+        )}
+      </div>
+      {problem && capturedAt && <p className='text-sm text-amber-800'>{problem}</p>}
+      {capturedAt && (
+        <p className='text-xs text-slate-500'>
+          {problem ? '最後に映った画像' : '撮影'}：{relativeTime(capturedAt, now.getTime())}（{time.format(new Date(capturedAt))}）
+        </p>
+      )}
+    </div>
   );
 }
 

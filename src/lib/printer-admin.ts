@@ -45,7 +45,7 @@ async function call(path: string, body?: unknown): Promise<{ status: number; jso
 }
 
 export async function getAdminPrinters(): Promise<AdminPrinters> {
-  const { status, json } = await call('/api/admin/v1/printers');
+  const { status, json } = await call('/api/admin/v1/printers?camera=1');
   const data = status === 200 ? parseAdminPrinters(json) : null;
   if (data === null) throw new PrinterAdminError('プリンターの状態を取得できませんでした');
   return data;
@@ -73,4 +73,17 @@ export async function sendPrinterCommand(printerId: string, action: PrinterActio
 export async function acknowledgePrinterError(printerId: string, errorCode: string, requestedBy: string): Promise<void> {
   const { status, json } = await call('/api/admin/v1/error-acknowledgements', { printerId, code: errorCode, requestedBy });
   if (status !== 200) refusal(status, json);
+}
+
+export async function getPrinterSnapshot(printerId: string): Promise<ArrayBuffer | null> {
+  const { url, token } = endpoint(`/api/admin/v1/snapshot?printerId=${encodeURIComponent(printerId)}`);
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8_000),
+    redirect: 'error',
+  });
+  if (response.status !== 200 || response.headers.get('content-type') !== 'image/jpeg') return null;
+  const bytes = await readLimitedBody(response, 1024 * 1024);
+  return bytes.slice().buffer as ArrayBuffer;
 }
