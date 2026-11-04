@@ -66,6 +66,42 @@ const paths = {
       <circle cx='16.5' cy='7.5' r='.5' fill='currentColor' />
     </>
   ),
+  printer: (
+    <>
+      <path d='M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2' />
+      <path d='M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6' />
+      <rect x='6' y='14' width='12' height='8' rx='1' />
+    </>
+  ),
+  camera: (
+    <>
+      <path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z' />
+      <circle cx='12' cy='13' r='3' />
+    </>
+  ),
+  cameraOff: (
+    <>
+      <path d='M2 2l20 20' />
+      <path d='M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16' />
+      <path d='M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.5' />
+      <path d='M14.121 15.121A3 3 0 1 1 9.88 10.88' />
+    </>
+  ),
+  lamp: (
+    <>
+      <path d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5' />
+      <path d='M9 18h6' />
+      <path d='M10 22h4' />
+    </>
+  ),
+  pause: (
+    <>
+      <rect x='14' y='4' width='4' height='16' rx='1' />
+      <rect x='6' y='4' width='4' height='16' rx='1' />
+    </>
+  ),
+  play: <path d='M6 3l14 9-14 9z' />,
+  stop: <rect x='5' y='5' width='14' height='14' rx='2' />,
   image: (
     <>
       <rect width='18' height='18' x='3' y='3' rx='2' />
