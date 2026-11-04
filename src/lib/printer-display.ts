@@ -1,5 +1,6 @@
 import printerNotes from '@/content/printers.json';
 import { openState } from './hours';
+import { errorCodeMeaning } from './printer-error-codes';
 import type { PrinterState, PublicPrinter } from './printer-types';
 
 export interface PrinterNote {
@@ -74,8 +75,11 @@ function stateWithProgress(printer: PublicPrinter): string {
 }
 
 function errorDetail(code: string | null): string {
-  const prefix = code === null ? 'プリンターがエラーを報告しています。' : `プリンターがエラーコード ${code} を報告しています。`;
-  return `${prefix}内容は本体の画面で確認できます。エラーが解消されると、この表示も自動で戻ります。`;
+  const suffix = '本体の画面で内容を確認できます。エラーが解消されると、この表示も自動で戻ります。';
+  if (code === null) return `プリンターがエラーを報告しています。${suffix}`;
+  const meaning = errorCodeMeaning(code);
+  const described = meaning === null ? '' : meaning.official ? `（${meaning.text}）` : `（${meaning.text}。公式の一覧には載っていません）`;
+  return `プリンターがエラーコード ${code}${described} を報告しています。${suffix}`;
 }
 
 export function noteFor(printerId: string): PrinterNote {

@@ -14,7 +14,9 @@ function printer(fields: Record<string, unknown>) {
 }
 
 test('error state shows the reported error code', () => {
-  assert.match(describePrinter(printer({ errorCode: 'E0088' })).detail ?? '', /エラーコード E0088/);
+  assert.match(describePrinter(printer({ errorCode: 'E0088' })).detail ?? '', /エラーコード E0088（純正の PEI シートが検出されません）/);
+  assert.match(describePrinter(printer({ errorCode: 'E0113' })).detail ?? '', /公式の一覧には載っていません/);
+  assert.match(describePrinter(printer({ errorCode: 'E9999' })).detail ?? '', /エラーコード E9999 を報告/);
   assert.match(describePrinter(printer({})).detail ?? '', /本体の画面/);
 });
 
