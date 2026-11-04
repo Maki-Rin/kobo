@@ -45,6 +45,14 @@ import { limitEditorRequest, RateLimitError } from '@/lib/editor/rate-limit';
 import { getDb } from '@/lib/editor/db';
 import { DisplayNameError, normalizeDisplayName, updateDisplayName } from '@/lib/editor/profile';
 import { discardDraft } from '@/lib/editor/drafts';
+import {
+  acknowledgePrinterError,
+  getAdminPrinters,
+  PrinterAdminError,
+  printerActions,
+  sendPrinterCommand,
+  type PrinterAction,
+} from '@/lib/printer-admin';
 
 export type ActionResult<T = undefined> =
   | { ok: true; value: T }
@@ -65,6 +73,7 @@ async function attempt<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
     if (error instanceof EditorError) return { ok: false, errors: error.messages };
     if (error instanceof ConflictError) return { ok: false, errors: [error.message] };
     if (error instanceof ContentStoreError) return { ok: false, errors: [error.message] };
+    if (error instanceof PrinterAdminError) return { ok: false, errors: [error.message] };
     console.error(error);
     const message = error instanceof Error ? error.message : '';
     const known = /期限切れ|時間切れ|無効|登録されていない|確認できません|ログインが必要/.test(message);
@@ -305,5 +314,33 @@ export async function savePeopleAction(input: { people: unknown; baseSha: string
       : [];
     await savePeople(user, { people: input.people, baseSha: input.baseSha ?? null, images });
     revalidatePath('/admin/people');
+  });
+}
+
+const printerIdPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
+
+export async function loadPrintersAction() {
+  return attempt(async () => {
+    const user = await requireUser();
+    await limitEditorRequest('printer-read', 30, 60, user.id);
+    return getAdminPrinters();
+  });
+}
+
+export async function printerCommandAction(printerId: string, action: PrinterAction) {
+  return attempt(async () => {
+    const user = await requireUser();
+    if (!printerIdPattern.test(printerId) || !printerActions.includes(action)) throw new EditorError(['操作の内容が正しくありません']);
+    await limitEditorRequest('printer-command', 20, 60, user.id);
+    await sendPrinterCommand(printerId, action, user.displayName);
+  });
+}
+
+export async function acknowledgePrinterErrorAction(printerId: string, errorCode: string) {
+  return attempt(async () => {
+    const user = await requireUser();
+    if (!printerIdPattern.test(printerId) || !/^[A-Za-z0-9_.-]{1,32}$/.test(errorCode)) throw new EditorError(['操作の内容が正しくありません']);
+    await limitEditorRequest('printer-command', 20, 60, user.id);
+    await acknowledgePrinterError(printerId, errorCode, user.displayName);
   });
 }

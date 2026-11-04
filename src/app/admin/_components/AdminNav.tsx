@@ -8,6 +8,7 @@ const items: { href: string; label: string; icon: IconName; managerOnly?: boolea
   { href: '/admin', label: 'コンテンツ', icon: 'articles' },
   { href: '/admin/people', label: '人物', icon: 'people' },
   { href: '/admin/history', label: '変更履歴', icon: 'history' },
+  { href: '/admin/printers', label: 'プリンター', icon: 'printer' },
   { href: '/admin/members', label: 'メンバー', icon: 'members', managerOnly: true },
   { href: '/admin/account', label: 'アカウント', icon: 'account' },
 ];
