@@ -43,6 +43,7 @@ export interface PublicPrinter {
     durationMinutes: number | null;
     endedAt: string | null;
   } | null;
+  errorCode: string | null;
   lastSeenAt: string;
   stale: boolean;
 }
@@ -84,6 +85,10 @@ function fileName(value: unknown): string | null {
   const basename = raw.replaceAll('\\', '/').split('/').at(-1) ?? '';
   const safe = basename.replace(/[\u0000-\u001f\u007f-\u009f]/gu, '').trim();
   return safe.length === 0 ? null : Array.from(safe).slice(0, 255).join('');
+}
+
+function errorCode(value: unknown): string | null {
+  return typeof value === 'string' && /^[A-Za-z0-9_.-]{1,32}$/.test(value) ? value : null;
 }
 
 const availabilityValues = new Set([
@@ -171,6 +176,7 @@ function parsePrinter(value: unknown): PublicPrinter | null {
             durationMinutes: nullableInteger(last.durationMinutes),
             endedAt: timestamp(last.endedAt),
           },
+    errorCode: errorCode(value.errorCode),
     lastSeenAt,
     stale: value.stale === true,
   };

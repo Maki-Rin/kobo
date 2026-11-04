@@ -1,5 +1,6 @@
 import printerNotes from '@/content/printers.json';
 import { openState } from './hours';
+import { errorCodeMeaning } from './printer-error-codes';
 import type { PrinterState, PublicPrinter } from './printer-types';
 
 export interface PrinterNote {
@@ -73,6 +74,14 @@ function stateWithProgress(printer: PublicPrinter): string {
     : label;
 }
 
+function errorDetail(code: string | null): string {
+  const suffix = '本体の画面で内容を確認できます。エラーが解消されると、この表示も自動で戻ります。';
+  if (code === null) return `プリンターがエラーを報告しています。${suffix}`;
+  const meaning = errorCodeMeaning(code);
+  const described = meaning === null ? '' : meaning.official ? `（${meaning.text}）` : `（${meaning.text}。公式の一覧には載っていません）`;
+  return `プリンターがエラーコード ${code}${described} を報告しています。${suffix}`;
+}
+
 export function noteFor(printerId: string): PrinterNote {
   return notes[printerId] ?? {};
 }
@@ -89,14 +98,18 @@ export function describePrinter(printer: PublicPrinter, now = new Date()): Print
 
   if (printer.availability === 'online' || printer.availability === 'stale') {
     const delayed = printer.availability === 'stale';
+    const details = [
+      printer.state === 'error' ? errorDetail(printer.errorCode) : null,
+      delayed && printer.stateObservedAt
+        ? `更新が遅れています（${timeFormatter.format(new Date(printer.stateObservedAt))} 時点）`
+        : null,
+    ].filter((detail) => detail !== null);
     return {
       ...base,
       label: stateWithProgress(printer),
       tone: stateTone[printer.state],
       available: !delayed && stateTone[printer.state] === 'free',
-      detail: delayed && printer.stateObservedAt
-        ? `更新が遅れています（${timeFormatter.format(new Date(printer.stateObservedAt))} 時点）`
-        : null,
+      detail: details.length > 0 ? details.join(' ') : null,
     };
   }
 
