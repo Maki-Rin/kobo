@@ -12,5 +12,12 @@
     "avatar": "/images/yamamoto.webp",
     "bio": "",
     "memberId": null
+  },
+  {
+    "id": "t-n",
+    "name": "T.N.",
+    "avatar": "/images/people/t-n/avatar-mwt3dbm3l7j4.jpg",
+    "bio": "KOBO_イベント部所属",
+    "memberId": "994f7294-ea30-4510-b03c-424e5d10c7c1"
   }
 ]
