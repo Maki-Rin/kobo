@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PrinterApiResult, PublicPrinter, PublicPrintersResponse } from '@/lib/printer-types';
 import { parsePrinterApiResult } from '@/lib/printer-types';
-import { describePrinter, printerLayout, tonePriority, toneStyles } from '@/lib/printer-display';
+import { describePrinter, numberedOrderClass, printerLayout, tonePriority, toneStyles } from '@/lib/printer-display';
 import { pollWhileVisible } from '@/lib/visible-polling';
 
 function formatDate(value: string): string {
@@ -56,7 +56,7 @@ const outcomeStyles: Record<NonNullable<PublicPrinter['lastWork']>['outcome'], s
   unknown: 'bg-slate-100 text-slate-700',
 };
 
-function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
+function PrinterCard({ printer, now, className }: { printer: PublicPrinter; now: Date; className: string }) {
   const view = describePrinter(printer, now);
   const isCurrent = printer.availability === 'online';
   const work = printer.currentWork;
@@ -66,7 +66,7 @@ function PrinterCard({ printer, now }: { printer: PublicPrinter; now: Date }) {
       : null;
 
   return (
-    <article className={`rounded-lg border border-neutral-200 p-5 shadow-sm ${view.tone === 'off' ? 'bg-neutral-50' : 'bg-white'}`}>
+    <article className={`${className} rounded-lg border border-neutral-200 p-5 shadow-sm ${view.tone === 'off' ? 'bg-neutral-50' : 'bg-white'}`}>
       <div className='flex items-start justify-between gap-4'>
         <div>
           <h2 className='text-xl font-bold'>{printer.displayName}</h2>
@@ -189,16 +189,17 @@ export default function PrinterStatus({ initialResult }: { initialResult: Printe
         </div>
       ) : (
         <div className='space-y-2'>
-          <p className='text-xs text-neutral-500'>現地の置き場所と同じ並びです（上の段 4〜1、下の段 8〜5）。</p>
+          <p className='hidden text-xs text-neutral-500 xl:block'>現地の置き場所と同じ並びです（上の段 4〜1、下の段 8〜5）。</p>
           <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
             {[...printerLayout, ...unplaced.map((printer) => printer.id)].map((id) => {
               const printer = data?.printers.find((item) => item.id === id);
+              const order = `${numberedOrderClass(id)} xl:order-none`;
               return printer ? (
-                <PrinterCard key={id} printer={printer} now={now} />
+                <PrinterCard key={id} printer={printer} now={now} className={order} />
               ) : (
                 <div
                   key={id}
-                  className='flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 p-5 text-center text-sm text-neutral-500'
+                  className={`${order} flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 p-5 text-center text-sm text-neutral-500`}
                 >
                   <span className='font-bold'>KOBO Printer {Number(id.slice(-2))}</span>
                   <span>まだ登録していません</span>

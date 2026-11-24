@@ -151,6 +151,12 @@ export const toneDots: Record<Tone, string> = {
 
 export const printerLayout = ['ad5mp-04', 'ad5mp-03', 'ad5mp-02', 'ad5mp-01', 'ad5mp-08', 'ad5mp-07', 'ad5mp-06', 'ad5mp-05'];
 
+const numberedOrder = ['order-1', 'order-2', 'order-3', 'order-4', 'order-5', 'order-6', 'order-7', 'order-8'];
+
+export function numberedOrderClass(id: string): string {
+  return numberedOrder[Number(id.slice(-2)) - 1] ?? 'order-last';
+}
+
 export function orderForLayout(printers: PublicPrinter[]): PublicPrinter[] {
   const rank = (id: string) => {
     const index = printerLayout.indexOf(id);
