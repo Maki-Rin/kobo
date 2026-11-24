@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { PublicPrinter } from '@/lib/printer-types';
 import { parsePrinterApiResult } from '@/lib/printer-types';
-import { describePrinter, orderForLayout, toneDots } from '@/lib/printer-display';
+import { describePrinter, numberedOrderClass, orderForLayout, toneDots } from '@/lib/printer-display';
 import { pollWhileVisible } from '@/lib/visible-polling';
 import OpenHours from './OpenHours';
 
@@ -43,12 +43,12 @@ export default function CompactPrinterStatus() {
           <OpenHours compact />
         </div>
 
-        <div className='flex min-w-0 flex-1 flex-wrap gap-x-7 gap-y-3'>
+        <div className='grid min-w-0 flex-1 grid-cols-2 gap-x-7 gap-y-3 lg:grid-cols-4'>
           {now &&
             orderForLayout(printers ?? []).map((printer) => {
               const view = describePrinter(printer, now);
               return (
-                <div key={printer.id} className='flex min-w-40 items-center gap-3'>
+                <div key={printer.id} className={`${numberedOrderClass(printer.id)} flex min-w-0 items-center gap-3 lg:order-none`}>
                   <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${toneDots[view.tone]}`} aria-hidden='true' />
                   <div className='min-w-0'>
                     <p className='truncate text-sm font-semibold'>{printer.displayName}</p>
@@ -57,8 +57,8 @@ export default function CompactPrinterStatus() {
                 </div>
               );
             })}
-          {printers?.length === 0 && <p className='text-sm text-neutral-500'>登録されたプリンターはありません。</p>}
-          {printers === null && <p className='text-sm text-neutral-500'>{unavailable ? '現在、状態を取得できません。' : '状態を確認しています。'}</p>}
+          {printers?.length === 0 && <p className='col-span-full text-sm text-neutral-500'>登録されたプリンターはありません。</p>}
+          {printers === null && <p className='col-span-full text-sm text-neutral-500'>{unavailable ? '現在、状態を取得できません。' : '状態を確認しています。'}</p>}
         </div>
       </div>
     </section>
